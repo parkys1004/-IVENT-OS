@@ -19,9 +19,11 @@ export default function Login() {
     getRedirectResult(auth).catch((error) => {
       console.error("Redirect Auth Error:", error);
       if (error?.message?.includes('unauthorized-domain')) {
-         setErrorMsg('도메인 승인 오류(403): Firebase Console의 [Authentication > Settings > Authorized domains]에 현재 주소를 추가해야 페이지 방식 로그인이 작동합니다.');
+         setErrorMsg('도메인 승인 오류(403): Firebase Console의 [Authentication > Settings > Authorized domains]에 현재 주소(아래)를 추가해야 페이지 방식 로그인이 작동합니다.');
+      } else if (error?.message?.includes('missing initial state') || error?.message?.includes('storage-partitioned')) {
+         setErrorMsg('브라우저 보안 알림: 현재 화면(미리보기 창)은 "아이프레임(Iframe)" 내부이므로 브라우저가 보안상 페이지 이동을 차단했습니다. 반드시 우측 상단의 "🔗 새 탭에서 열기"를 누른 후 거기서 로그인해주세요.');
       } else {
-         setErrorMsg(`로그인 처리 중 오류 발생: ${error.message}`);
+         setErrorMsg(`로그인 오류 발생: ${error.message}`);
       }
     });
 
@@ -153,13 +155,21 @@ export default function Login() {
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
               <p className="leading-snug">{errorMsg}</p>
             </div>
-            {errorMsg.includes('403') && (
+            {(errorMsg.includes('403') || errorMsg.includes('보안상 페이지 이동을 차단')) && (
               <div className="flex items-start gap-2 w-full mt-2 pt-2 border-t border-rose-200/50 text-rose-600/90 font-medium">
                 <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                <p className="leading-relaxed text-[12px]">
-                   현재 미리보기 환경에서 "페이지 이동 방식" 로그인을 쓰려면 구글 보안 정책상 다음 도메인을 허용해야 합니다: <br/>
-                   <strong className="select-all block mt-1 p-1 bg-white/50 rounded break-all">{window.location.origin}</strong>
-                </p>
+                <div className="leading-relaxed text-[12px]">
+                   {errorMsg.includes('403') ? (
+                     <>
+                        현재 미리보기 환경에서 "페이지 이동 방식" 로그인을 쓰려면 구글 보안 정책상 다음 도메인을 허용해야 합니다: <br/>
+                        <strong className="select-all block mt-1 p-1 bg-white/50 rounded break-all">{window.location.origin}</strong>
+                     </>
+                   ) : (
+                     <>
+                        구글의 "화면 전체 페이지 이동 방식(Redirect)" 로그인은 정보 유출 방지를 위해 아이프레임 안에서 실행될 때 저장소 접근(Session Storage)을 차단합니다. <strong>반드시 새 창으로 열어서 테스트해주세요!</strong>
+                     </>
+                   )}
+                </div>
               </div>
             )}
           </motion.div>

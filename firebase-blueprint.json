@@ -1,0 +1,66 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "host", "admin"] },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Details of an event created by a host",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "timestamp" },
+        "endDate": { "type": "timestamp" },
+        "locationName": { "type": "string" },
+        "locationAddress": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "maxAttendees": { "type": "number" },
+        "currentAttendees": { "type": "number" },
+        "hostId": { "type": "string" },
+        "hostName": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "published", "cancelled"] },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["title", "description", "category", "date", "endDate", "locationName", "maxAttendees", "currentAttendees", "hostId", "hostName", "status", "createdAt"]
+    },
+    "Registration": {
+      "title": "Registration",
+      "description": "A user's registration for an event",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "registeredAt": { "type": "timestamp" },
+        "status": { "type": "string", "enum": ["confirmed", "cancelled"] }
+      },
+      "required": ["eventId", "userId", "registeredAt", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles"
+    },
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/Event" },
+      "description": "Stores event information"
+    },
+    "/registrations/{registrationId}": {
+      "schema": { "$ref": "#/entities/Registration" },
+      "description": "Stores event registrations"
+    }
+  }
+}

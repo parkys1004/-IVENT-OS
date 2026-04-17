@@ -1,6 +1,9 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 @import "tailwindcss";
 
+/* Allow manual toggling of dark mode via class on html */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-slate-50: #F8FAFC;
   --color-slate-100: #F1F5F9;

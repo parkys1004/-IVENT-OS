@@ -127,27 +127,27 @@ export default function ParticipantDashboard() {
             <EventCard key={event.id} event={event} featured={true} index={idx} />
           ))}
           {endingSoon.length === 0 && (
-            <div className="w-full h-full min-h-[300px] bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500 flex items-center justify-center">
+            <div className="w-full h-full min-h-[300px] bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 flex items-center justify-center">
               현재 마감 임박 행사가 없습니다.
             </div>
           )}
         </div>
         
         <div className="flex flex-col gap-4 xl:gap-6 justify-start">
-          <div className="bg-white border border-slate-200 rounded-[12px] p-5 flex justify-between items-center shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[12px] p-5 flex justify-between items-center shadow-sm transition-colors">
             <div>
-              <div className="text-[13px] text-slate-500 font-medium mb-1">실시간 누적 예매율</div>
-              <div className="text-[24px] font-bold text-indigo-600">{bookingRate}%</div>
+              <div className="text-[13px] text-slate-500 dark:text-slate-400 font-medium mb-1">실시간 누적 예매율</div>
+              <div className="text-[24px] font-bold text-indigo-600 dark:text-indigo-400">{bookingRate}%</div>
             </div>
-            <div className="text-[#10B981] font-bold text-sm bg-emerald-50 px-2.5 py-1.5 rounded-md">↑ 12%</div>
+            <div className="text-[#10B981] font-bold text-sm bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1.5 rounded-md">↑ 12%</div>
           </div>
           
-          <div className="bg-white border border-slate-200 rounded-[12px] p-5 flex justify-between items-center shadow-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[12px] p-5 flex justify-between items-center shadow-sm transition-colors">
             <div>
-              <div className="text-[13px] text-slate-500 font-medium mb-1">금일 방문자수</div>
-              <div className="text-[24px] font-bold text-indigo-600">1,284</div>
+              <div className="text-[13px] text-slate-500 dark:text-slate-400 font-medium mb-1">금일 방문자수</div>
+              <div className="text-[24px] font-bold text-indigo-600 dark:text-indigo-400">1,284</div>
             </div>
-            <div className="text-[#10B981] font-bold text-sm bg-emerald-50 px-2.5 py-1.5 rounded-md">↑ 45%</div>
+            <div className="text-[#10B981] font-bold text-sm bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1.5 rounded-md">↑ 45%</div>
           </div>
         </div>
       </section>
@@ -162,8 +162,8 @@ export default function ParticipantDashboard() {
               className={clsx(
                 "px-6 py-3 rounded-[12px] text-[14px] font-bold whitespace-nowrap transition-colors",
                 filter === cat 
-                  ? "bg-slate-800 text-white shadow-md shadow-slate-200" 
-                  : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+                  ? "bg-slate-800 dark:bg-indigo-600 text-white shadow-md shadow-slate-200 dark:shadow-none" 
+                  : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
               )}
             >
               {cat === 'all' ? '전체 보기' : cat}
@@ -175,23 +175,23 @@ export default function ParticipantDashboard() {
       {/* Event Grid */}
       <section>
         <div className="flex justify-between items-end mb-6">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800">예정된 행사</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">예정된 행사</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 xl:gap-8">
           {others.map((event, idx) => (
             <EventCard key={event.id} event={event} index={idx} />
           ))}
           {others.length === 0 && events.length > 1 && (
-             <div className="col-span-full py-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200 border-dashed">
+             <div className="col-span-full py-12 text-center text-slate-500 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 border-dashed">
              해당 카테고리의 행사가 없습니다.
            </div>
           )}
           {events.length === 0 && (
-            <div className="col-span-full bg-white rounded-2xl shadow-sm border border-slate-200 p-16 text-center">
-              <CalendarDays className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-lg font-medium text-slate-800 mb-1">등록된 행사가 없습니다.</h3>
-              <p className="text-slate-500 mb-4 text-sm">첫 번째 행사를 만들어보세요!</p>
-              <Link to="/create" className="text-indigo-600 font-bold hover:text-indigo-500">
+            <div className="col-span-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-16 text-center transition-colors">
+              <CalendarDays className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-4" />
+              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-1">등록된 행사가 없습니다.</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">첫 번째 행사를 만들어보세요!</p>
+              <Link to="/create" className="text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-500">
                 행사 만들기 &rarr;
               </Link>
             </div>
@@ -258,10 +258,10 @@ function EventCard({ event, featured = false, index }: { event: EventData, featu
     >
       <Link 
         to={`/event/${event.id}`}
-        className="group flex flex-col h-full bg-white rounded-[20px] border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-slate-300 transition-all duration-300 overflow-hidden"
+        className="group flex flex-col h-full bg-white dark:bg-slate-900 rounded-[20px] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 overflow-hidden"
       >
         {event.imageUrl ? (
-          <div className="w-full h-[180px] xl:h-[220px] bg-slate-100 overflow-hidden relative">
+          <div className="w-full h-[180px] xl:h-[220px] bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
             <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
             <div className="absolute top-4 left-4">
               <span className="inline-block px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/90 text-indigo-700 shadow-sm backdrop-blur">
@@ -270,8 +270,8 @@ function EventCard({ event, featured = false, index }: { event: EventData, featu
             </div>
           </div>
         ) : (
-          <div className="w-full h-[180px] xl:h-[220px] bg-slate-50 flex flex-col items-center justify-center relative">
-            <CalendarDays className="w-12 h-12 text-slate-300 mb-2" />
+          <div className="w-full h-[180px] xl:h-[220px] bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center relative">
+            <CalendarDays className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2" />
             <div className="absolute top-4 left-4">
               <span className="inline-block px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white border border-slate-200 text-indigo-700 shadow-sm">
                 {event.category}
@@ -281,30 +281,30 @@ function EventCard({ event, featured = false, index }: { event: EventData, featu
         )}
 
         <div className="p-6 flex flex-col flex-1">
-          <h3 className="font-extrabold text-slate-800 text-[18px] xl:text-[20px] leading-[1.4] line-clamp-2 mb-4 group-hover:text-indigo-600 transition-colors">
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-[18px] xl:text-[20px] leading-[1.4] line-clamp-2 mb-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
             {event.title}
           </h3>
 
-          <div className="text-[14px] text-slate-500 space-y-2.5 mb-6">
+          <div className="text-[14px] text-slate-500 dark:text-slate-400 space-y-2.5 mb-6">
             <div className="flex items-center gap-2 truncate">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" /> <span className="truncate">{event.locationName}</span>
+              <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" /> <span className="truncate">{event.locationName}</span>
             </div>
             <div className="flex items-center gap-2">
-               <Clock className="w-4 h-4 text-slate-400 shrink-0" /> <span>{format(dateObj, 'M월 d일 (E) a h:mm', { locale: ko })}</span>
+               <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" /> <span>{format(dateObj, 'M월 d일 (E) a h:mm', { locale: ko })}</span>
             </div>
           </div>
 
-          <div className="mt-auto pt-5 border-t border-slate-100 flex items-center justify-between">
+          <div className="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex -space-x-2">
-               <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center"><Users className="w-3.5 h-3.5 text-slate-500"/></div>
-               <div className="w-8 h-8 rounded-full bg-indigo-50 border-2 border-white shadow-sm flex items-center justify-center text-[11px] text-indigo-600 font-bold">+{event.currentAttendees}</div>
+               <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900 shadow-sm flex items-center justify-center"><Users className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"/></div>
+               <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/50 border-2 border-white dark:border-slate-900 shadow-sm flex items-center justify-center text-[11px] text-indigo-600 dark:text-indigo-400 font-bold">+{event.currentAttendees}</div>
             </div>
             
             <div className="text-[13px] font-bold flex flex-col items-end gap-1.5 focus-visible:outline-none">
-              <span className={clsx("text-right", isFull ? "text-red-500" : "text-slate-500")}>
+              <span className={clsx("text-right", isFull ? "text-red-500" : "text-slate-500 dark:text-slate-400")}>
                 {isFull ? "마감" : `${fillPercentage}%`}
               </span>
-              <div className="w-24 lg:w-32 bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div className="w-24 lg:w-32 bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                  <div 
                     className={clsx(
                       "h-full rounded-full transition-all duration-1000",

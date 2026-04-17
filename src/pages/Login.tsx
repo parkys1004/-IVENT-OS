@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginWithGoogle } from '../firebase';
+import { loginWithGoogle, auth } from '../firebase';
+import { getRedirectResult } from 'firebase/auth';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, ShieldCheck, AlertCircle } from 'lucide-react';
+import { User, ShieldCheck, AlertCircle, Info } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,8 +14,17 @@ export default function Login() {
   const [selectedRole, setSelectedRole] = useState<'user' | 'host' | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // If user is already logged in, redirect them to dashboard
   useEffect(() => {
+    // Check if there was an error returning from the Google redirect
+    getRedirectResult(auth).catch((error) => {
+      console.error("Redirect Auth Error:", error);
+      if (error?.message?.includes('unauthorized-domain')) {
+         setErrorMsg('도메인 승인 오류(403): Firebase Console의 [Authentication > Settings > Authorized domains]에 현재 주소를 추가해야 페이지 방식 로그인이 작동합니다.');
+      } else {
+         setErrorMsg(`로그인 처리 중 오류 발생: ${error.message}`);
+      }
+    });
+
     if (user) {
       navigate('/');
     }
@@ -31,16 +41,10 @@ export default function Login() {
     window.sessionStorage.setItem('intendedRole', selectedRole);
     try {
       await loginWithGoogle();
-      navigate('/');
+      // App unloads here due to redirect
     } catch (error: any) {
-      if (error?.code === 'auth/popup-closed-by-user') {
-        // User just closed the popup manually, no need to show a huge error
-        setErrorMsg(null);
-      } else {
-        setErrorMsg('로그인 팝업이 차단되었거나 문제가 발생했습니다. 우측 상단의 "🔗 새 탭에서 열기"를 눌러 시도해주세요.');
-      }
+      setErrorMsg(`로그인 페이지 이동 실패: ${error.message}`);
       window.sessionStorage.removeItem('intendedRole');
-    } finally {
       setLoading(false);
     }
   };
@@ -143,10 +147,21 @@ export default function Login() {
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 flex items-start gap-2 text-left bg-rose-50 text-rose-600 font-bold text-[13px] px-4 py-3 rounded-xl border border-rose-100"
+            className="mt-6 flex flex-col items-start gap-2 text-left bg-rose-50 text-rose-700 font-bold text-[13px] px-5 py-4 rounded-xl border border-rose-100"
           >
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <p className="leading-snug">{errorMsg}</p>
+            <div className="flex items-start gap-2 w-full mb-1">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
+              <p className="leading-snug">{errorMsg}</p>
+            </div>
+            {errorMsg.includes('403') && (
+              <div className="flex items-start gap-2 w-full mt-2 pt-2 border-t border-rose-200/50 text-rose-600/90 font-medium">
+                <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                <p className="leading-relaxed text-[12px]">
+                   현재 미리보기 환경에서 "페이지 이동 방식" 로그인을 쓰려면 구글 보안 정책상 다음 도메인을 허용해야 합니다: <br/>
+                   <strong className="select-all block mt-1 p-1 bg-white/50 rounded break-all">{window.location.origin}</strong>
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
 

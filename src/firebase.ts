@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { initializeFirestore, memoryLocalCache, doc, getDocFromServer } from 'firebase/firestore';
 
 import firebaseConfig from '../firebase-applet-config.json';
@@ -16,9 +16,10 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const loginWithGoogle = async () => {
   try {
-    await signInWithRedirect(auth, googleProvider);
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
   } catch (error) {
-    console.error("Login redirect failed:", error);
+    console.error("Login failed:", error);
     throw error;
   }
 };

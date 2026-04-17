@@ -58,7 +58,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // DO NOT throw error here, it causes React to unmount completely (White Screen of Death) 
+  // on transient auth state changes or logout events.
 }
 
 interface EventData {
@@ -96,6 +97,7 @@ export default function ParticipantDashboard() {
       setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'events');
+      setLoading(false); // Make sure to stop spinner on error
     });
 
     return () => unsubscribe();

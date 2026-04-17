@@ -5,6 +5,7 @@ import EventDetail from './pages/EventDetail';
 import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
 import Login from './pages/Login';
+import MyPage from './pages/MyPage';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/create" element={<CreateEvent />} />
           <Route path="/edit/:id" element={<EditEvent />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/mypage" element={<MyPage />} />
         </Routes>
       </main>
     </div>

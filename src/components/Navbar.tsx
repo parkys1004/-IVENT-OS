@@ -31,7 +31,7 @@ export default function Navbar() {
                   </Link>
                 )}
                 
-                <span className="text-sm font-medium text-slate-800 flex items-center gap-3">
+                <Link to="/mypage" className="text-sm font-medium text-slate-800 flex items-center gap-3 hover:bg-slate-50 py-1.5 px-3 rounded-xl transition-colors">
                   <div className="hidden md:flex flex-col text-right">
                     <span>{profile?.displayName || user.email?.split('@')[0]}</span>
                     <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">
@@ -39,7 +39,7 @@ export default function Navbar() {
                     </span>
                   </div>
                   <div className="w-8 h-8 bg-slate-200 rounded-full border border-slate-200 shrink-0 shadow-sm" style={user.photoURL ? {backgroundImage: `url(${user.photoURL})`, backgroundSize: 'cover'} : {}}></div>
-                </span>
+                </Link>
                 
                 <button
                   onClick={logout}

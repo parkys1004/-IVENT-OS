@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginWithGoogle } from '../firebase';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, ShieldCheck } from 'lucide-react';
+import { User, ShieldCheck, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,6 +11,7 @@ export default function Login() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'user' | 'host' | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // If user is already logged in, redirect them to dashboard
   useEffect(() => {
@@ -21,17 +22,23 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!selectedRole) {
-      alert("로그인 전 역할을 선택해주세요!");
+      setErrorMsg("로그인 전 역할을 먼저 선택해주세요!");
       return;
     }
+    setErrorMsg(null);
     setLoading(true);
     // Intent stored for AuthContext
     window.sessionStorage.setItem('intendedRole', selectedRole);
     try {
       await loginWithGoogle();
       navigate('/');
-    } catch (error) {
-      alert('로그인 처리 중 문제가 발생했습니다. 브라우저 팝업 차단을 확인해주세요.');
+    } catch (error: any) {
+      if (error?.code === 'auth/popup-closed-by-user') {
+        // User just closed the popup manually, no need to show a huge error
+        setErrorMsg(null);
+      } else {
+        setErrorMsg('로그인 팝업이 차단되었거나 문제가 발생했습니다. 우측 상단의 "🔗 새 탭에서 열기"를 눌러 시도해주세요.');
+      }
       window.sessionStorage.removeItem('intendedRole');
     } finally {
       setLoading(false);
@@ -116,10 +123,10 @@ export default function Login() {
               animate={{ opacity: selectedRole ? 1 : 0.5 }}
               onClick={() => {
                 if (!selectedRole) {
-                  alert("로그인 전 역할을 선택해주세요!");
+                  setErrorMsg("로그인 전 역할을 먼저 선택해주세요!");
                   return;
                 }
-                alert("카카오 로그인을 위해서는 카카오 디벨로퍼스(Kakao Developers) 애플리케이션 등록 및 Firebase OIDC 연동 등 관리자 설정이 필요합니다. 연동 설정 안내가 필요하시면 말씀해주세요.");
+                setErrorMsg("카카오 로그인을 위해서는 외부 연동 절차(API 키 발급, Firebase 공급자 설정 등)가 필요하여 현재 미리보기 환경에선 지원되지 않습니다.");
               }}
               disabled={!selectedRole || loading}
               className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-black/85 font-bold py-4 px-6 rounded-[14px] hover:bg-[#FEE500]/90 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -131,6 +138,17 @@ export default function Login() {
             </motion.button>
           </div>
         </AnimatePresence>
+
+        {errorMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 flex items-start gap-2 text-left bg-rose-50 text-rose-600 font-bold text-[13px] px-4 py-3 rounded-xl border border-rose-100"
+          >
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <p className="leading-snug">{errorMsg}</p>
+          </motion.div>
+        )}
 
         <p className="mt-8 text-[13px] text-slate-400">
           가입 시 서비스 이용약관 및 개인정보 처리방침에 동의하게 됩니다.

@@ -6,6 +6,7 @@ import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
+import AdminDashboard from './pages/AdminDashboard'; // Import AdminDashboard directly
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       <main className="w-full mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 py-8 lg:py-12 flex-1 flex flex-col">
         <Routes>
           <Route path="/" element={<DashboardSwitcher />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/event/:id" element={<EventDetail />} />
           <Route path="/create" element={<CreateEvent />} />
           <Route path="/edit/:id" element={<EditEvent />} />

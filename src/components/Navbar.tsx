@@ -30,6 +30,15 @@ export default function Navbar() {
 
             {user ? (
               <>
+                {profile?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="inline-flex items-center px-4 py-2 border border-slate-200 dark:border-slate-700 text-[13px] font-bold rounded-lg shadow-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    관리자 대시보드
+                  </Link>
+                )}
+                
                 {(profile?.role === 'host' || profile?.role === 'admin') && (
                   <Link
                     to="/create"

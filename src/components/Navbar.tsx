@@ -59,8 +59,12 @@ export default function Navbar() {
                 <Link to="/mypage" className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 py-1.5 px-3 rounded-xl transition-colors">
                   <div className="hidden md:flex flex-col text-right">
                     <span>{profile?.displayName || user.email?.split('@')[0]}</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">
-                      {profile?.role === 'admin' ? '관리자' : profile?.role === 'host' ? '주최자' : '참여자'}
+                    <span className="text-[10px] text-orange-500 dark:text-amber-400 uppercase tracking-wider font-bold">
+                      {profile?.role === 'admin' ? '관리자' : 
+                       profile?.role === 'host' ? '주최자' : 
+                       profile?.role === 'dj' ? 'DJ' : 
+                       profile?.role === 'instructor' ? '강사' : 
+                       profile?.role === 'media' ? '포토/영상' : '참여자'}
                     </span>
                   </div>
                   <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-600 shrink-0 shadow-sm" style={user.photoURL ? {backgroundImage: `url(${user.photoURL})`, backgroundSize: 'cover'} : {}}></div>
@@ -77,7 +81,7 @@ export default function Navbar() {
             ) : (
               <Link
                 to="/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-[13px] font-bold rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-[13px] font-bold rounded-lg shadow-sm text-white bg-orange-500 hover:bg-orange-600 shadow-orange-500/20 transition-colors"
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 로그인 / 회원가입

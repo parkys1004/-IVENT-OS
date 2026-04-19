@@ -7,6 +7,7 @@ import { ko } from 'date-fns/locale';
 import { motion } from 'motion/react';
 import { MapPin, Users, CalendarDays, Clock, Flame } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '../context/AuthContext';
 
 // Error handling spec
 enum OperationType {
@@ -82,6 +83,7 @@ interface EventData {
 }
 
 export default function ParticipantDashboard() {
+  const { profile } = useAuth();
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -116,7 +118,7 @@ export default function ParticipantDashboard() {
   const others = filteredEvents.slice(1);
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div></div>;
   }
 
   // Calculate some fake stats based on events
@@ -125,7 +127,20 @@ export default function ParticipantDashboard() {
   const bookingRate = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
 
   return (
-    <div className="space-y-8 md:space-y-12 w-full">
+    <div className="space-y-8 md:space-y-12 w-full pb-20">
+      
+      {/* Header section (Added for Participant greeting) */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div className="text-center sm:text-left z-10 flex-1">
+          <p className="text-orange-500 font-bold mb-1">{profile?.displayName || '참여자'}님, 댄스하이브에 오신 것을 환영합니다! 🐝</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white mb-2">오늘의 인기 행사와 소식을 확인해보세요</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
+            마감 임박 행사와 다양한 장르의 댄스 이벤트를 한 화면에서 만나보세요.
+          </p>
+        </div>
+      </div>
+
       {/* Hero / Banner Area + Stats Grid equivalent to the dashboard layout */}
       <section className="grid grid-cols-1 lg:grid-cols-[2.5fr_1fr] 2xl:grid-cols-[3.5fr_1fr] gap-6 xl:gap-8">
         <div className="flex flex-col h-full min-h-[300px]">

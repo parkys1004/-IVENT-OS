@@ -19,7 +19,7 @@ interface EventData {
 }
 
 export default function HostDashboard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [myEvents, setMyEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +56,20 @@ export default function HostDashboard() {
   const activeEvents = myEvents.filter(e => e.status === 'published').length;
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-8 pb-20">
+      
+      {/* Header section */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div className="text-center sm:text-left z-10 flex-1">
+          <p className="text-orange-500 font-bold mb-1">{profile?.displayName || '주최자'}님, 오늘도 멋진 행사를 준비해보세요! 🎉</p>
+          <h1 className="text-3xl font-black text-slate-800 dark:text-white mb-2">현재 {activeEvents}개의 행사를 진행 중입니다</h1>
+          <p className="text-slate-500 dark:text-slate-400">
+            예매율, 방문자 통계 등을 한눈에 확인하고 이벤트를 관리하세요.
+          </p>
+        </div>
+      </div>
+
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center">

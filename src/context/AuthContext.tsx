@@ -56,7 +56,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
-export type UserRole = 'user' | 'host' | 'admin';
+export type UserRole = 'user' | 'host' | 'admin' | 'dj' | 'instructor' | 'media';
 
 export interface UserProfile {
   uid: string;

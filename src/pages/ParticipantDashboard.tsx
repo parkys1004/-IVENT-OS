@@ -69,7 +69,13 @@ interface EventData {
   date: any;
   endDate: any;
   locationName: string;
+  formattedAddress?: string;
+  country?: string;
+  city?: string;
+  geoPoint?: { lat: number, lng: number };
   imageUrl?: string;
+  imageUrls?: string[];
+  coverImageIndex?: number;
   maxAttendees: number;
   currentAttendees: number;
   status: string;
@@ -177,7 +183,7 @@ export default function ParticipantDashboard() {
         <div className="flex justify-between items-end mb-6">
           <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">예정된 행사</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 xl:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
           {others.map((event, idx) => (
             <EventCard key={event.id} event={event} index={idx} />
           ))}
@@ -202,11 +208,14 @@ export default function ParticipantDashboard() {
   );
 }
 
-function EventCard({ event, featured = false, index }: { event: EventData, featured?: boolean, index: number }) {
+function EventCard({ event, featured = false, index }: { event: EventData, featured?: boolean, index: number, key?: string | number }) {
   const isFull = event.currentAttendees >= event.maxAttendees;
   const fillPercentage = Math.min((event.currentAttendees / event.maxAttendees) * 100, 100);
   
   const dateObj = event.date?.toDate ? event.date.toDate() : new Date();
+  const coverImage = event.imageUrls && event.imageUrls.length > 0 && event.coverImageIndex !== undefined 
+                       ? event.imageUrls[event.coverImageIndex] 
+                       : (event.imageUrl || null);
   
   if (featured) {
     return (
@@ -220,9 +229,9 @@ function EventCard({ event, featured = false, index }: { event: EventData, featu
           to={`/event/${event.id}`}
           className="group relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-br from-indigo-600 to-violet-600"
         >
-          {event.imageUrl && (
+          {coverImage && (
             <div className="absolute inset-0 opacity-40 mix-blend-overlay">
-              <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" referrerPolicy="no-referrer" />
+              <img src={coverImage} alt={event.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" referrerPolicy="no-referrer" />
             </div>
           )}
           
@@ -260,9 +269,9 @@ function EventCard({ event, featured = false, index }: { event: EventData, featu
         to={`/event/${event.id}`}
         className="group flex flex-col h-full bg-white dark:bg-slate-900 rounded-[20px] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 overflow-hidden"
       >
-        {event.imageUrl ? (
+        {coverImage ? (
           <div className="w-full h-[180px] xl:h-[220px] bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
-            <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+            <img src={coverImage} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
             <div className="absolute top-4 left-4">
               <span className="inline-block px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/90 text-indigo-700 shadow-sm backdrop-blur">
                 {event.category}

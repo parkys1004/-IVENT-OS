@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Clock, MapPin, Users, FileText, Image as ImageIcon } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, FileText, Image as ImageIcon, Upload, X, Star } from 'lucide-react';
 import { format } from 'date-fns';
+import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import clsx from 'clsx';
+
+const LIBRARIES: ("places")[] = ["places"];
 
 export default function EditEvent() {
   const { id } = useParams();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -23,9 +28,52 @@ export default function EditEvent() {
     endDate: '',
     endTime: '',
     locationName: '',
+    formattedAddress: '',
+    country: '',
+    city: '',
+    geoPoint: null as { lat: number, lng: number } | null,
     imageUrl: '',
     maxAttendees: 50,
   });
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries: LIBRARIES,
+    language: 'ko',
+  });
+
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+
+  const onPlaceChanged = () => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
+      
+      let city = '';
+      let country = '';
+      
+      place.address_components?.forEach(component => {
+        if (component.types.includes('country')) country = component.short_name;
+        if (component.types.includes('locality')) city = component.long_name;
+        else if (component.types.includes('administrative_area_level_1') && !city) city = component.long_name;
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        locationName: place.name || place.formatted_address || prev.locationName,
+        formattedAddress: place.formatted_address || '',
+        country: country,
+        city: city,
+        geoPoint: place.geometry?.location ? {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        } : prev.geoPoint
+      }));
+    }
+  };
+
+  const [images, setImages] = useState<string[]>([]);
+  const [coverImageIndex, setCoverImageIndex] = useState<number>(0);
+  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -49,9 +97,17 @@ export default function EditEvent() {
             endDate: format(endDateObj, 'yyyy-MM-dd'),
             endTime: format(endDateObj, 'HH:mm'),
             locationName: data.locationName || '',
+            formattedAddress: data.formattedAddress || '',
+            country: data.country || '',
+            city: data.city || '',
+            geoPoint: data.geoPoint || null,
             imageUrl: data.imageUrl || '',
             maxAttendees: data.maxAttendees || 50,
           });
+
+          const loadedImages = data.imageUrls && data.imageUrls.length > 0 ? data.imageUrls : (data.imageUrl ? [data.imageUrl] : []);
+          setImages(loadedImages);
+          setCoverImageIndex(data.coverImageIndex || 0);
         } else {
           alert('행사를 찾을 수 없습니다.');
           navigate('/');
@@ -65,6 +121,98 @@ export default function EditEvent() {
     fetchEvent();
   }, [id, navigate]);
 
+  const resizeAndCompressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1000;
+          const MAX_HEIGHT = 1000;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Compress to WebP
+          const dataUrl = canvas.toDataURL('image/webp', 0.8);
+          resolve(dataUrl);
+        };
+        img.onerror = error => reject(error);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleImageUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const availableSlots = 3 - images.length;
+    if (availableSlots <= 0) {
+      alert("최대 3장의 이미지만 등록할 수 있습니다.");
+      return;
+    }
+
+    const filesToProcess = fileArray.slice(0, availableSlots);
+    
+    try {
+      setSubmitting(true);
+      const newImages = await Promise.all(filesToProcess.map(resizeAndCompressImage));
+      setImages(prev => [...prev, ...newImages]);
+    } catch (error) {
+      console.error("Image loading failed: ", error);
+      alert("이미지를 처리하는 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
+      if (multiFileInputRef.current) multiFileInputRef.current.value = '';
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    if (coverImageIndex === index) {
+      setCoverImageIndex(0);
+    } else if (coverImageIndex > index) {
+      setCoverImageIndex(prev => prev - 1);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile || !id) return;
@@ -74,6 +222,9 @@ export default function EditEvent() {
       const startDate = new Date(`${formData.date}T${formData.time}`);
       const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 
+      // We maintain imageUrl for backwards compatibility, using the selected cover image.
+      const mainImageUrl = images.length > 0 ? images[coverImageIndex] : '';
+
       const updatedEvent = {
         title: formData.title,
         description: formData.description,
@@ -81,7 +232,13 @@ export default function EditEvent() {
         date: startDate,
         endDate: endDate,
         locationName: formData.locationName,
-        imageUrl: formData.imageUrl || '',
+        formattedAddress: formData.formattedAddress,
+        country: formData.country,
+        city: formData.city,
+        geoPoint: formData.geoPoint,
+        imageUrl: mainImageUrl, 
+        imageUrls: images,
+        coverImageIndex: coverImageIndex,
         maxAttendees: Number(formData.maxAttendees),
       };
 
@@ -199,28 +356,136 @@ export default function EditEvent() {
         {/* Location */}
         <div>
           <label className="block text-[13px] font-bold text-slate-700 mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-slate-400"/> 장소</label>
-          <input
-            required
-            type="text"
-            name="locationName"
-            value={formData.locationName}
-            onChange={handleChange}
-            className="w-full rounded-[10px] border-slate-200 border bg-slate-50 px-4 py-3 text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
-            placeholder="예: 코엑스 오디토리움"
-          />
+          {isLoaded ? (
+            <Autocomplete
+              onLoad={setAutocomplete}
+              onPlaceChanged={onPlaceChanged}
+              options={{ componentRestrictions: { country: ["kr", "jp", "sg"] } }}
+            >
+              <input
+                required
+                type="text"
+                name="locationName"
+                value={formData.locationName}
+                onChange={handleChange}
+                className="w-full rounded-[10px] border-slate-200 border bg-slate-50 px-4 py-3 text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                placeholder="예: 강남역 쌍용플래티넘"
+              />
+            </Autocomplete>
+          ) : (
+            <input
+              required
+              type="text"
+              name="locationName"
+              value={formData.locationName}
+              onChange={handleChange}
+              className="w-full rounded-[10px] border-slate-200 border bg-slate-50 px-4 py-3 text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+              placeholder="예: 강남역 쌍용플래티넘"
+            />
+          )}
+          {formData.formattedAddress && (
+            <p className="mt-2 text-[12px] text-slate-500">
+              상세주소: {formData.formattedAddress} {formData.city && `(${formData.city}, ${formData.country})`}
+            </p>
+          )}
         </div>
 
-        {/* Image */}
+        {/* Image Upload */}
         <div>
-          <label className="block text-[13px] font-bold text-slate-700 mb-2 flex items-center"><ImageIcon className="w-4 h-4 mr-1 text-slate-400"/> 대표 이미지 (URL)</label>
-          <input
-            type="url"
-            name="imageUrl"
-            value={formData.imageUrl}
-            onChange={handleChange}
-            className="w-full rounded-[10px] border-slate-200 border bg-slate-50 px-4 py-3 text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
-            placeholder="https://..."
-          />
+          <label className="block text-[13px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+            <span className="flex items-center"><ImageIcon className="w-4 h-4 mr-1 text-slate-400"/> 행사 이미지 (선택)</span>
+            <span className="text-xs font-normal text-slate-500">{images.length} / 3 장</span>
+          </label>
+          
+          <div 
+            className={clsx(
+              "w-full rounded-2xl border-2 border-dashed transition-all p-6 text-center",
+              dragActive 
+                ? "border-indigo-500 bg-indigo-50" 
+                : "border-slate-300 bg-slate-50 hover:bg-slate-100"
+            )}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <input 
+              type="file" 
+              accept="image/*" 
+              multiple 
+              className="hidden" 
+              ref={multiFileInputRef} 
+              onChange={(e) => {
+                if (e.target.files) handleImageUpload(e.target.files);
+              }}
+            />
+            {images.length < 3 ? (
+              <div className="flex flex-col items-center justify-center space-y-3">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-200">
+                  <Upload className="w-5 h-5 text-indigo-500" />
+                </div>
+                <div>
+                  <button type="button" onClick={() => multiFileInputRef.current?.click()} className="text-indigo-600 font-bold hover:underline">이미지 선택</button>
+                  <span className="text-slate-500 text-sm"> 하거나 이 곳에 끌어다 놓으세요.</span>
+                </div>
+                <p className="text-xs text-slate-400">최대 3장 업로드 가능 (메인 1장, 서브 2장)</p>
+              </div>
+            ) : (
+               <div className="text-slate-500 text-sm py-4">
+                 최대 개수(3장)의 이미지가 등록되었습니다.
+               </div>
+            )}
+          </div>
+
+          {images.length > 0 && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {images.map((imgUrl, index) => (
+                <div key={index} className={clsx(
+                    "relative aspect-video sm:aspect-square md:aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all",
+                    coverImageIndex === index ? "border-indigo-500 shadow-md" : "border-slate-200"
+                  )}>
+                  <img src={imgUrl} alt={`Uploaded ${index}`} className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {coverImageIndex !== index && (
+                      <button 
+                        type="button" 
+                        onClick={() => setCoverImageIndex(index)}
+                        className="w-8 h-8 rounded-full bg-white/90 backdrop-blur text-slate-600 hover:text-indigo-600 shadow-sm flex items-center justify-center"
+                        title="대표 이미지로 설정"
+                      >
+                        <Star className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button 
+                      type="button" 
+                      onClick={() => removeImage(index)}
+                      className="w-8 h-8 rounded-full bg-white/90 backdrop-blur text-slate-600 hover:text-rose-600 shadow-sm flex items-center justify-center"
+                      title="이미지 삭제"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {coverImageIndex === index && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-indigo-500 text-white text-[11px] font-bold py-1.5 text-center">
+                      대표 이미지
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <span className="block text-[12px] font-bold text-slate-500 mb-2">또는 이미지 링크 직접 입력</span>
+            <input
+              type="url"
+              name="imageUrl"
+              value={formData.imageUrl}
+              onChange={handleChange}
+              className="w-full rounded-[10px] border-slate-200 border bg-slate-50 px-4 py-3 text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+              placeholder="https://..."
+            />
+          </div>
         </div>
 
         {/* Description */}

@@ -5,9 +5,12 @@ import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import clsx from 'clsx';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
+
+const LIBRARIES: ("places")[] = ["places"];
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -18,6 +21,14 @@ export default function EventDetail() {
   const [loading, setLoading] = useState(true);
   const [registration, setRegistration] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries: LIBRARIES,
+    language: 'ko'
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -109,7 +120,7 @@ export default function EventDetail() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400"></div></div>;
   }
 
   if (!event) return null;
@@ -117,6 +128,34 @@ export default function EventDetail() {
   const dateObj = event.date?.toDate ? event.date.toDate() : new Date();
   const endDateObj = event.endDate?.toDate ? event.endDate.toDate() : new Date();
   const isFull = event.currentAttendees >= event.maxAttendees;
+
+  // Handle images array fallback
+  const images = event.imageUrls && event.imageUrls.length > 0 ? event.imageUrls : (event.imageUrl ? [event.imageUrl] : []);
+
+  const openFullscreen = (index: number) => {
+    setCurrentImageIndex(index);
+    setFullscreenImage(images[index]);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeFullscreen = () => {
+    setFullscreenImage(null);
+    document.body.style.overflow = 'unset';
+  };
+
+  const showNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextIdx = (currentImageIndex + 1) % images.length;
+    setCurrentImageIndex(nextIdx);
+    setFullscreenImage(images[nextIdx]);
+  };
+
+  const showPrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const prevIdx = currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1;
+    setCurrentImageIndex(prevIdx);
+    setFullscreenImage(images[prevIdx]);
+  };
 
   // For actionable actions (Google Calendar format)
   // Format dates for Google Calendar (YYYYMMDDTHHMMSSZ)
@@ -135,37 +174,65 @@ export default function EventDetail() {
       className="max-w-[1400px] w-full mx-auto"
     >
       <div className="flex justify-between items-center mb-6">
-        <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 hover:text-indigo-600 transition-colors font-medium">
+        <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">
           <ArrowLeft className="w-4 h-4 mr-2" /> 목록으로 돌아가기
         </button>
         
         {canEdit && (
           <button 
             onClick={() => navigate(`/edit/${event.id}`)}
-            className="flex items-center bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all"
+            className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all"
           >
             행사 수정하기
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Banner Image */}
-        <div className="w-full h-72 md:h-[400px] lg:h-[500px] bg-slate-100 relative">
-          {event.imageUrl ? (
-            <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-300">
-              <Calendar className="h-20 w-20 mb-4" />
-              <span className="text-xl font-medium tracking-wide">Event Image</span>
-            </div>
-          )}
-          <div className="absolute top-6 left-6 flex gap-2">
-            <span className="bg-white/90 backdrop-blur text-indigo-700 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
-              {event.category}
-            </span>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
+        {/* Banner Images Gallery */}
+        {images.length > 0 ? (
+          <div className="relative w-full h-72 md:h-[400px] lg:h-[500px] bg-slate-900 flex group overflow-hidden">
+             {/* Main cover image */}
+             <div 
+               className={clsx("h-full cursor-pointer transition-all duration-300", images.length > 1 ? "w-2/3" : "w-full")}
+               onClick={() => openFullscreen(0)}
+             >
+               <img src={images[0]} alt={event.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors pointer-events-none"></div>
+             </div>
+             
+             {/* Side images */}
+             {images.length > 1 && (
+               <div className="w-1/3 h-full flex flex-col border-l-2 border-slate-900">
+                 {images.slice(1, 3).map((imgUrl: string, idx: number) => (
+                   <div 
+                     key={idx} 
+                     className={clsx("w-full cursor-pointer bg-slate-800 overflow-hidden", images.length === 2 ? "h-full" : "h-1/2", idx === 0 && images.length === 3 ? "border-b-2 border-slate-900" : "")}
+                     onClick={() => openFullscreen(idx + 1)}
+                   >
+                     <img src={imgUrl} alt={`Event ${idx+1}`} className="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity hover:scale-105 duration-500" referrerPolicy="no-referrer" />
+                   </div>
+                 ))}
+               </div>
+             )}
+             
+             <div className="absolute top-6 left-6 flex gap-2">
+               <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur text-indigo-700 dark:text-indigo-400 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
+                 {event.category}
+               </span>
+             </div>
           </div>
-        </div>
+        ) : (
+          <div className="w-full h-72 md:h-[400px] lg:h-[500px] bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex flex-col items-center justify-center text-indigo-300 dark:text-indigo-700">
+            <Calendar className="h-20 w-20 mb-4" />
+            <span className="text-xl font-medium tracking-wide">Event Image</span>
+            <div className="absolute top-6 left-6 flex gap-2">
+              <span className="bg-white/90 backdrop-blur text-indigo-700 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
+                {event.category}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="p-8 md:p-12 lg:p-16 xl:flex xl:gap-20 relative">
           {/* Main Info */}
@@ -184,11 +251,28 @@ export default function EventDetail() {
               </div>
               <div className="flex items-center text-lg bg-slate-50 p-5 rounded-2xl border border-slate-100">
                 <MapPin className="w-6 h-6 mr-5 text-indigo-500" />
-                <span className="font-bold text-slate-800 text-[18px]">{event.locationName}</span>
+                <div>
+                  <span className="font-bold text-slate-800 text-[18px] block">{event.locationName}</span>
+                  {event.formattedAddress && <span className="text-sm text-slate-500 block mt-1">{event.formattedAddress}</span>}
+                </div>
                 <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-[14px] bg-white border border-slate-200 px-5 py-2.5 rounded-[12px] hover:bg-slate-50 text-indigo-600 font-bold transition-colors flex items-center shadow-sm">
                   길찾기 <ExternalLink className="w-4 h-4 ml-1.5" />
                 </a>
               </div>
+              
+              {/* Google Maps Render */}
+              {isLoaded && event.geoPoint && event.geoPoint.lat && (
+                <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm w-full h-[300px]">
+                  <GoogleMap
+                    mapContainerStyle={{ width: '100%', height: '100%' }}
+                    center={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }}
+                    zoom={16}
+                    options={{ disableDefaultUI: true, zoomControl: true }}
+                  >
+                    <Marker position={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }} />
+                  </GoogleMap>
+                </div>
+              )}
               <div className="flex items-center text-lg bg-slate-50 p-5 rounded-2xl border border-slate-100">
                 <Users className="w-6 h-6 mr-5 text-indigo-500" />
                 <span className="font-bold text-slate-800 text-[18px]">주최자: {event.hostName}</span>
@@ -267,6 +351,72 @@ export default function EventDetail() {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Lightbox */}
+      <AnimatePresence>
+        {fullscreenImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
+            onClick={closeFullscreen}
+          >
+            <button 
+              className="absolute top-6 right-6 p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-all"
+              onClick={closeFullscreen}
+            >
+              <X className="w-8 h-8" />
+            </button>
+            
+            {images.length > 1 && (
+              <>
+                <button 
+                  className="absolute left-6 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-all"
+                  onClick={showPrevImage}
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button 
+                  className="absolute right-6 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-all"
+                  onClick={showNextImage}
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
+
+            <div className="max-w-[90vw] max-h-[90vh]">
+              <img 
+                src={fullscreenImage} 
+                alt="Fullscreen event" 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+                onClick={(e) => e.stopPropagation()} 
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2 bg-black/50 rounded-full backdrop-blur">
+              {images.map((_, idx) => (
+                <button 
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex(idx);
+                    setFullscreenImage(images[idx]);
+                  }}
+                  className={clsx(
+                    "w-2.5 h-2.5 rounded-full transition-all", 
+                    idx === currentImageIndex ? "bg-white scale-125" : "bg-white/40 hover:bg-white/70"
+                  )}
+                  aria-label={`Show image ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

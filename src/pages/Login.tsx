@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginWithGoogle } from '../firebase';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, ShieldCheck, AlertCircle } from 'lucide-react';
+import { User, ShieldCheck, AlertCircle, Wind } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
@@ -53,17 +53,20 @@ export default function Login() {
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-violet-500" />
         
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-indigo-50 rounded-[16px] flex items-center justify-center text-indigo-600">
-            <span className="text-3xl font-black">◈</span>
+          <div className="relative group">
+            <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
+            <div className="relative w-20 h-20 bg-white rounded-2xl border border-slate-100 flex items-center justify-center text-indigo-600 shadow-sm">
+              <Wind className="w-10 h-10" />
+            </div>
           </div>
         </div>
 
-        <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-3">
-          IVENT OS 시작하기
+        <h1 className="text-4xl font-black text-slate-800 tracking-tighter mb-3">
+          Dancehive
         </h1>
-        <p className="text-slate-500 text-[15px] mb-8 leading-relaxed">
-          원하시는 회원 유형을 먼저 선택해주세요.<br/>
-          (관리자는 지정된 메일로 자동 부여됩니다)
+        <p className="text-slate-500 text-[15px] mb-8 leading-relaxed max-w-[280px] mx-auto">
+          춤으로 연결되는 새로운 세상,<br/>
+          댄스하이브에서 당신의 무대를 찾으세요.
         </p>
 
         <div className="grid grid-cols-2 gap-4 mb-10">

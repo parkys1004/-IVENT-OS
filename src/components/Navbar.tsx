@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogIn, LogOut, Plus, Sun, Moon } from 'lucide-react';
+import { LogIn, LogOut, Plus, Sun, Moon, Wind } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { logout } from '../firebase';
@@ -14,9 +14,16 @@ export default function Navbar() {
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-12 xl:px-20">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <Link to="/" className="flex-shrink-0 flex items-center gap-2">
-              <span className="font-bold text-xl text-indigo-400 tracking-tight">◈</span>
-              <span className="font-extrabold text-xl tracking-tight text-slate-800 dark:text-slate-100 hidden sm:block">IVENT OS</span>
+            <Link to="/" className="flex-shrink-0 flex items-center gap-2 group">
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative p-1.5 bg-white dark:bg-slate-900 rounded-lg ring-1 ring-slate-200 dark:ring-slate-800 flex items-center justify-center">
+                  <Wind className="h-5 w-5 text-indigo-500" />
+                </div>
+              </div>
+              <span className="font-black text-xl tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent hidden sm:block">
+                Dancehive
+              </span>
             </Link>
           </div>
           <div className="flex items-center gap-4">

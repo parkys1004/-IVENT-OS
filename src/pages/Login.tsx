@@ -48,20 +48,20 @@ export default function Login() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-[480px] w-full bg-white rounded-[24px] shadow-sm border border-slate-200 p-10 md:p-14 text-center relative overflow-hidden"
+        className="max-w-[480px] w-full bg-white dark:bg-slate-900 rounded-[24px] shadow-sm border border-slate-200 dark:border-slate-800 p-10 md:p-14 text-center relative overflow-hidden"
       >
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-violet-500" />
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-orange-500" />
         
         <div className="flex justify-center mb-6">
           <div className="relative group">
-            <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-            <div className="relative w-20 h-20 bg-white rounded-2xl border border-slate-100 flex items-center justify-center text-indigo-600 shadow-sm">
+            <div className="absolute -inset-2 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
+            <div className="relative w-20 h-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-center text-orange-500 shadow-sm">
               <Wind className="w-10 h-10" />
             </div>
           </div>
         </div>
 
-        <h1 className="text-4xl font-black text-slate-800 tracking-tighter mb-3">
+        <h1 className="text-4xl font-black bg-gradient-to-r from-amber-600 to-orange-500 dark:from-amber-400 dark:to-yellow-300 bg-clip-text text-transparent tracking-tighter mb-3">
           Dancehive
         </h1>
         <p className="text-slate-500 text-[15px] mb-8 leading-relaxed max-w-[280px] mx-auto">
@@ -75,11 +75,11 @@ export default function Login() {
             className={clsx(
               "flex flex-col items-center justify-center gap-3 p-6 rounded-[16px] border-2 transition-all",
               selectedRole === 'user' 
-                ? "border-indigo-600 bg-indigo-50 text-indigo-700" 
-                : "border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50"
+                ? "border-orange-500 bg-amber-50 dark:bg-amber-900/20 text-orange-700 dark:text-amber-400" 
+                : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:border-amber-200 hover:bg-amber-50/50 dark:hover:border-slate-700 dark:hover:bg-slate-800"
             )}
           >
-            <User className={clsx("w-8 h-8", selectedRole === 'user' ? "text-indigo-600" : "text-slate-400")} />
+            <User className={clsx("w-8 h-8", selectedRole === 'user' ? "text-orange-600 dark:text-amber-400" : "text-slate-400")} />
             <span className="font-bold">일반 참여자</span>
           </button>
 
@@ -88,11 +88,11 @@ export default function Login() {
             className={clsx(
               "flex flex-col items-center justify-center gap-3 p-6 rounded-[16px] border-2 transition-all",
               selectedRole === 'host' 
-                ? "border-indigo-600 bg-indigo-50 text-indigo-700" 
-                : "border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50"
+                ? "border-orange-500 bg-amber-50 dark:bg-amber-900/20 text-orange-700 dark:text-amber-400" 
+                : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:border-amber-200 hover:bg-amber-50/50 dark:hover:border-slate-700 dark:hover:bg-slate-800"
             )}
           >
-            <ShieldCheck className={clsx("w-8 h-8", selectedRole === 'host' ? "text-indigo-600" : "text-slate-400")} />
+            <ShieldCheck className={clsx("w-8 h-8", selectedRole === 'host' ? "text-orange-600 dark:text-amber-400" : "text-slate-400")} />
             <span className="font-bold">행사 주최자</span>
           </button>
         </div>

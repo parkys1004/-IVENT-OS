@@ -10,18 +10,18 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 transition-colors duration-200">
+    <nav className="bg-[#FFFAEE]/80 dark:bg-[#14100B]/80 backdrop-blur-md border-b border-amber-200/30 dark:border-amber-900/30 sticky top-0 z-50 transition-colors duration-200">
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-12 xl:px-20">
         <div className="flex justify-between h-16">
           <div className="flex">
             <Link to="/" className="flex-shrink-0 flex items-center gap-2 group">
               <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                <div className="relative p-1.5 bg-white dark:bg-slate-900 rounded-lg ring-1 ring-slate-200 dark:ring-slate-800 flex items-center justify-center">
-                  <Wind className="h-5 w-5 text-indigo-500" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative p-1.5 bg-white dark:bg-[#1A1612] rounded-lg ring-1 ring-amber-100 dark:ring-amber-900/50 flex items-center justify-center">
+                  <Wind className="h-5 w-5 text-orange-500" />
                 </div>
               </div>
-              <span className="font-black text-xl tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent hidden sm:block">
+              <span className="font-black text-xl tracking-tight bg-gradient-to-r from-amber-600 to-orange-500 dark:from-amber-400 dark:to-yellow-300 bg-clip-text text-transparent hidden sm:block">
                 Dancehive
               </span>
             </Link>

@@ -407,8 +407,30 @@ export default function CreateEvent() {
 
         {/* Location */}
         <div>
-          <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center"><MapPin className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 장소</label>
-          {isLoaded ? (
+          <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+            <span className="flex items-center"><MapPin className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 장소</span>
+            {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+              <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100 italic">
+                자동 완성 비활성 (API 키 없음)
+              </span>
+            )}
+          </label>
+          {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+            <div className="space-y-3">
+              <input
+                required
+                type="text"
+                name="locationName"
+                value={formData.locationName}
+                onChange={handleChange}
+                className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
+              />
+              <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                💡 <b>Settings &gt; Secrets</b>에서 <code className="text-indigo-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록하시면 자동 완성 기능을 사용할 수 있습니다.
+              </div>
+            </div>
+          ) : isLoaded ? (
             <Autocomplete
               onLoad={setAutocomplete}
               onPlaceChanged={onPlaceChanged}
@@ -425,15 +447,7 @@ export default function CreateEvent() {
               />
             </Autocomplete>
           ) : (
-            <input
-              required
-              type="text"
-              name="locationName"
-              value={formData.locationName}
-              onChange={handleChange}
-              className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
-              placeholder="예: 강남역 쌍용플래티넘"
-            />
+            <div className="w-full h-11 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-[10px]"></div>
           )}
           {formData.formattedAddress && (
             <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400">

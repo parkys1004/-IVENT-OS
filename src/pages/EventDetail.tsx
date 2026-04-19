@@ -261,7 +261,20 @@ export default function EventDetail() {
               </div>
               
               {/* Google Maps Render */}
-              {isLoaded && event.geoPoint && event.geoPoint.lat && (
+              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+                <div className="rounded-2xl bg-amber-50 border border-amber-200 p-6 flex flex-col items-center justify-center text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                    <MapPin className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <h4 className="text-amber-900 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
+                  <p className="text-amber-700 text-sm max-w-sm mb-4">
+                    지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.
+                  </p>
+                  <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-amber-800 text-xs font-bold underline hover:text-amber-950">
+                    구글 클라우드 콘솔에서 키 발급받기
+                  </a>
+                </div>
+              ) : isLoaded && event.geoPoint && event.geoPoint.lat ? (
                 <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm w-full h-[300px]">
                   <GoogleMap
                     mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -271,6 +284,10 @@ export default function EventDetail() {
                   >
                     <Marker position={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }} />
                   </GoogleMap>
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-100 animate-pulse w-full h-[300px] flex items-center justify-center text-slate-400">
+                  지도를 불러오는 중...
                 </div>
               )}
               <div className="flex items-center text-lg bg-slate-50 p-5 rounded-2xl border border-slate-100">

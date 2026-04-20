@@ -57,7 +57,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 import { format } from 'date-fns';
 import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -438,6 +438,26 @@ export default function EventDetail() {
               <div className="mb-2 flex items-center gap-1.5 px-1">
                 <span className="text-sm font-bold text-slate-700">관심행사 {event.likesCount || 0}</span>
               </div>
+
+              {/* Tickets section */}
+              {event.tickets && event.tickets.length > 0 && (
+                <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
+                  <h4 className="text-[13px] font-bold text-slate-500 mb-3 flex items-center">
+                    <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+                    파티비 (티켓)
+                  </h4>
+                  <div className="space-y-2.5">
+                    {event.tickets.map((ticket: { name: string, price: number }, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center text-sm">
+                        <span className="text-slate-600 dark:text-slate-400 font-medium">{ticket.name}</span>
+                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                          {ticket.price === 0 ? '무료' : `${ticket.price.toLocaleString()}원`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="mb-6">
                 <div className="flex justify-between text-[13px] mb-2 text-slate-500">

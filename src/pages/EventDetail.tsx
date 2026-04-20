@@ -62,7 +62,6 @@ import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
 import { useLanguage } from '../context/LanguageContext';
-import { translateText, languageNames } from '../lib/gemini';
 
 const LIBRARIES: ("places")[] = ["places"];
 
@@ -80,9 +79,6 @@ export default function EventDetail() {
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const [translatedData, setTranslatedData] = useState<{ title: string, description: string } | null>(null);
-  const [isTranslating, setIsTranslating] = useState(false);
-
   const getLocale = () => {
     switch (language) {
       case 'en': return enUS;
@@ -91,27 +87,6 @@ export default function EventDetail() {
       case 'th': return th;
       case 'vi': return vi;
       default: return ko;
-    }
-  };
-
-  const handleAutoTranslate = async () => {
-    if (isTranslating) return;
-    if (translatedData) {
-      setTranslatedData(null);
-      return;
-    }
-
-    setIsTranslating(true);
-    try {
-      const [title, description] = await Promise.all([
-        translateText(event.title, languageNames[language]),
-        translateText(event.description, languageNames[language])
-      ]);
-      setTranslatedData({ title, description });
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsTranslating(false);
     }
   };
 
@@ -350,16 +325,6 @@ export default function EventDetail() {
                <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur text-indigo-700 dark:text-indigo-400 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
                  {event.category}
                </span>
-               {language !== 'ko' && (
-                 <button 
-                  onClick={handleAutoTranslate}
-                  disabled={isTranslating}
-                  className="flex items-center gap-1.5 px-4 py-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-600 dark:text-slate-400 rounded-full text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-lg"
-                 >
-                   <Sparkles className={clsx("w-3.5 h-3.5 text-amber-500", isTranslating && "animate-pulse")} />
-                   {isTranslating ? t('event.translating') : translatedData ? t('event.original') : t('event.translate')}
-                 </button>
-               )}
              </div>
           </div>
         ) : (
@@ -370,16 +335,6 @@ export default function EventDetail() {
               <span className="bg-white/90 backdrop-blur text-indigo-700 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
                 {event.category}
               </span>
-              {language !== 'ko' && (
-                <button 
-                  onClick={handleAutoTranslate}
-                  disabled={isTranslating}
-                  className="flex items-center gap-1.5 px-4 py-1.5 bg-white/90 backdrop-blur-md text-slate-600 rounded-full text-xs font-bold hover:bg-slate-100 transition-colors disabled:opacity-50 shadow-lg"
-                >
-                  <Sparkles className={clsx("w-3.5 h-3.5 text-amber-500", isTranslating && "animate-pulse")} />
-                  {isTranslating ? t('event.translating') : translatedData ? t('event.original') : t('event.translate')}
-                </button>
-              )}
             </div>
           </div>
         )}
@@ -388,7 +343,7 @@ export default function EventDetail() {
           {/* Main Info */}
           <div className="flex-1">
             <h1 className="text-3xl md:text-5xl font-extrabold text-slate-800 dark:text-white mb-8 leading-tight tracking-tight">
-              {translatedData ? translatedData.title : event.title}
+              {event.title}
             </h1>
             
             <div className="flex flex-col gap-4 text-slate-600 dark:text-slate-400 mb-12">
@@ -456,7 +411,7 @@ export default function EventDetail() {
                 {t('event.details')}
               </h3>
               <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-relaxed text-[16px] xl:text-[18px]">
-                {translatedData ? translatedData.description : event.description}
+                {event.description}
               </div>
             </div>
           </div>

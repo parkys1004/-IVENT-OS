@@ -56,49 +56,6 @@ export default function Navbar() {
               </Link>
             </div>
             <div className="flex items-center gap-3 sm:gap-4 relative">
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-                  className="inline-flex items-center p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                  title="언어 변경"
-                >
-                  <Languages className="h-5 w-5" />
-                  <span className="hidden lg:inline ml-2 text-xs font-bold uppercase">{language}</span>
-                </button>
-
-                <AnimatePresence>
-                  {langDropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-30" onClick={() => setLangDropdownOpen(false)}></div>
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-1.5 z-40 overflow-hidden"
-                      >
-                        {(Object.keys(languageNames) as Language[]).map((lang) => (
-                          <button
-                            key={lang}
-                            onClick={() => {
-                              setLanguage(lang);
-                              setLangDropdownOpen(false);
-                            }}
-                            className={clsx(
-                              "w-full text-left px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-800",
-                              language === lang ? "text-orange-500 font-bold" : "text-slate-600 dark:text-slate-400"
-                            )}
-                          >
-                            {languageNames[lang]}
-                          </button>
-                        ))}
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-
               <button
                 onClick={toggleTheme}
                 className="inline-flex items-center p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"

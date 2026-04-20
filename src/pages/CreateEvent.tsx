@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { useAuth } from '../context/AuthContext';
+import { Autocomplete } from '@react-google-maps/api';
 
 // Error specs
 enum OperationType {
@@ -59,10 +59,9 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, Image as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
-import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import { useAuth } from '../context/AuthContext';
+import { useGoogleMaps } from '../context/GoogleMapsContext';
 import clsx from 'clsx';
-
-const LIBRARIES: ("places")[] = ["places"];
 
 export default function CreateEvent() {
   const { user, profile } = useAuth();
@@ -92,11 +91,7 @@ export default function CreateEvent() {
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: LIBRARIES,
-    language: 'ko',
-  });
+  const { isLoaded } = useGoogleMaps();
 
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
@@ -327,7 +322,7 @@ export default function CreateEvent() {
         currentAttendees: 0,
         hostId: user.uid,
         hostName: profile.displayName || user.email?.split('@')[0] || 'Unknown',
-        status: 'published',
+        status: 'draft',
         createdAt: serverTimestamp(),
         likesCount: 0,
         // New fields
@@ -633,7 +628,11 @@ export default function CreateEvent() {
                 placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
               />
               <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                💡 <b>Settings &gt; Secrets</b>에서 <code className="text-indigo-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록하시면 자동 완성 기능을 사용할 수 있습니다.
+                💡 <b>Settings &gt; Secrets</b>에서 <code className="text-indigo-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
+                * <b>필수 활성화 API:</b><br/>
+                1. <b>Maps JavaScript API</b><br/>
+                2. <b>Places API</b> (Legacy 명칭인 'Places API'를 찾아 활성화해야 합니다)<br/>
+                <span className="text-rose-500 font-bold">* 'Places API (New)'만 활성화할 경우 오류가 발생할 수 있습니다.</span>
               </div>
             </div>
           ) : isLoaded ? (

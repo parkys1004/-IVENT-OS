@@ -1,6 +1,24 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, LogOut, Plus, Sun, Moon, Wind, Settings, UserCircle, Briefcase, Eye, LayoutDashboard, Languages } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  LogIn, 
+  LogOut, 
+  Plus, 
+  Sun, 
+  Moon, 
+  Wind, 
+  Settings, 
+  UserCircle, 
+  Briefcase, 
+  Eye, 
+  LayoutDashboard, 
+  Languages,
+  Music,
+  GraduationCap,
+  Users,
+  Disc,
+  Camera
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage, Language } from '../context/LanguageContext';
@@ -16,6 +34,7 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleModeSwitch = (mode: 'admin' | 'professional' | 'participant') => {
     setViewMode(mode);
@@ -43,7 +62,7 @@ export default function Navbar() {
         <div className="w-full mx-auto px-4 sm:px-6 lg:px-12 xl:px-20">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <Link to="/" className="flex-shrink-0 flex items-center gap-2 group">
+              <Link to="/" className="flex-shrink-0 flex items-center gap-2 group mr-8">
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
                   <div className="relative p-1.5 bg-white dark:bg-[#1A1612] rounded-lg ring-1 ring-amber-100 dark:ring-amber-900/50 flex items-center justify-center">
@@ -54,11 +73,130 @@ export default function Navbar() {
                   Dancehive
                 </span>
               </Link>
+
+              {/* Desktop Navigation Links */}
+              <div className="hidden lg:flex items-center gap-1">
+                <Link 
+                  to="/explore/party" 
+                  className={clsx(
+                    "px-3 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5",
+                    location.pathname === '/explore/party' ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <Music className="w-3.5 h-3.5" />
+                  {t('search.category.party')}
+                </Link>
+                <Link 
+                  to="/explore/lesson" 
+                  className={clsx(
+                    "px-3 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5",
+                    location.pathname === '/explore/lesson' ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  {t('search.category.lesson')}
+                </Link>
+                <Link 
+                  to="/explore/instructor" 
+                  className={clsx(
+                    "px-3 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5",
+                    location.pathname === '/explore/instructor' ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  {t('search.category.instructor')}
+                </Link>
+                <Link 
+                  to="/explore/dj" 
+                  className={clsx(
+                    "px-3 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5",
+                    location.pathname === '/explore/dj' ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <Disc className="w-3.5 h-3.5" />
+                  {t('search.category.dj')}
+                </Link>
+                <Link 
+                  to="/explore/media" 
+                  className={clsx(
+                    "px-3 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-1.5",
+                    location.pathname === '/explore/media' ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  {t('search.category.media')}
+                </Link>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+
+                {user && (
+                  <>
+                    <Link 
+                      to="/dashboard" 
+                      className={clsx(
+                        "px-4 py-2 text-sm font-bold rounded-lg transition-colors",
+                        location.pathname === '/dashboard' ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      {viewMode === 'professional' ? '전문가 대시보드' : t('nav.tickets')}
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4 relative">
+            <div className="flex items-center gap-2 sm:gap-3 relative">
+              {/* Language Switcher */}
+              <div className="relative">
+                <button
+                  onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                  className="inline-flex items-center p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                  title="언어 설정 / Language"
+                >
+                  <Languages className="h-5 w-5" />
+                  <span className="hidden md:inline ml-2 text-xs font-bold uppercase">{language}</span>
+                </button>
+
+                <AnimatePresence>
+                  {langDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setLangDropdownOpen(false)}></div>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-40 overflow-hidden"
+                      >
+                        <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Language</p>
+                        </div>
+                        {(Object.keys(languageNames) as Language[]).map((lang) => (
+                          <button
+                            key={lang}
+                            onClick={() => {
+                              setLanguage(lang);
+                              setLangDropdownOpen(false);
+                            }}
+                            className={clsx(
+                              "w-full flex items-center justify-between px-4 py-2 text-sm transition-colors",
+                              language === lang 
+                                ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10 font-bold" 
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            )}
+                          >
+                            <span>{languageNames[lang]}</span>
+                            {language === lang && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>}
+                          </button>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <button
                 onClick={toggleTheme}
-                className="inline-flex items-center p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                className="inline-flex items-center p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
                 title="테마 변경"
               >
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

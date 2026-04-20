@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 // Error specs
 enum OperationType {
@@ -60,10 +60,9 @@ import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
 import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
-import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
-import { useLanguage } from '../context/LanguageContext';
-
-const LIBRARIES: ("places")[] = ["places"];
+import { useAuth } from '../context/AuthContext';
+import { useGoogleMaps } from '../context/GoogleMapsContext';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -90,11 +89,7 @@ export default function EventDetail() {
     }
   };
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: LIBRARIES,
-    language: 'ko'
-  });
+  const { isLoaded } = useGoogleMaps();
 
   useEffect(() => {
     if (!id) return;
@@ -375,7 +370,10 @@ export default function EventDetail() {
                   </div>
                   <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
                   <p className="text-amber-700 dark:text-amber-500 text-sm max-w-sm mb-4">
-                    지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.
+                    지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 opacity-80 mt-1 block">
+                      * 구글 클라우드 콘솔에서 <b>Maps JavaScript API</b>가 활성화되어 있어야 합니다.
+                    </span>
                   </p>
                   <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-amber-800 dark:text-amber-400 text-xs font-bold underline hover:text-amber-950">
                     구글 클라우드 콘솔에서 키 발급받기

@@ -5,6 +5,7 @@ import App from './App.tsx';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { GoogleMapsProvider } from './context/GoogleMapsContext';
 import './index.css';
 
 console.log("App starting...");
@@ -19,7 +20,9 @@ try {
         <AuthProvider>
           <ThemeProvider>
             <LanguageProvider>
-              <App />
+              <GoogleMapsProvider>
+                <App />
+              </GoogleMapsProvider>
             </LanguageProvider>
           </ThemeProvider>
         </AuthProvider>

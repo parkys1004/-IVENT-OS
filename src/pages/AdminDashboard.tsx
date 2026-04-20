@@ -118,6 +118,18 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleApproveEvent = async (eventId: string) => {
+    try {
+      await updateDoc(doc(db, 'events', eventId), {
+        status: 'published'
+      });
+      alert('행사가 승인 및 공개되었습니다.');
+    } catch (error) {
+      console.error("Failed to approve event:", error);
+      alert('행사 승인 중 오류가 발생했습니다.');
+    }
+  };
+
   const handlePromoBannerSave = async (id: string) => {
     setIsSaving(true);
     try {
@@ -440,7 +452,15 @@ export default function AdminDashboard() {
                       </button>
                     </td>
                     <td className="p-4 text-slate-500 text-xs">{format(dateObj, 'yyyy.MM.dd', { locale: ko })}</td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right flex items-center justify-end gap-2">
+                      {event.status === 'draft' && (
+                        <button 
+                          onClick={() => handleApproveEvent(event.id)}
+                          className="text-white font-bold text-xs px-3 py-1.5 bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                        >
+                          승인하기
+                        </button>
+                      )}
                       <Link to={`/event/${event.id}`} className="text-indigo-600 font-bold hover:text-indigo-800 text-sm px-3 py-1.5 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors">
                         보기
                       </Link>

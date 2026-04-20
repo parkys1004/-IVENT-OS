@@ -4,6 +4,7 @@ import DashboardSwitcher from './pages/DashboardSwitcher';
 import EventDetail from './pages/EventDetail';
 import CreateEvent from './pages/CreateEvent';
 import EditEvent from './pages/EditEvent';
+import CategoryExplore from './pages/CategoryExplore';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -38,6 +39,7 @@ function AppContent() {
           <Route path="/" element={<DashboardSwitcher forceExplore />} />
           <Route path="/dashboard" element={<DashboardSwitcher />} />
           <Route path="/admin" element={<DashboardSwitcher />} />
+          <Route path="/explore/:category" element={<CategoryExplore />} />
           <Route path="/event/:id" element={<EventDetail />} />
           <Route path="/create" element={<CreateEvent />} />
           <Route path="/edit/:id" element={<EditEvent />} />

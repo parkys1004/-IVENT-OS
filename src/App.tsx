@@ -9,6 +9,7 @@ import MyPage from './pages/MyPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import clsx from 'clsx';
 import { useAuth } from './context/AuthContext';
 
@@ -45,6 +46,7 @@ function AppContent() {
         </Routes>
       </main>
       {!isDashboardView && <Footer />}
+      <ScrollToTop />
     </div>
   );
 }

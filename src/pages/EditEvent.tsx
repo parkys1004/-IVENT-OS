@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Autocomplete } from '@react-google-maps/api';
 
@@ -300,6 +300,12 @@ export default function EditEvent() {
         coverImageIndex: coverImageIndex,
         maxAttendees: Number(formData.maxAttendees),
         likesCount: eventData?.likesCount || 0,
+        currentAttendees: eventData?.currentAttendees || 0,
+        status: eventData?.status || 'draft',
+        updatedAt: serverTimestamp(),
+        hostId: eventData?.hostId || user.uid,
+        hostName: eventData?.hostName || profile.displayName || user.email?.split('@')[0] || 'Unknown',
+        createdAt: eventData?.createdAt || serverTimestamp(),
         djs: formData.djs.filter(dj => dj.trim() !== ''),
         performances: formData.performances.filter(p => p.trim() !== ''),
         media: formData.media.filter(m => m.trim() !== ''),
@@ -402,11 +408,11 @@ export default function EditEvent() {
                onChange={handleChange}
                className="w-full rounded-[10px] border-slate-200 border bg-slate-50 px-4 py-3 text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
              >
-               <option value="party">파티 (Party)</option>
-               <option value="lesson">강습 (Lesson)</option>
-               <option value="instructor">강사 (Instructor)</option>
-               <option value="dj">DJ</option>
-               <option value="media">포토/영상 (Photo/Video)</option>
+               <option value="salsa">살사 (Salsa)</option>
+               <option value="bachata">바차타 (Bachata)</option>
+               <option value="kizomba">키좀바 (Kizomba)</option>
+               <option value="salsa_bachata">살사/바차타 (Salsa/Bachata)</option>
+               <option value="sal_ba_ki">살바키 (Sal-Ba-Ki)</option>
              </select>
           </div>
           <div>

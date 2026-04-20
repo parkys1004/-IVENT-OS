@@ -57,7 +57,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 import { format } from 'date-fns';
 import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2, Navigation, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -75,6 +75,7 @@ export default function EventDetail() {
   const [registration, setRegistration] = useState<any>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -219,6 +220,13 @@ export default function EventDetail() {
     }
   };
 
+  const handleCopyAddress = () => {
+    const textToCopy = event.formattedAddress || event.locationName;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (loading) {
     return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400"></div></div>;
   }
@@ -262,13 +270,18 @@ export default function EventDetail() {
   const formatForGCat = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g,"");
   const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${formatForGCat(dateObj)}/${formatForGCat(endDateObj)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.locationName)}`;
   
-  // Directions URL logic (Prefer Kakao Map directions link with coordinates if available)
-  const mapUrl = event.geoPoint 
+  // Directions URL logic
+  const kakaoMapUrl = event.geoPoint 
     ? `https://map.kakao.com/link/to/${encodeURIComponent(event.locationName)},${event.geoPoint.lat},${event.geoPoint.lng}`
     : `https://map.kakao.com/link/search/${encodeURIComponent(event.formattedAddress || event.locationName)}`;
 
-  // Secondary Naver Map link for comparison/alternative
-  const naverMapUrl = `https://map.naver.com/v5/search/${encodeURIComponent(event.formattedAddress || event.locationName)}`;
+  const naverMapUrl = event.geoPoint
+    ? `https://map.naver.com/v5/directions/-/-/${event.geoPoint.lng},${event.geoPoint.lat},${encodeURIComponent(event.locationName)}/-/walk`
+    : `https://map.naver.com/v5/search/${encodeURIComponent(event.formattedAddress || event.locationName)}`;
+
+  const googleMapDirUrl = event.geoPoint
+    ? `https://www.google.com/maps/dir/?api=1&destination=${event.geoPoint.lat},${event.geoPoint.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.formattedAddress || event.locationName)}`;
 
   const isHost = user && event.hostId === user.uid;
   const isAdmin = profile?.role === 'admin';
@@ -278,9 +291,9 @@ export default function EventDetail() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="max-w-[1400px] w-full mx-auto"
+      className="max-w-[1200px] w-full mx-auto"
     >
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 px-4 md:px-0">
         <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">
           <ArrowLeft className="w-4 h-4 mr-2" /> 목록으로 돌아가기
         </button>
@@ -295,295 +308,334 @@ export default function EventDetail() {
         )}
       </div>
 
-      <div className="glass-panel rounded-3xl overflow-hidden transition-colors">
-        {/* Banner Images Gallery */}
-        {images.length > 0 ? (
-          <div className="relative w-full h-72 md:h-[400px] lg:h-[500px] bg-slate-900 flex group overflow-hidden">
-             {/* Main cover image */}
-             <div 
-               className={clsx("h-full cursor-pointer transition-all duration-300", images.length > 1 ? "w-2/3" : "w-full")}
-               onClick={() => openFullscreen(0)}
-             >
-               <img src={images[0]} alt={event.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
-               <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors pointer-events-none"></div>
-             </div>
-             
-             {/* Side images */}
-             {images.length > 1 && (
-               <div className="w-1/3 h-full flex flex-col border-l-2 border-slate-900">
-                 {images.slice(1, 3).map((imgUrl: string, idx: number) => (
-                   <div 
-                     key={idx} 
-                     className={clsx("w-full cursor-pointer bg-slate-800 overflow-hidden", images.length === 2 ? "h-full" : "h-1/2", idx === 0 && images.length === 3 ? "border-b-2 border-slate-900" : "")}
-                     onClick={() => openFullscreen(idx + 1)}
-                   >
-                     <img src={imgUrl} alt={`Event ${idx+1}`} className="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity hover:scale-105 duration-500" referrerPolicy="no-referrer" />
-                   </div>
-                 ))}
-               </div>
-             )}
-             
-             <div className="absolute top-6 left-6 flex flex-col gap-2 items-start">
-               <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur text-indigo-700 dark:text-indigo-400 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
-                 {event.category}
-               </span>
-             </div>
-          </div>
-        ) : (
-          <div className="w-full h-72 md:h-[400px] lg:h-[500px] bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex flex-col items-center justify-center text-indigo-300 dark:text-indigo-700">
-            <Calendar className="h-20 w-20 mb-4" />
-            <span className="text-xl font-medium tracking-wide">Event Image</span>
-            <div className="absolute top-6 left-6 flex flex-col gap-2 items-start">
-              <span className="bg-white/90 backdrop-blur text-indigo-700 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
-                {event.category}
+      {/* Event Header Image/Gallery - Above Title as requested */}
+      <div className="mb-8 px-4 md:px-0">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[32px] overflow-hidden shadow-sm">
+          <div 
+            className="relative aspect-video md:aspect-[21/9] cursor-zoom-in group bg-indigo-50 dark:bg-indigo-950/20 flex items-center justify-center"
+            onClick={() => {
+              if (images.length > 0) setFullscreenImage(images[currentImageIndex]);
+            }}
+          >
+            {images.length > 0 ? (
+              <img 
+                src={images[currentImageIndex]} 
+                alt={event.title}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-4 text-indigo-300 dark:text-indigo-800/50">
+                <Calendar className="w-20 h-20" />
+                <span className="font-black text-2xl tracking-tight">Event Image</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            
+            {/* Category Badge */}
+            <div className="absolute top-6 left-6">
+              <span className="bg-white/95 backdrop-blur-md shadow-sm text-indigo-600 px-4 py-1.5 rounded-full text-[13px] font-black border border-white/20">
+                {event.category || 'Event'}
               </span>
             </div>
-          </div>
-        )}
 
-        <div className="p-8 md:p-12 lg:p-16 xl:flex xl:gap-20 relative">
-          {/* Main Info */}
-          <div className="flex-1">
-            <h1 className="text-3xl md:text-5xl font-extrabold text-slate-800 dark:text-white mb-8 leading-tight tracking-tight">
-              {event.title}
-            </h1>
+            {images.length > 1 && (
+              <div className="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-bold flex items-center gap-2">
+                <ImageIcon className="w-3.5 h-3.5" />
+                {currentImageIndex + 1} / {images.length}
+              </div>
+            )}
+          </div>
+
+          {images.length > 1 && (
+            <div className="p-4 border-t border-slate-50 dark:border-slate-800/50 flex gap-3 overflow-x-auto no-scrollbar">
+              {images.map((img: string, idx: number) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={clsx(
+                    "relative shrink-0 w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all",
+                    idx === currentImageIndex 
+                      ? "border-indigo-600 ring-2 ring-indigo-600/20" 
+                      : "border-transparent opacity-60 hover:opacity-100"
+                  )}
+                >
+                  <img 
+                    src={img} 
+                    alt={`${event.title} thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Title - Bold and Large below image */}
+      <div className="mb-12 px-4 md:px-0">
+        <h1 className="text-3xl md:text-5xl lg:text-6xl font-[900] text-slate-900 dark:text-white leading-tight tracking-tight">
+          {event.title}
+        </h1>
+      </div>
+
+      <div className="lg:grid lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] lg:gap-12 px-4 md:px-0 pb-24">
+        {/* Left Column: Event Information Blocks */}
+        <div className="space-y-6">
+
+          {/* Date Block */}
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 md:p-8 flex items-center shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center mr-6 shrink-0">
+              <Calendar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[18px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100">
+                {format(dateObj, 'yyyy년 M월 d일 (E) a h:mm', { locale: getLocale() })}
+              </p>
+            </div>
+            <a href={gCalUrl} target="_blank" rel="noopener noreferrer" className="ml-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm whitespace-nowrap">
+              {t('event.calendar.add')}
+            </a>
+          </div>
+
+          {/* Location Block */}
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center flex-1">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center mr-6 shrink-0">
+                  <MapPin className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-[18px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100 mb-1">{event.locationName}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{event.formattedAddress}</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleCopyAddress}
+                className={clsx(
+                  "p-3 rounded-xl transition-all flex items-center gap-2",
+                  copied 
+                    ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 font-bold text-sm" 
+                    : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                )}
+                title="주소 복사"
+              >
+                {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                {copied && "복사됨"}
+              </button>
+            </div>
             
-            <div className="flex flex-col gap-4 text-slate-600 dark:text-slate-400 mb-12">
-              <div className="flex items-center text-lg bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                <Calendar className="w-6 h-6 mr-5 text-indigo-500" />
-                <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px]">
-                  {format(dateObj, 'yyyy년 M월 d일 (E) a h:mm', { locale: getLocale() })}
-                </span>
-                <a href={gCalUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-[14px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-2.5 rounded-[12px] hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-bold transition-colors shadow-sm">
-                  {t('event.calendar.add')}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <a 
+                href={kakaoMapUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="bg-[#FAE100] text-[#3C1E1E] px-4 py-3.5 rounded-2xl font-bold text-sm hover:brightness-95 transition-all shadow-sm flex flex-col items-center justify-center gap-2 group"
+              >
+                <div className="w-9 h-9 bg-[#3C1E1E] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Navigation className="w-4 h-4 text-[#FAE100] fill-current" />
+                </div>
+                카카오맵 길찾기
+              </a>
+              <a 
+                href={naverMapUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="bg-[#03C75A] text-white px-4 py-3.5 rounded-2xl font-bold text-sm hover:brightness-95 transition-all shadow-sm flex flex-col items-center justify-center gap-2 group"
+              >
+                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Navigation className="w-4 h-4 text-[#03C75A] fill-current" />
+                </div>
+                네이버 지도 길찾기
+              </a>
+              <a 
+                href={googleMapDirUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm flex flex-col items-center justify-center gap-2 group sm:col-span-1 col-span-2"
+              >
+                <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Navigation className="w-4 h-4 text-indigo-600 dark:text-indigo-400 fill-current" />
+                </div>
+                구글 지도 길찾기
+              </a>
+            </div>
+          </div>
+
+          {/* Map Block */}
+          <div className="rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm min-h-[300px]">
+            {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
+              <div className="bg-amber-50 dark:bg-amber-900/10 h-full p-8 flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-800/30 rounded-full flex items-center justify-center mb-4">
+                  <MapPin className="w-6 h-6 text-amber-600" />
+                </div>
+                <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
+                <p className="text-amber-700 dark:text-amber-500 text-sm max-w-sm">
+                  지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.
+                </p>
+                <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="mt-4 text-amber-800 dark:text-amber-400 text-xs font-bold underline">
+                  구글 클라우드 콘솔에서 키 발급받기
                 </a>
               </div>
-              <div className="flex items-center text-lg bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                <MapPin className="w-6 h-6 mr-5 text-indigo-500" />
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px] block">{event.locationName}</span>
-                  {event.formattedAddress && <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1">{event.formattedAddress}</span>}
-                </div>
-                <div className="ml-auto flex flex-col sm:flex-row gap-2">
-                  <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] bg-amber-400 hover:bg-amber-500 text-slate-900 px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center justify-center">
-                    카카오맵 <ExternalLink className="w-3.5 h-3.5 ml-1.5 opacity-70" />
-                  </a>
-                  <a href={naverMapUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center justify-center">
-                    네이버 지도 <ExternalLink className="w-3.5 h-3.5 ml-1.5 opacity-70" />
-                  </a>
-                </div>
+            ) : isLoaded && event.geoPoint && event.geoPoint.lat ? (
+              <div className="h-[400px]">
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }}
+                  zoom={16}
+                  options={{ disableDefaultUI: true, zoomControl: true }}
+                >
+                  <Marker position={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }} />
+                </GoogleMap>
               </div>
-              
-              {/* Google Maps Render */}
-              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
-                <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-6 flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-800/30 rounded-full flex items-center justify-center mb-4">
-                    <MapPin className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">
-                    {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY 
-                      ? 'Google Maps API 키가 설정되지 않았습니다.' 
-                      : '지도를 불러오는 중 오류가 발생했습니다.'}
-                  </h4>
-                  {loadError && (
-                    <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px] p-2 rounded mb-4 font-mono">
-                      {loadError.message}
-                    </div>
-                  )}
-                  <p className="text-amber-700 dark:text-amber-500 text-sm max-w-md mb-4">
-                    {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
-                      <>지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.</>
-                    ) : (
-                      <>
-                        <b>RefererNotAllowedMapError</b>가 발생한다면, 구글 클라우드 콘솔에서 현재 사이트 주소를 <b>허용 목록(HTTP 리퍼러)</b>에 추가해야 합니다.<br/>
-                        <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded block mt-2 text-[10px] break-all">{window.location.origin}</code>
-                      </>
-                    )}
-                  </p>
-                  <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-amber-800 dark:text-amber-400 text-xs font-bold underline hover:text-amber-950">
-                    구글 클라우드 콘솔에서 설정 확인하기
-                  </a>
-                </div>
-              ) : isLoaded && event.geoPoint && event.geoPoint.lat ? (
-                <div className="rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm w-full h-[300px]">
-                  <GoogleMap
-                    mapContainerStyle={{ width: '100%', height: '100%' }}
-                    center={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }}
-                    zoom={16}
-                    options={{ disableDefaultUI: true, zoomControl: true }}
-                  >
-                    <Marker position={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }} />
-                  </GoogleMap>
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-slate-100 dark:bg-slate-800/50 animate-pulse w-full h-[300px] flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">
-                  {t('event.map.loading')}
-                </div>
-              )}
-              <div className="flex items-center text-lg bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                <Users className="w-6 h-6 mr-5 text-indigo-500" />
-                <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px]">{t('event.host')}: {event.hostName}</span>
+            ) : (
+              <div className="h-[400px] bg-slate-50 dark:bg-slate-800/50 animate-pulse flex items-center justify-center text-slate-400">
+                지도를 불러오는 중...
               </div>
-
-              {/* Lineup Section (DJs, Performances, Media) */}
-              {(event.djs?.length > 0 || event.performances?.length > 0 || event.media?.length > 0) && (
-                <div className="mt-8 bg-slate-50 dark:bg-slate-800/30 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800/50">
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center">
-                    <Sparkles className="w-5 h-5 mr-3 text-indigo-500" /> 라인업 정보
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* DJs */}
-                    {event.djs?.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center">
-                          <Music className="w-4 h-4 mr-2" /> DJs
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {event.djs.map((dj: string, idx: number) => (
-                            <span key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-slate-700 dark:text-slate-300 font-bold text-[15px] shadow-sm">
-                              {dj}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Performances */}
-                    {event.performances?.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center">
-                          <Mic2 className="w-4 h-4 mr-2" /> Performances
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {event.performances.map((perf: string, idx: number) => (
-                            <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/50 px-4 py-2 rounded-xl text-indigo-700 dark:text-indigo-300 font-bold text-[15px]">
-                              {perf}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Media / Photo & Video */}
-                    {event.media?.length > 0 && (
-                      <div className="md:col-span-2 border-t border-slate-200 dark:border-slate-700/50 pt-6">
-                        <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center">
-                          <ImageIcon className="w-4 h-4 mr-2" /> Photo / Video
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {event.media.map((media: string, idx: number) => (
-                            <span key={idx} className="bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-900/30 px-4 py-2 rounded-xl text-rose-600 dark:text-rose-400 font-bold text-[15px]">
-                              {media}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <hr className="border-slate-100 my-12" />
-
-            {/* Description */}
-            <div className="prose prose-indigo dark:prose-invert max-w-none">
-              <h3 className="text-2xl lg:text-3xl font-extrabold mb-6 text-slate-800 dark:text-white tracking-tight">
-                {t('event.details')}
-              </h3>
-              <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-relaxed text-[16px] xl:text-[18px]">
-                {event.description}
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Sticky Sidebar / Call to action */}
-          <div className="w-full xl:w-[420px] shrink-0 mt-12 xl:mt-0 relative">
-            <div className="sticky top-28 bg-white border border-slate-200 rounded-[24px] shadow-lg shadow-slate-200/50 p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white">예매 정보</h3>
+          {/* Host Block */}
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 md:p-8 flex items-center shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center mr-6 shrink-0">
+              <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <p className="text-[18px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100">
+              주최자: {event.hostName}
+            </p>
+          </div>
+
+          {/* Lineup Section (If exists) */}
+          {(event.djs?.length > 0 || event.performances?.length > 0 || event.media?.length > 0) && (
+            <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6">라인업 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {event.djs?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                      <Music className="w-4 h-4 mr-2" /> DJs
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {event.djs.map((dj: string, idx: number) => (
+                        <span key={idx} className="bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 font-bold text-[14px] border border-slate-100 dark:border-slate-700">
+                          {dj}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {event.performances?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                      <Mic2 className="w-4 h-4 mr-2" /> Performances
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {event.performances.map((perf: string, idx: number) => (
+                        <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg text-indigo-700 dark:text-indigo-400 font-bold text-[14px] border border-indigo-100/50 dark:border-indigo-800/30">
+                          {perf}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Description Section */}
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 md:p-10 shadow-sm">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6">행사 상세 설명</h3>
+            <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-relaxed text-[16px]">
+              {event.description}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Ticketing/Booking Action Card */}
+        <div className="mt-12 lg:mt-0">
+          <div className="sticky top-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">예매 정보</h2>
                 <div className="flex gap-2">
                   <button 
                     onClick={toggleLike}
                     className={clsx(
-                      "p-2 rounded-full transition-all",
-                      isLiked ? "bg-rose-50 text-rose-500" : "text-slate-400 hover:text-rose-500 hover:bg-rose-50"
+                      "p-2.5 rounded-full transition-all bg-rose-50 dark:bg-rose-900/20",
+                      isLiked ? "text-rose-500 scale-110" : "text-rose-300 hover:text-rose-500"
                     )}
                   >
                     <Heart className={clsx("w-5 h-5", isLiked && "fill-current")} />
                   </button>
-                  <button className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-slate-50">
+                  <button className="p-2.5 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
                     <Share2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <div className="mb-2 flex items-center gap-1.5 px-1">
-                <span className="text-sm font-bold text-slate-700">관심행사 {event.likesCount || 0}</span>
+              <div className="mb-6 px-1">
+                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300">관심행사 {event.likesCount || 0}</span>
               </div>
 
-              {/* Tickets section */}
+              {/* Tickets Box */}
               {event.tickets && event.tickets.length > 0 && (
-                <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
-                  <h4 className="text-[13px] font-bold text-slate-500 mb-3 flex items-center">
-                    <CreditCard className="w-3.5 h-3.5 mr-1.5" />
-                    파티비 (티켓)
-                  </h4>
-                  <div className="space-y-2.5">
+                <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-5 mb-8 border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 mb-4 text-slate-500 dark:text-slate-400">
+                    <CreditCard className="w-4 h-4" />
+                    <span className="text-[13px] font-bold">파티비 (티켓)</span>
+                  </div>
+                  <div className="space-y-3">
                     {event.tickets.map((ticket: { name: string, price: number }, idx: number) => (
-                      <div key={idx} className="flex justify-between items-center text-sm">
-                        <span className="text-slate-600 dark:text-slate-400 font-medium">{ticket.name}</span>
-                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                      <div key={idx} className="flex justify-between items-center">
+                        <span className="text-[14px] text-slate-700 dark:text-slate-300 font-medium">{ticket.name}</span>
+                        <span className="text-[15px] text-indigo-700 dark:text-indigo-400 font-[800]">
                           {ticket.price === 0 ? '무료' : `${ticket.price.toLocaleString()}원`}
                         </span>
                       </div>
                     ))}
                   </div>
-
-                  {/* Payment Method / Deposit Account Display */}
-                  {event.paymentMethod && (
-                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <p className="text-[12px] font-bold text-slate-500 mb-1.5 flex items-center">
-                        <Sparkles className="w-3 h-3 mr-1 text-indigo-500" /> 입금 안내
-                      </p>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 font-medium">
-                        {event.paymentMethod}
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 
-              <div className="mb-6">
-                <div className="flex justify-between text-[13px] mb-2 text-slate-500">
-                  <span className="font-medium">참여자 현황</span>
-                  <span className="font-bold text-slate-800">{event.currentAttendees} / {event.maxAttendees}명</span>
+              {/* Payment Guidance (입금안내) */}
+              {event.paymentMethod && (
+                <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-5 mb-8 border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 mb-4 text-slate-500 dark:text-slate-400">
+                    <CreditCard className="w-4 h-4" />
+                    <span className="text-[13px] font-bold">입금 안내</span>
+                  </div>
+                  <div className="whitespace-pre-wrap text-[14px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                    {event.paymentMethod}
+                  </div>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2">
+              )}
+
+              <div className="mb-10">
+                <div className="flex justify-between items-end mb-2.5">
+                  <span className="text-[13px] font-bold text-slate-500 uppercase tracking-tight">참여자 현황</span>
+                  <span className="text-[14px] font-[800] text-slate-900 dark:text-white">{event.currentAttendees} / {event.maxAttendees}명</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
-                    className={clsx("h-2 rounded-full transition-all duration-1000", isFull ? "bg-red-500" : "bg-indigo-600")}
+                    className={clsx("h-full transition-all duration-1000 bg-indigo-600 rounded-full")}
                     style={{ width: `${Math.min((event.currentAttendees / event.maxAttendees) * 100, 100)}%` }}
-                  ></div>
+                  />
                 </div>
-                {!isFull && event.maxAttendees - event.currentAttendees <= 10 && (
-                  <p className="text-red-500 text-sm mt-3 font-bold text-center bg-red-50 p-2 rounded-lg border border-red-100">
-                    🔥 마감 임박! 잔여 {event.maxAttendees - event.currentAttendees}석
-                  </p>
-                )}
               </div>
 
               {registration?.status === 'confirmed' ? (
                 <div className="space-y-4">
-                  <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-4 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold">
-                    <Ticket className="w-5 h-5 mr-2" />
+                  <div className="w-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 py-4 rounded-2xl text-emerald-700 dark:text-emerald-400 font-[800] flex items-center justify-center gap-2">
+                    <Ticket className="w-5 h-5" />
                     참여 확정되었습니다
                   </div>
                   <button 
                     onClick={handleCancel}
                     disabled={processing}
-                    className="w-full py-4 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-[12px] transition-colors disabled:opacity-50 border border-red-100 dark:border-red-900/20"
+                    className="w-full py-4 text-red-500 font-bold border border-red-100 dark:border-red-900/30 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
                   >
-                    {t('event.cancel')}
+                    참여 취소하기
                   </button>
                 </div>
               ) : (
@@ -591,55 +643,55 @@ export default function EventDetail() {
                   onClick={handleRegister}
                   disabled={isFull || processing}
                   className={clsx(
-                    "w-full py-4 rounded-[12px] font-bold text-[15px] text-white shadow-sm transition-all",
+                    "w-full py-5 rounded-2xl font-[900] text-lg text-white shadow-xl transition-all",
                     isFull 
                       ? "bg-slate-300 dark:bg-slate-700 cursor-not-allowed shadow-none" 
-                      : "bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 shadow-indigo-600/20",
+                      : "bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] shadow-indigo-600/30",
                     processing && "opacity-75 cursor-wait"
                   )}
                 >
-                  {isFull ? t('event.full') : processing ? '처리 중...' : t('event.register')}
+                  {isFull ? '모집 마감' : '참여 신청하기'}
                 </button>
               )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Sticky RSVP Control for Mobile */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-30 lg:hidden">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={toggleLike}
-              className={clsx(
-                "p-4 rounded-2xl border transition-all",
-                isLiked ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-500" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400"
-              )}
-            >
-              <Heart className={clsx("w-6 h-6", isLiked && "fill-current")} />
-            </button>
-            
-            {registration?.status === 'confirmed' ? (
-              <button 
-                onClick={handleCancel}
-                disabled={processing}
-                className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-4 rounded-2xl font-black tracking-tight hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-              >
-                {processing ? '처리 중...' : t('event.cancel')}
-              </button>
-            ) : isFull ? (
-              <div className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-400 py-4 rounded-2xl font-black text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
-                {t('event.full')}
-              </div>
-            ) : (
-              <button 
-                onClick={handleRegister}
-                disabled={processing}
-                className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
-              >
-                {processing ? '처리 중...' : t('event.register')}
-              </button>
+      {/* Sticky RSVP Control for Mobile */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-30 lg:hidden">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={toggleLike}
+            className={clsx(
+              "p-4 rounded-2xl border transition-all",
+              isLiked ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-500" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400"
             )}
-          </div>
+          >
+            <Heart className={clsx("w-6 h-6", isLiked && "fill-current")} />
+          </button>
+          
+          {registration?.status === 'confirmed' ? (
+            <button 
+              onClick={handleCancel}
+              disabled={processing}
+              className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-4 rounded-2xl font-black tracking-tight hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+            >
+              {processing ? '처리 중...' : t('event.cancel')}
+            </button>
+          ) : isFull ? (
+            <div className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-400 py-4 rounded-2xl font-black text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
+              {t('event.full')}
+            </div>
+          ) : (
+            <button 
+              onClick={handleRegister}
+              disabled={processing}
+              className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
+            >
+              {processing ? '처리 중...' : t('event.register')}
+            </button>
+          )}
         </div>
       </div>
 

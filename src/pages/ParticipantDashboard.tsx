@@ -309,11 +309,11 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-[14px] border border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar w-full md:w-auto">
             {[
               { id: 'all', label: t('search.category.all') },
-              { id: 'party', label: t('search.category.party') },
-              { id: 'lesson', label: t('search.category.lesson') },
-              { id: 'instructor', label: t('search.category.instructor') },
-              { id: 'dj', label: t('search.category.dj') },
-              { id: 'media', label: t('search.category.media') }
+              { id: 'salsa', label: t('search.category.salsa') },
+              { id: 'bachata', label: t('search.category.bachata') },
+              { id: 'kizomba', label: t('search.category.kizomba') },
+              { id: 'salsa_bachata', label: t('search.category.salsa_bachata') },
+              { id: 'sal_ba_ki', label: t('search.category.sal_ba_ki') }
             ].map((cat) => (
               <button
                 key={cat.id}

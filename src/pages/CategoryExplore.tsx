@@ -93,7 +93,13 @@ export default function CategoryExplore() {
              category === 'lesson' ? '기초부터 심화까지, 당신을 위한 강습.' :
              category === 'instructor' ? '열정적인 강사의 커리큘럼.' :
              category === 'dj' ? '최고의 텐션을 선사할 DJ 라인업.' :
-             '당신의 순간을 담아낼 최고의 아티스트.'}
+             category === 'media' ? '당신의 순간을 담아낼 최고의 아티스트.' :
+             category === 'salsa' ? '정열적인 살사 파티와 소셜을 찾아보세요.' : 
+             category === 'bachata' ? '감미로운 바차타의 선율과 함께하는 순간.' :
+             category === 'kizomba' ? '매혹적인 키좀바의 세계로 여러분을 초대합니다.' :
+             category === 'salsa_bachata' ? '살사와 바차타, 두 마리 토끼를 한 번에.' :
+             category === 'sal_ba_ki' ? '살사, 바차타, 키좀바가 어우러진 최고의 축제.' :
+             '당신의 순간을 담아낼 다양한 이벤트.'}
           </p>
         </div>
       </div>

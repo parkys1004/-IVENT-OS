@@ -57,7 +57,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 import { format } from 'date-fns';
 import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -399,6 +399,64 @@ export default function EventDetail() {
                 <Users className="w-6 h-6 mr-5 text-indigo-500" />
                 <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px]">{t('event.host')}: {event.hostName}</span>
               </div>
+
+              {/* Lineup Section (DJs, Performances, Media) */}
+              {(event.djs?.length > 0 || event.performances?.length > 0 || event.media?.length > 0) && (
+                <div className="mt-8 bg-slate-50 dark:bg-slate-800/30 rounded-3xl p-6 sm:p-8 border border-slate-100 dark:border-slate-800/50">
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center">
+                    <Sparkles className="w-5 h-5 mr-3 text-indigo-500" /> 라인업 정보
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* DJs */}
+                    {event.djs?.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center">
+                          <Music className="w-4 h-4 mr-2" /> DJs
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {event.djs.map((dj: string, idx: number) => (
+                            <span key={idx} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-slate-700 dark:text-slate-300 font-bold text-[15px] shadow-sm">
+                              {dj}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Performances */}
+                    {event.performances?.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center">
+                          <Mic2 className="w-4 h-4 mr-2" /> Performances
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {event.performances.map((perf: string, idx: number) => (
+                            <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/50 px-4 py-2 rounded-xl text-indigo-700 dark:text-indigo-300 font-bold text-[15px]">
+                              {perf}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Media / Photo & Video */}
+                    {event.media?.length > 0 && (
+                      <div className="md:col-span-2 border-t border-slate-200 dark:border-slate-700/50 pt-6">
+                        <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center">
+                          <ImageIcon className="w-4 h-4 mr-2" /> Photo / Video
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {event.media.map((media: string, idx: number) => (
+                            <span key={idx} className="bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-900/30 px-4 py-2 rounded-xl text-rose-600 dark:text-rose-400 font-bold text-[15px]">
+                              {media}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <hr className="border-slate-100 my-12" />

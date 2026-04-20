@@ -89,6 +89,7 @@ export default function EditEvent() {
     maxAttendees: 50,
     djs: [] as string[],
     performances: [] as string[],
+    media: [] as string[],
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
 
@@ -157,6 +158,7 @@ export default function EditEvent() {
             maxAttendees: data.maxAttendees || 50,
             djs: data.djs || [],
             performances: data.performances || [],
+            media: data.media || [],
             tickets: data.tickets || (data.price ? [{ name: '참가비', price: data.price }] : [{ name: '일반 예매', price: 0 }]),
           });
 
@@ -298,6 +300,7 @@ export default function EditEvent() {
         likesCount: eventData?.likesCount || 0,
         djs: formData.djs.filter(dj => dj.trim() !== ''),
         performances: formData.performances.filter(p => p.trim() !== ''),
+        media: formData.media.filter(m => m.trim() !== ''),
         tickets: formData.tickets.filter(t => t.name.trim() !== ''),
       };
 
@@ -331,6 +334,14 @@ export default function EditEvent() {
     const newPerformances = [...formData.performances];
     newPerformances[index] = value;
     setFormData(prev => ({ ...prev, performances: newPerformances }));
+  };
+
+  const addMedia = () => setFormData(prev => ({ ...prev, media: [...prev.media, ''] }));
+  const removeMedia = (index: number) => setFormData(prev => ({ ...prev, media: prev.media.filter((_, i) => i !== index) }));
+  const updateMedia = (index: number, value: string) => {
+    const newMedia = [...formData.media];
+    newMedia[index] = value;
+    setFormData(prev => ({ ...prev, media: newMedia }));
   };
 
   const addTicket = () => setFormData(prev => ({ ...prev, tickets: [...prev.tickets, { name: '', price: 0 }] }));
@@ -502,6 +513,51 @@ export default function EditEvent() {
               ))}
               {formData.performances.length === 0 && (
                 <p className="text-xs text-slate-400 italic">등록된 공연 정보가 없습니다.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Photo/Video (Media Team) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <label className="block text-[15px] font-bold text-slate-800 dark:text-slate-100 flex items-center">
+                <ImageIcon className="w-5 h-5 mr-3 text-rose-500"/> 포토 / 영상 (미디어 팀)
+              </label>
+              <button 
+                type="button" 
+                onClick={addMedia}
+                className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 rounded-full hover:bg-rose-100 transition-colors"
+              >
+                <PlusCircle className="w-3.5 h-3.5" /> 미디어 추가
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {formData.media.map((person, idx) => (
+                <div key={idx} className="relative group">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                  </div>
+                  <input
+                    type="text"
+                    value={person}
+                    onChange={(e) => updateMedia(idx, e.target.value)}
+                    placeholder="미디어팀 이름 (예: Photographer Name)"
+                    className="w-full rounded-[14px] border-slate-200 dark:border-slate-700 border bg-white dark:bg-slate-800 pl-9 pr-10 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-rose-500 outline-none transition-all"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => removeMedia(idx)} 
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {formData.media.length === 0 && (
+                <p className="col-span-full text-sm text-slate-400 italic text-center py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
+                  포토/영상 정보가 없습니다. (선택사항)
+                </p>
               )}
             </div>
           </div>

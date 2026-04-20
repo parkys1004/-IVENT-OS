@@ -293,7 +293,7 @@ export default function EventDetail() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
+      <div className="glass-panel rounded-3xl overflow-hidden transition-colors">
         {/* Banner Images Gallery */}
         {images.length > 0 ? (
           <div className="relative w-full h-72 md:h-[400px] lg:h-[500px] bg-slate-900 flex group overflow-hidden">

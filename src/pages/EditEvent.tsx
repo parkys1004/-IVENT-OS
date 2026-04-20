@@ -365,8 +365,8 @@ export default function EditEvent() {
   }
 
   return (
-    <div className="max-w-[1000px] mx-auto bg-white rounded-[24px] shadow-sm border border-slate-200 p-8 md:p-12 lg:p-16">
-      <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-10">행사 수정하기</h1>
+    <div className="max-w-[1000px] mx-auto glass-panel rounded-[24px] p-8 md:p-12 lg:p-16">
+      <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 dark:text-white mb-10">행사 수정하기</h1>
       
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Title */}

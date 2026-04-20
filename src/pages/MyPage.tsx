@@ -93,7 +93,7 @@ export default function MyPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Profile Settings */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-[20px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="glass-panel rounded-[20px] overflow-hidden">
              <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                <h2 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                  <User className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -158,7 +158,7 @@ export default function MyPage() {
 
         {/* Activity / Registrations */}
         <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-slate-900 rounded-[20px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden h-full">
+          <div className="glass-panel rounded-[20px] overflow-hidden h-full">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                <h2 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                  <Ticket className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />

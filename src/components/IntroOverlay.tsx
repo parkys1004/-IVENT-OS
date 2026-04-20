@@ -45,35 +45,94 @@ export function HeroHeader() {
   const honeycombPattern = "data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f59e0b' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5L28 15V0H0v15zm0 34l12.98-7.5L28 49v-15.01L13.98 26.5 0 33.99V49zm13.98-15.5l14.02 8.1V49h-28V41.6l13.98-8.1zM28 0l-14.02 8.1V15h28V7.41L28 0z'/%3E%3C/g%3E%3C/svg%3E";
 
   return (
-    <div className="relative w-full overflow-hidden flex flex-col items-center justify-center min-h-[60vh] sm:min-h-[70vh] mb-12 border-b border-amber-200/50 dark:border-amber-900/30">
+    <div className="relative w-full overflow-hidden flex flex-col items-center justify-center min-h-[70vh] sm:min-h-[85vh] mb-12">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {/* Animated Honeycomb Pattern */}
+        {/* Fancy Layered Background Animations */}
+        {/* Removed solid background to unify with global AnimatedBackground */}
+
+        {/* Animated Honeycomb Pattern - Enhanced movement */}
         <motion.div
           className="absolute inset-0 opacity-40 dark:opacity-20"
-          animate={{ backgroundPosition: ['0px 0px', '28px 49px'] }}
-          transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-          style={{ backgroundImage: `url("${honeycombPattern}")` }}
+          animate={{ 
+            backgroundPosition: ['0px 0px', '56px 98px'],
+          }}
+          transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+          style={{ backgroundImage: `url("${honeycombPattern}")`, backgroundSize: '56px 98px' }}
         />
         
-        {/* Large Gradients for Full-Width feel */}
-        <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-amber-500/10 to-transparent pointer-events-none" />
-        
-        {/* Floating Honey Orbs - More dispersed for full-width */}
+        {/* Layered Atmospheric Orbs (Recipe 7: Atmospheric) */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Central Glow behind text */}
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3]
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-amber-400/30 dark:bg-amber-500/10 rounded-full blur-[140px]" 
+          />
+
+          {/* Drifting Orbs */}
+          <motion.div 
+            animate={{ 
+              x: [-100, 100],
+              y: [-50, 50],
+              rotate: [0, 360]
+            }} 
+            transition={{ duration: 25, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
+            className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-gradient-to-br from-orange-400/20 to-amber-500/0 rounded-full blur-[100px]" 
+          />
+          <motion.div 
+            animate={{ 
+              x: [100, -100],
+              y: [50, -50],
+              rotate: [360, 0]
+            }} 
+            transition={{ duration: 30, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
+            className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-gradient-to-tl from-yellow-400/20 to-orange-500/0 rounded-full blur-[100px]" 
+          />
+        </div>
+
+        {/* Floating Sparks (Visual interest) */}
+        <div className="absolute inset-0">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-amber-400 rounded-full"
+              initial={{ 
+                x: Math.random() * 100 + "%", 
+                y: Math.random() * 100 + "%",
+                opacity: 0 
+              }}
+              animate={{ 
+                y: [null, "-20%"],
+                opacity: [0, 1, 0],
+                scale: [0, 1.5, 0]
+              }}
+              transition={{ 
+                duration: 5 + Math.random() * 5, 
+                repeat: Infinity, 
+                delay: Math.random() * 5,
+                ease: "easeInOut" 
+              }}
+              style={{
+                filter: 'blur(1px)',
+                boxShadow: '0 0 10px #f59e0b'
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Beam of Light effect overlay */}
         <motion.div 
-          animate={{ x: [0, 100, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }} 
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[10%] left-[5%] w-[40%] h-[40%] bg-amber-400/20 dark:bg-amber-400/10 rounded-full blur-[120px]" 
-        />
-        <motion.div 
-          animate={{ x: [0, -80, 0], y: [0, -70, 0], scale: [1, 1.3, 1] }} 
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute top-[30%] right-[-5%] w-[35%] h-[35%] bg-yellow-400/20 dark:bg-yellow-400/10 rounded-full blur-[120px]" 
-        />
-        <motion.div 
-          animate={{ x: [0, 60, 0], y: [0, -60, 0], scale: [1, 1.5, 1] }} 
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-          className="absolute bottom-[-10%] left-[30%] w-[35%] h-[35%] bg-orange-400/20 dark:bg-orange-400/10 rounded-full blur-[120px]" 
+          animate={{ x: ['-100%', '200%'] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 opacity-[0.05] dark:opacity-[0.02] pointer-events-none"
+          style={{
+            background: 'linear-gradient(115deg, transparent 40%, rgba(255,255,255,1) 50%, transparent 60%)',
+            backgroundSize: '200% 100%'
+          }}
         />
       </div>
 
@@ -102,10 +161,25 @@ export function HeroHeader() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-4xl sm:text-6xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter mb-6 sm:mb-8 leading-[1.1]"
+            className="text-4xl sm:text-6xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter mb-6 sm:mb-8 leading-[1.1] relative"
           >
+            {/* Shimmer overlay for title */}
+            <motion.div
+              animate={{ x: ['-200%', '200%'] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-10"
+              style={{ mixBlendMode: 'overlay' }}
+            />
             Dancehive<br />
-            <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent">Connect & Shine</span>
+            <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent relative">
+              Connect & Shine
+              {/* Subtle pulsing glow for the gradient text */}
+              <motion.span 
+                animate={{ opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-orange-500/20 to-yellow-500/0 blur-md pointer-events-none"
+              />
+            </span>
           </motion.h2>
           
           <motion.p 
@@ -148,7 +222,7 @@ export function HeroFeatures() {
   };
 
   return (
-    <div className="relative w-full py-24 sm:py-32 flex flex-col items-center justify-center border-t border-slate-200 dark:border-slate-800/50 mt-16">
+    <div className="relative w-full py-24 sm:py-32 flex flex-col items-center justify-center mt-16 bg-gradient-to-b from-transparent via-amber-50/5 dark:via-amber-950/5 to-transparent backdrop-blur-3xl">
       <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-12 flex flex-col items-center">
         {/* Call to action (Scroll Down to more, or just the button from the screenshot) */}
         <motion.div 

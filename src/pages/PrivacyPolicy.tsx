@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function PrivacyPolicy() {
   return (
-    <div className="max-w-4xl mx-auto w-full bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-12 shadow-sm border border-slate-200 dark:border-slate-800 my-8">
+    <div className="max-w-4xl mx-auto w-full glass-panel rounded-3xl p-8 sm:p-12 my-8">
       <h1 className="text-3xl font-black mb-8 text-slate-900 dark:text-white">개인정보처리방침</h1>
       <div className="prose prose-slate dark:prose-invert max-w-none space-y-6 text-slate-600 dark:text-slate-300">
         <p><strong>시행일:</strong> 2026년 4월 19일</p>

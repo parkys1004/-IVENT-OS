@@ -331,9 +331,9 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950 h-full w-full min-h-0">
+    <div className="flex-1 flex overflow-hidden glass-panel h-full w-full min-h-0 transition-colors">
       {/* LNB (Left Navigation Bar) */}
-      <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-sm z-10 shrink-0 pb-4">
+      <div className="w-64 bg-white/20 dark:bg-slate-900/20 border-r border-slate-200/30 dark:border-slate-800/20 backdrop-blur-3xl h-full flex flex-col shadow-sm z-10 shrink-0 pb-4">
         <div className="p-6">
           <h2 className="text-xs font-black text-slate-400 tracking-widest uppercase mb-4">Admin System</h2>
           <nav className="space-y-1">

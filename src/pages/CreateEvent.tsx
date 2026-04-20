@@ -385,7 +385,7 @@ export default function CreateEvent() {
   }
 
   return (
-    <div className="max-w-[1000px] mx-auto bg-white dark:bg-slate-900 rounded-[24px] shadow-sm border border-slate-200 dark:border-slate-800 p-8 md:p-12 lg:p-16 transition-colors duration-200">
+    <div className="max-w-[1000px] mx-auto glass-panel rounded-[24px] p-8 md:p-12 lg:p-16 transition-colors duration-200">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-3">

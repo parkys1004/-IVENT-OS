@@ -25,6 +25,12 @@
 }
 
 @layer utilities {
+  .glass-panel {
+    @apply bg-white/60 dark:bg-[#1A1612]/40 backdrop-blur-3xl border border-white/20 dark:border-white/5;
+  }
+}
+
+@layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

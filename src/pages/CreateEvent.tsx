@@ -89,6 +89,7 @@ export default function CreateEvent() {
     djs: [] as string[],
     performances: [] as string[],
     media: [] as string[],
+    paymentMethod: '',
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
 
@@ -330,6 +331,7 @@ export default function CreateEvent() {
         djs: formData.djs.filter(dj => dj.trim() !== ''),
         performances: formData.performances.filter(p => p.trim() !== ''),
         media: formData.media.filter(m => m.trim() !== ''),
+        paymentMethod: formData.paymentMethod,
         tickets: formData.tickets.filter(t => t.name.trim() !== ''),
       };
 
@@ -566,46 +568,34 @@ export default function CreateEvent() {
           </div>
 
           {/* Photo/Video (Media Team) */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-6">
-              <label className="block text-[15px] font-bold text-slate-800 dark:text-slate-100 flex items-center">
-                <ImageIcon className="w-5 h-5 mr-3 text-rose-500"/> 포토 / 영상 (미디어 팀)
-              </label>
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 flex items-center"><ImageIcon className="w-4 h-4 mr-2 text-indigo-500"/> 포토 / 영상 (미디어 팀)</label>
               <button 
                 type="button" 
                 onClick={addMedia}
-                className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 rounded-full hover:bg-rose-100 transition-colors"
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline"
               >
-                <PlusCircle className="w-3.5 h-3.5" /> 미디어 추가
+                <PlusCircle className="w-3.5 h-3.5" /> 추가하기
               </button>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {formData.media.map((person, idx) => (
-                <div key={idx} className="relative group">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <ImageIcon className="w-3.5 h-3.5" />
-                  </div>
+                <div key={idx} className="flex gap-2">
                   <input
                     type="text"
                     value={person}
                     onChange={(e) => updateMedia(idx, e.target.value)}
-                    placeholder="미디어팀 이름 (예: Photographer Name)"
-                    className="w-full rounded-[14px] border-slate-200 dark:border-slate-700 border bg-white dark:bg-slate-800 pl-9 pr-10 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-rose-500 outline-none transition-all"
+                    placeholder="미디어팀 전문가 이름을 입력하세요"
+                    className="flex-1 rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
-                  <button 
-                    type="button" 
-                    onClick={() => removeMedia(idx)} 
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <X className="w-4 h-4" />
+                  <button type="button" onClick={() => removeMedia(idx)} className="text-slate-400 hover:text-red-500 transition-colors">
+                    <MinusCircle className="w-5 h-5" />
                   </button>
                 </div>
               ))}
               {formData.media.length === 0 && (
-                <p className="col-span-full text-sm text-slate-400 italic text-center py-4 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
-                  포토/영상 정보가 없습니다. (선택사항)
-                </p>
+                <p className="text-xs text-slate-400 italic">등록된 미디어 정보가 없습니다.</p>
               )}
             </div>
           </div>
@@ -659,6 +649,22 @@ export default function CreateEvent() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Payment Method / Deposit Account */}
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+          <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center">
+            <CreditCard className="w-4 h-4 mr-2 text-indigo-500"/> 입금계좌 또는 입금방법
+          </label>
+          <textarea
+            name="paymentMethod"
+            value={formData.paymentMethod}
+            onChange={handleChange}
+            rows={2}
+            className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow resize-none"
+            placeholder="예: 신한은행 110-123-456789 홍길동 / 입금 후 문자로 성함 보내주세요"
+          />
+          <p className="mt-2 text-[11px] text-slate-500">예매 시 사용자에게 노출되는 입금 안내 정보입니다.</p>
         </div>
 
         {/* Location */}

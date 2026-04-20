@@ -514,6 +514,18 @@ export default function EventDetail() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Payment Method / Deposit Account Display */}
+                  {event.paymentMethod && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <p className="text-[12px] font-bold text-slate-500 mb-1.5 flex items-center">
+                        <Sparkles className="w-3 h-3 mr-1 text-indigo-500" /> 입금 안내
+                      </p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 font-medium">
+                        {event.paymentMethod}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

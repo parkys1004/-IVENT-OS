@@ -78,6 +78,7 @@ service cloud.firestore {
         (!('performances' in data) || data.performances is list) &&
         (!('tickets' in data) || data.tickets is list) &&
         (!('media' in data) || data.media is list) &&
+        (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 2000)) &&
         (!('coverImageIndex' in data) || data.coverImageIndex is int);
     }
 
@@ -154,7 +155,7 @@ service cloud.firestore {
                       incoming().hostId == existing().hostId &&
                       incoming().createdAt == existing().createdAt &&
                       // Action: General Update
-                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'date', 'endDate', 'locationName', 'formattedAddress', 'country', 'city', 'imageUrl', 'imageUrls', 'maxAttendees', 'status', 'likesCount', 'currentAttendees', 'geoPoint', 'djs', 'performances', 'media', 'tickets', 'coverImageIndex'])
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'date', 'endDate', 'locationName', 'formattedAddress', 'country', 'city', 'imageUrl', 'imageUrls', 'maxAttendees', 'status', 'likesCount', 'currentAttendees', 'geoPoint', 'djs', 'performances', 'media', 'tickets', 'paymentMethod', 'coverImageIndex'])
                     ) || (
                       // Action: Registration Increment/Decrement
                       incoming().diff(existing()).affectedKeys().hasOnly(['currentAttendees']) &&

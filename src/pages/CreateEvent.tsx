@@ -75,7 +75,7 @@ export default function CreateEvent() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'IT',
+    category: 'party',
     date: '',
     time: '',
     endDate: '', // will just duplicate date for MVP
@@ -445,10 +445,11 @@ export default function CreateEvent() {
                onChange={handleChange}
                className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
              >
-               <option value="IT">IT/Tech</option>
-               <option value="Music">음악/공연</option>
-               <option value="Networking">네트워킹/모임</option>
-               <option value="Education">교육/강연</option>
+               <option value="party">파티 (Party)</option>
+               <option value="lesson">강습 (Lesson)</option>
+               <option value="instructor">강사 (Instructor)</option>
+               <option value="dj">DJ</option>
+               <option value="media">포토/영상 (Photo/Video)</option>
              </select>
           </div>
           <div>

@@ -1,13 +1,53 @@
-import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useState, useRef } from 'react';
+import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter } from 'lucide-react';
+import { Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
+
+// Utility for image processing
+const resizeAndCompressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800; // Side banners don't need to be huge
+        const MAX_HEIGHT = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/webp', 0.8);
+        resolve(dataUrl);
+      };
+      img.onerror = error => reject(error);
+    };
+    reader.onerror = error => reject(error);
+  });
+};
 
 interface EventData {
   id: string;
@@ -21,6 +61,13 @@ interface EventData {
   isBanner?: boolean;
 }
 
+interface PromoBanner {
+  id: string;
+  imageUrl: string;
+  linkUrl: string;
+  isActive: boolean;
+}
+
 type MenuKey = 'home' | 'users' | 'events' | 'finance' | 'banners' | 'settings';
 type TabKey = string;
 
@@ -28,7 +75,18 @@ export default function AdminDashboard() {
   const { profile } = useAuth();
   const [events, setEvents] = useState<EventData[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Promotion Banner Edit State
+  const [editBannerId, setEditBannerId] = useState<string | null>(null);
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editLinkUrl, setEditLinkUrl] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Navigation State
   const [activeMenu, setActiveMenu] = useState<MenuKey>('home');
@@ -60,6 +118,63 @@ export default function AdminDashboard() {
     }
   };
 
+  const handlePromoBannerSave = async (id: string) => {
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, 'promoBanners', id), {
+        imageUrl: editImageUrl,
+        linkUrl: editLinkUrl,
+        isActive: true,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      setEditBannerId(null);
+      alert('홍보 배너가 저장되었습니다.');
+    } catch (error) {
+      console.error("Failed to save promo banner:", error);
+      alert('배너 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const startEditBanner = (banner: PromoBanner) => {
+    setEditBannerId(banner.id);
+    setEditImageUrl(banner.imageUrl);
+    setEditLinkUrl(banner.linkUrl);
+  };
+
+  const handleImageFile = async (file: File) => {
+    setIsResizing(true);
+    try {
+      const base64 = await resizeAndCompressImage(file);
+      setEditImageUrl(base64);
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      alert("이미지 처리 중 오류가 발생했습니다.");
+    } finally {
+      setIsResizing(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActiveId(id);
+    } else if (e.type === "dragleave") {
+      setDragActiveId(null);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveId(null);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageFile(e.dataTransfer.files[0]);
+    }
+  };
+
   useEffect(() => {
     // Admin needs full access, so we just query everything
     let unsubEvents: () => void;
@@ -69,6 +184,7 @@ export default function AdminDashboard() {
       try {
         const eventsQ = query(collection(db, 'events'), orderBy('date', 'desc'));
         const usersQ = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+        const promoQ = query(collection(db, 'promoBanners'), orderBy('updatedAt', 'desc'));
 
         // Realtime for events
         unsubEvents = onSnapshot(eventsQ, (snapshot) => {
@@ -86,6 +202,15 @@ export default function AdminDashboard() {
           console.error("Admin users snapshot error:", error);
           setLoading(false);
         });
+
+        // Realtime for promo banners
+        const unsubPromo = onSnapshot(promoQ, (snapshot) => {
+          setPromoBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as PromoBanner[]);
+        });
+
+        return () => {
+          if (unsubPromo) unsubPromo();
+        };
 
       } catch (err) {
         console.error("Admin fetch error", err);
@@ -410,35 +535,189 @@ export default function AdminDashboard() {
             {activeMenu === 'users' && renderUsersContent()}
             {activeMenu === 'events' && renderEventsContent()}
             {activeMenu === 'banners' && (
-              <div className="space-y-6 flex flex-col h-full min-h-0">
-                <div className="flex justify-between items-center shrink-0">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">메인 배너 설정 (최대 5개)</h3>
-                  <p className="text-sm text-slate-500">현재 {events.filter(e => e.isBanner).length}/5 등록됨</p>
-                </div>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex-1 relative overflow-auto p-6">
-                  {events.filter(e => e.isBanner).length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                      <Home className="w-12 h-12 mb-4 opacity-20" />
-                      <p>등록된 배너가 없습니다. '행사 관리' 탭에서 등록해주세요.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {events.filter(e => e.isBanner).map(e => (
-                        <div key={e.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                          <div className="flex-1 min-w-0 mr-4">
-                            <p className="font-bold text-slate-800 dark:text-white truncate">{e.title}</p>
-                            <p className="text-xs text-slate-500">{e.hostName}</p>
+              <div className="space-y-8 flex flex-col h-full min-h-0 overflow-y-auto no-scrollbar pb-10">
+                <div className="flex flex-col gap-6">
+                  <div className="flex justify-between items-center shrink-0">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">메인 배너 설정 (최대 5개)</h3>
+                    <p className="text-sm text-slate-500">현재 {events.filter(e => e.isBanner).length}/5 등록됨</p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    {events.filter(e => e.isBanner).length === 0 ? (
+                      <div className="py-10 flex flex-col items-center justify-center text-slate-400">
+                        <Home className="w-12 h-12 mb-4 opacity-20" />
+                        <p>등록된 배너가 없습니다. '행사 관리' 탭에서 등록해주세요.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {events.filter(e => e.isBanner).map(e => (
+                          <div key={e.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                            <div className="flex-1 min-w-0 mr-4">
+                              <p className="font-bold text-slate-800 dark:text-white truncate">{e.title}</p>
+                              <p className="text-xs text-slate-500">{e.hostName}</p>
+                            </div>
+                            <button 
+                              onClick={() => handleBannerToggle(e.id, true)}
+                              className="text-xs font-bold text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              해제
+                            </button>
                           </div>
-                          <button 
-                            onClick={() => handleBannerToggle(e.id, true)}
-                            className="text-xs font-bold text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-3 py-1.5 rounded-lg"
-                          >
-                            해제
-                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                  <div className="flex justify-between items-center shrink-0">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">홍보용 사이드 배너 (2개)</h3>
+                    <p className="text-sm text-slate-500">사이드바 방문자수 하단에 노출되는 배너입니다.</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
+                    {[1, 2].map((num) => {
+                      const bannerId = `sidebar${num}`;
+                      const banner = promoBanners.find(b => b.id === bannerId) || { id: bannerId, imageUrl: '', linkUrl: '', isActive: false };
+                      const isEditing = editBannerId === bannerId;
+
+                      return (
+                        <div key={bannerId} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">Banner #{num}</span>
+                            {!isEditing && (
+                              <button 
+                                onClick={() => startEditBanner(banner)}
+                                className="text-xs font-bold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
+                              >
+                                수정하기
+                              </button>
+                            )}
+                          </div>
+
+                          {isEditing ? (
+                            <div className="space-y-4">
+                               <div 
+                                 className={clsx(
+                                   "relative aspect-[16/9] w-full rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-3 overflow-hidden group cursor-pointer",
+                                   dragActiveId === bannerId 
+                                    ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10" 
+                                    : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                 )}
+                                 onDragEnter={(e) => handleDrag(e, bannerId)}
+                                 onDragLeave={(e) => handleDrag(e, bannerId)}
+                                 onDragOver={(e) => handleDrag(e, bannerId)}
+                                 onDrop={(e) => handleDrop(e, bannerId)}
+                                 onClick={() => fileInputRef.current?.click()}
+                               >
+                                  {isResizing ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                      <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                                      <span className="text-[10px] font-bold text-slate-500">이미지 압축 중...</span>
+                                    </div>
+                                  ) : editImageUrl ? (
+                                    <>
+                                      <img src={editImageUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
+                                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div className="bg-white/90 dark:bg-slate-900/90 p-2 rounded-full shadow-lg">
+                                          <Upload className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        </div>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className={clsx(
+                                        "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                                        dragActiveId === bannerId ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600" : "bg-white dark:bg-slate-800 text-slate-400"
+                                      )}>
+                                        <FileImage className="w-5 h-5" />
+                                      </div>
+                                      <div className="text-center px-4">
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">파일을 드래그하거나 클릭하여 로드</p>
+                                        <p className="text-[10px] text-slate-400 mt-1">포스터 또는 홍보 이미지 (WEBP/JPG/PNG)</p>
+                                      </div>
+                                    </>
+                                  )}
+                                  <input 
+                                    ref={fileInputRef}
+                                    type="file" 
+                                    className="hidden" 
+                                    accept="image/*"
+                                    onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])}
+                                  />
+                               </div>
+
+                               <div>
+                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">이미지 URL (직접 입력도 가능)</label>
+                                 <div className="relative">
+                                   <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                   <input 
+                                     type="text" 
+                                     value={editImageUrl}
+                                     onChange={(e) => setEditImageUrl(e.target.value)}
+                                     placeholder="https://..."
+                                     className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-white"
+                                   />
+                                 </div>
+                               </div>
+                               <div>
+                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">연결 링크 (기본 #)</label>
+                                 <div className="relative">
+                                   <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                   <input 
+                                     type="text" 
+                                     value={editLinkUrl}
+                                     onChange={(e) => setEditLinkUrl(e.target.value)}
+                                     placeholder="https://..."
+                                     className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 dark:text-white"
+                                   />
+                                 </div>
+                               </div>
+                               <div className="flex gap-2 pt-2">
+                                 <button 
+                                   onClick={() => handlePromoBannerSave(bannerId)}
+                                   disabled={isSaving || isResizing}
+                                   className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-sm transition-all disabled:opacity-50"
+                                 >
+                                   <Save className="w-4 h-4" /> 저장
+                                 </button>
+                                 <button 
+                                   onClick={() => setEditBannerId(null)}
+                                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                 >
+                                   취소
+                                 </button>
+                               </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                               {banner.imageUrl ? (
+                                  <div className="relative aspect-[16/9] w-full bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden group">
+                                     <img 
+                                      src={banner.imageUrl} 
+                                      alt={`Promo Banner ${num}`} 
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      referrerPolicy="no-referrer"
+                                     />
+                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                        <ImageIcon className="w-8 h-8 text-white opacity-50" />
+                                     </div>
+                                  </div>
+                               ) : (
+                                  <div className="aspect-[16/9] w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 gap-2">
+                                     <ImageIcon className="w-8 h-8 opacity-20" />
+                                     <p className="text-xs font-medium">배어를 등록해주세요</p>
+                                  </div>
+                               )}
+                               <div className="flex items-center gap-2 text-xs truncate text-slate-500">
+                                  <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{banner.linkUrl || '링크 없음'}</span>
+                               </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}

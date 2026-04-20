@@ -96,6 +96,14 @@ service cloud.firestore {
         data.createdAt is timestamp;
     }
 
+    function isValidPromoBanner(data) {
+      return data.keys().hasAll(['imageUrl', 'isActive', 'updatedAt']) &&
+        data.imageUrl is string && data.imageUrl.size() <= 1000000 &&
+        data.isActive is bool &&
+        data.updatedAt is timestamp &&
+        (!('linkUrl' in data) || (data.linkUrl is string && data.linkUrl.size() <= 2000));
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -209,6 +217,11 @@ service cloud.firestore {
                     exists(/databases/$(database)/documents/users/$(incoming().followingId));
                     
       allow delete: if isAdmin() || isOwner(followId.split('_')[0]);
+    }
+
+    match /promoBanners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(bannerId) && isValidPromoBanner(incoming());
     }
   }
 }

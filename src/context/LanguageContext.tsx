@@ -6,6 +6,8 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  categoryFilter: string;
+  setCategoryFilter: (filter: string) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -38,6 +40,9 @@ const translations: Record<Language, Record<string, string>> = {
     'search.category.all': '전체',
     'search.category.party': '파티',
     'search.category.lesson': '강습',
+    'search.category.instructor': '강사',
+    'search.category.dj': 'DJ',
+    'search.category.media': '포토/영상',
     'search.visibility.all': '전체',
     'search.visibility.public': '공개',
     'search.visibility.members': '회원전용',
@@ -71,6 +76,9 @@ const translations: Record<Language, Record<string, string>> = {
     'search.category.all': 'All',
     'search.category.party': 'Party',
     'search.category.lesson': 'Lesson',
+    'search.category.instructor': 'Instructor',
+    'search.category.dj': 'DJ',
+    'search.category.media': 'Photo/Video',
     'search.visibility.all': 'All',
     'search.visibility.public': 'Public',
     'search.visibility.members': 'Members Only',
@@ -104,6 +112,9 @@ const translations: Record<Language, Record<string, string>> = {
     'search.category.all': '全部',
     'search.category.party': 'パティー',
     'search.category.lesson': 'レッスン',
+    'search.category.instructor': '講師',
+    'search.category.dj': 'DJ',
+    'search.category.media': '写真/ビデオ',
     'search.visibility.all': '全部',
     'search.visibility.public': '公開',
     'search.visibility.members': '会員専用',
@@ -137,6 +148,9 @@ const translations: Record<Language, Record<string, string>> = {
     'search.category.all': '全部',
     'search.category.party': '派对',
     'search.category.lesson': '授课',
+    'search.category.instructor': '讲师',
+    'search.category.dj': 'DJ',
+    'search.category.media': '摄影/录像',
     'search.visibility.all': '全部',
     'search.visibility.public': '公开',
     'search.visibility.members': '会员专用',
@@ -170,6 +184,9 @@ const translations: Record<Language, Record<string, string>> = {
     'search.category.all': 'ทั้งหมด',
     'search.category.party': 'ปาร์ตี้',
     'search.category.lesson': 'บทเรียน',
+    'search.category.instructor': 'ผู้สอน',
+    'search.category.dj': 'ดีเจ',
+    'search.category.media': 'ภาพถ่าย/วิดีโอ',
     'search.visibility.all': 'ทั้งหมด',
     'search.visibility.public': 'สาธารณะ',
     'search.visibility.members': 'สมาชิกเท่านั้น',
@@ -203,6 +220,9 @@ const translations: Record<Language, Record<string, string>> = {
     'search.category.all': 'Tất cả',
     'search.category.party': 'Tiệc tùng',
     'search.category.lesson': 'Bài học',
+    'search.category.instructor': 'Giảng viên',
+    'search.category.dj': 'DJ',
+    'search.category.media': 'Ảnh/Video',
     'search.visibility.all': 'Tất cả',
     'search.visibility.public': 'Công khai',
     'search.visibility.members': 'Chỉ dành cho thành viên',
@@ -217,6 +237,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     const saved = localStorage.getItem('app-language');
     return (saved as Language) || 'ko';
   });
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   useEffect(() => {
     localStorage.setItem('app-language', language);
@@ -227,7 +248,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, categoryFilter, setCategoryFilter }}>
       {children}
     </LanguageContext.Provider>
   );

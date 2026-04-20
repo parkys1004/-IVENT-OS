@@ -76,6 +76,18 @@
         "createdAt": { "type": "timestamp" }
       },
       "required": ["followerId", "followingId", "createdAt"]
+    },
+    "PromoBanner": {
+      "title": "Promo Banner",
+      "description": "Promotional banners displayed on the dashboard",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string" },
+        "linkUrl": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["imageUrl", "isActive", "updatedAt"]
     }
   },
   "firestore": {
@@ -98,6 +110,10 @@
     "/userFollowers/{followId}": {
       "schema": { "$ref": "#/entities/UserFollow" },
       "description": "Stores user follow relationships"
+    },
+    "/promoBanners/{bannerId}": {
+      "schema": { "$ref": "#/entities/PromoBanner" },
+      "description": "Stores promotional banners"
     }
   }
 }

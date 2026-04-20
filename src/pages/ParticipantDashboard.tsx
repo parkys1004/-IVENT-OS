@@ -83,17 +83,34 @@ interface EventData {
   likesCount?: number;
 }
 
+interface PromoBanner {
+  id: string;
+  imageUrl: string;
+  linkUrl: string;
+  isActive: boolean;
+}
+
 type MenuKey = 'explore' | 'tickets' | 'favorites' | 'community' | 'settings';
 type TabKey = string;
 
 export default function ParticipantDashboard({ forceMarketplace = false }: { forceMarketplace?: boolean }) {
   const { profile } = useAuth();
-  const { t } = useLanguage();
+  const { t, categoryFilter, setCategoryFilter } = useLanguage();
   const [events, setEvents] = useState<EventData[]>([]);
+  const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilterLocal] = useState(categoryFilter);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('upcoming');
+
+  const setFilter = (f: string) => {
+    setFilterLocal(f);
+    setCategoryFilter(f);
+  };
+
+  useEffect(() => {
+    setFilterLocal(categoryFilter);
+  }, [categoryFilter]);
 
   const [activeMenu, setActiveMenu] = useState<MenuKey>('tickets');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
@@ -126,7 +143,20 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       setLoading(false); 
     });
 
-    return () => unsubscribe();
+    // Promo Banners fetching
+    const promoQ = collection(db, 'promoBanners');
+    const unsubscribePromo = onSnapshot(promoQ, (snapshot) => {
+      const promoData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as PromoBanner[];
+      setPromoBanners(promoData.filter(b => b.isActive));
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribePromo();
+    };
   }, []);
 
   const filteredEvents = events.filter(e => {
@@ -250,6 +280,39 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             </div>
             <div className="text-[#10B981] font-bold text-sm bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1.5 rounded-md">↑ 45%</div>
           </div>
+
+          {/* Promotional Banners */}
+          <div className="flex flex-col gap-4 mt-2">
+            {[1, 2].map((num) => {
+              const bannerId = `sidebar${num}`;
+              const banner = promoBanners.find(b => b.id === bannerId);
+              
+              if (!banner || !banner.imageUrl) return null;
+
+              return (
+                <motion.a
+                  key={bannerId}
+                  href={banner.linkUrl || '#'}
+                  target={banner.linkUrl ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + num * 0.1 }}
+                  className="group relative w-full aspect-[2/1] rounded-[16px] overflow-hidden shadow-sm border border-slate-200 dark:border-slate-800 transition-all hover:shadow-md hover:-translate-y-0.5"
+                >
+                   <img 
+                    src={banner.imageUrl} 
+                    alt="Promotion" 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    referrerPolicy="no-referrer"
+                   />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                      <span className="text-white text-[10px] font-black uppercase tracking-widest bg-white/20 backdrop-blur-md px-2 py-1 rounded">Promotion</span>
+                   </div>
+                </motion.a>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -275,7 +338,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             {[
               { id: 'all', label: t('search.category.all') },
               { id: 'party', label: t('search.category.party') },
-              { id: 'lesson', label: t('search.category.lesson') }
+              { id: 'lesson', label: t('search.category.lesson') },
+              { id: 'instructor', label: t('search.category.instructor') },
+              { id: 'dj', label: t('search.category.dj') },
+              { id: 'media', label: t('search.category.media') }
             ].map((cat) => (
               <button
                 key={cat.id}

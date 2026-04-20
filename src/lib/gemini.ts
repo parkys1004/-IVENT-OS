@@ -1,9 +1,24 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI() {
+  if (!aiInstance) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'undefined') {
+      console.warn("GEMINI_API_KEY is not set. AI features will be disabled.");
+      return null;
+    }
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+}
 
 export async function translateText(text: string, targetLanguage: string) {
   if (!text) return '';
+  
+  const ai = getAI();
+  if (!ai) return text; // Fallback to original if AI is not configured
   
   try {
     const response = await ai.models.generateContent({

@@ -1,9 +1,63 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Clock, MapPin, Users, FileText, Image as ImageIcon, Upload, X, Star } from 'lucide-react';
+
+// Error specs
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const currentUser = auth.currentUser;
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: currentUser?.uid,
+      email: currentUser?.email ?? undefined,
+      emailVerified: currentUser?.emailVerified,
+      isAnonymous: currentUser?.isAnonymous,
+      tenantId: currentUser?.tenantId ?? undefined,
+      providerInfo: currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error Detailed: ', JSON.stringify(errInfo, null, 2));
+  return errInfo;
+}
+
+import { Calendar, Clock, MapPin, Users, FileText, Image as ImageIcon, Upload, X, Star, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import clsx from 'clsx';
@@ -34,6 +88,9 @@ export default function EditEvent() {
     geoPoint: null as { lat: number, lng: number } | null,
     imageUrl: '',
     maxAttendees: 50,
+    djs: [] as string[],
+    performances: [] as string[],
+    tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
 
   const { isLoaded } = useJsApiLoader({
@@ -103,6 +160,9 @@ export default function EditEvent() {
             geoPoint: data.geoPoint || null,
             imageUrl: data.imageUrl || '',
             maxAttendees: data.maxAttendees || 50,
+            djs: data.djs || [],
+            performances: data.performances || [],
+            tickets: data.tickets || (data.price ? [{ name: '참가비', price: data.price }] : [{ name: '일반 예매', price: 0 }]),
           });
 
           const loadedImages = data.imageUrls && data.imageUrls.length > 0 ? data.imageUrls : (data.imageUrl ? [data.imageUrl] : []);
@@ -213,7 +273,7 @@ export default function EditEvent() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile || !id) return;
     
@@ -240,14 +300,18 @@ export default function EditEvent() {
         imageUrls: images,
         coverImageIndex: coverImageIndex,
         maxAttendees: Number(formData.maxAttendees),
+        djs: formData.djs.filter(dj => dj.trim() !== ''),
+        performances: formData.performances.filter(p => p.trim() !== ''),
+        tickets: formData.tickets.filter(t => t.name.trim() !== ''),
       };
 
+      console.log("Attempting to update event with ID:", id);
       await updateDoc(doc(db, 'events', id), updatedEvent);
       alert('행사가 성공적으로 수정되었습니다.');
       navigate(`/event/${id}`);
     } catch (err) {
-      console.error("Error updating event:", err);
-      alert("행사 수정 중 오류가 발생했습니다.");
+      const errInfo = handleFirestoreError(err, OperationType.UPDATE, `events/${id}`);
+      alert(`행사 수정 중 오류가 발생했습니다: ${errInfo.error}\n권한이 없거나 데이터 형식이 맞지 않을 수 있습니다.`);
     } finally {
       setSubmitting(false);
     }
@@ -255,6 +319,30 @@ export default function EditEvent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const addDj = () => setFormData(prev => ({ ...prev, djs: [...prev.djs, ''] }));
+  const removeDj = (index: number) => setFormData(prev => ({ ...prev, djs: prev.djs.filter((_, i) => i !== index) }));
+  const updateDj = (index: number, value: string) => {
+    const newDjs = [...formData.djs];
+    newDjs[index] = value;
+    setFormData(prev => ({ ...prev, djs: newDjs }));
+  };
+
+  const addPerformance = () => setFormData(prev => ({ ...prev, performances: [...prev.performances, ''] }));
+  const removePerformance = (index: number) => setFormData(prev => ({ ...prev, performances: prev.performances.filter((_, i) => i !== index) }));
+  const updatePerformance = (index: number, value: string) => {
+    const newPerformances = [...formData.performances];
+    newPerformances[index] = value;
+    setFormData(prev => ({ ...prev, performances: newPerformances }));
+  };
+
+  const addTicket = () => setFormData(prev => ({ ...prev, tickets: [...prev.tickets, { name: '', price: 0 }] }));
+  const removeTicket = (index: number) => setFormData(prev => ({ ...prev, tickets: prev.tickets.filter((_, i) => i !== index) }));
+  const updateTicket = (index: number, field: 'name' | 'price', value: string | number) => {
+    const newTickets = [...formData.tickets];
+    newTickets[index] = { ...newTickets[index], [field]: value };
+    setFormData(prev => ({ ...prev, tickets: newTickets }));
   };
 
   if (loading) {
@@ -350,6 +438,125 @@ export default function EditEvent() {
               onChange={handleChange}
               className="w-full rounded-[10px] border-slate-200 border bg-slate-50 px-4 py-3 text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
             />
+          </div>
+        </div>
+
+        {/* DJ, Performance, Tickets Section */}
+        <div className="grid grid-cols-1 gap-10 pt-6 border-t border-slate-100 dark:border-slate-800">
+          {/* DJs */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 flex items-center"><Music className="w-4 h-4 mr-2 text-indigo-500"/> DJs</label>
+              <button 
+                type="button" 
+                onClick={addDj}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline"
+              >
+                <PlusCircle className="w-3.5 h-3.5" /> 추가하기
+              </button>
+            </div>
+            <div className="space-y-3">
+              {formData.djs.map((dj, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={dj}
+                    onChange={(e) => updateDj(idx, e.target.value)}
+                    placeholder="DJ 이름을 입력하세요"
+                    className="flex-1 rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                  <button type="button" onClick={() => removeDj(idx)} className="text-slate-400 hover:text-red-500 transition-colors">
+                    <MinusCircle className="w-5 h-5" />
+                  </button>
+                </div>
+              ))}
+              {formData.djs.length === 0 && (
+                <p className="text-xs text-slate-400 italic">등록된 DJ가 없습니다.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Performances */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 flex items-center"><Mic2 className="w-4 h-4 mr-2 text-rose-500"/> 공연 / 퍼포먼스</label>
+              <button 
+                type="button" 
+                onClick={addPerformance}
+                className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 hover:underline"
+              >
+                <PlusCircle className="w-3.5 h-3.5" /> 추가하기
+              </button>
+            </div>
+            <div className="space-y-3">
+              {formData.performances.map((perf, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={perf}
+                    onChange={(e) => updatePerformance(idx, e.target.value)}
+                    placeholder="공연 팀 또는 이름"
+                    className="flex-1 rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-rose-500 outline-none"
+                  />
+                  <button type="button" onClick={() => removePerformance(idx)} className="text-slate-400 hover:text-red-500 transition-colors">
+                    <MinusCircle className="w-5 h-5" />
+                   </button>
+                </div>
+              ))}
+              {formData.performances.length === 0 && (
+                <p className="text-xs text-slate-400 italic">등록된 공연 정보가 없습니다.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Tickets / Party Fees */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 flex items-center"><CreditCard className="w-4 h-4 mr-2 text-emerald-500"/> 파티비 (티켓 정보)</label>
+              <button 
+                type="button" 
+                onClick={addTicket}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 hover:underline"
+              >
+                <PlusCircle className="w-3.5 h-3.5" /> 티켓 추가
+              </button>
+            </div>
+            <div className="space-y-3">
+              {formData.tickets.map((ticket, idx) => (
+                <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4 relative">
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">티켓 종류 (예: 얼리버드, 현장구매)</label>
+                    <input
+                      type="text"
+                      value={ticket.name}
+                      onChange={(e) => updateTicket(idx, 'name', e.target.value)}
+                      placeholder="티켓 명칭"
+                      className="w-full rounded-[8px] border-slate-200 dark:border-slate-700 border bg-white dark:bg-slate-800 px-3 py-2 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                  <div className="sm:w-48">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">가격 (원)</label>
+                    <input
+                      type="number"
+                      value={ticket.price}
+                      onChange={(e) => updateTicket(idx, 'price', Number(e.target.value))}
+                      placeholder="0"
+                      className="w-full rounded-[8px] border-slate-200 dark:border-slate-700 border bg-white dark:bg-slate-800 px-3 py-2 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => removeTicket(idx)} 
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 shadow-sm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              {formData.tickets.length === 0 && (
+                <p className="text-xs text-slate-400 italic">등록된 티켓 정보가 없습니다.</p>
+              )}
+            </div>
           </div>
         </div>
 

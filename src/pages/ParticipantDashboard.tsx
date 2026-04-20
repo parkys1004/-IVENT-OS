@@ -4,8 +4,8 @@ import { db, auth } from '../firebase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { motion } from 'motion/react';
-import { MapPin, Users, CalendarDays, Clock, Flame } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { MapPin, Users, CalendarDays, Clock, Flame, Ticket, Heart, MessageSquare, Settings, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
@@ -59,8 +59,6 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  // DO NOT throw error here, it causes React to unmount completely (White Screen of Death) 
-  // on transient auth state changes or logout events.
 }
 
 interface EventData {
@@ -80,13 +78,29 @@ interface EventData {
   maxAttendees: number;
   currentAttendees: number;
   status: string;
+  isBanner?: boolean;
 }
 
-export default function ParticipantDashboard() {
+type MenuKey = 'explore' | 'tickets' | 'favorites' | 'community' | 'settings';
+type TabKey = string;
+
+export default function ParticipantDashboard({ forceMarketplace = false }: { forceMarketplace?: boolean }) {
   const { profile } = useAuth();
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+
+  const [activeMenu, setActiveMenu] = useState<MenuKey>('tickets');
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
+
+  // Slider State
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [isSliderPaused, setIsSliderPaused] = useState(false);
+
+  const handleMenuClick = (menu: MenuKey) => {
+    setActiveMenu(menu);
+    setActiveTab('all');
+  };
 
   useEffect(() => {
     const q = query(
@@ -100,12 +114,11 @@ export default function ParticipantDashboard() {
         ...doc.data()
       })) as EventData[];
       
-      // Filter out drafts or cancelled for non-admins (simplified for MVP)
       setEvents(eventsData.filter(e => e.status === 'published'));
       setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'events');
-      setLoading(false); // Make sure to stop spinner on error
+      setLoading(false); 
     });
 
     return () => unsubscribe();
@@ -113,43 +126,84 @@ export default function ParticipantDashboard() {
 
   const filteredEvents = events.filter(e => filter === 'all' || e.category === filter);
   
-  // Fake "ending soon" logic: first two events
-  const endingSoon = filteredEvents.slice(0, 1);
-  const others = filteredEvents.slice(1);
+  // Banner logic: Prefer isBanner=true, up to 5. Fallback to earliest upcoming if none.
+  const bannerEvents = events.filter(e => e.isBanner).slice(0, 5);
+  const displayBanners = bannerEvents.length > 0 ? bannerEvents : filteredEvents.slice(0, 1);
+  const others = filteredEvents.filter(e => !displayBanners.find(b => b.id === e.id));
+
+  // Slider Auto-play Logic
+  useEffect(() => {
+    if (displayBanners.length <= 1 || isSliderPaused) return;
+
+    const timer = setInterval(() => {
+      setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [displayBanners.length, isSliderPaused]);
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div></div>;
   }
 
-  // Calculate some fake stats based on events
   const totalBookings = events.reduce((acc, curr) => acc + curr.currentAttendees, 0);
   const totalCapacity = events.reduce((acc, curr) => acc + curr.maxAttendees, 0);
   const bookingRate = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
 
-  return (
-    <div className="space-y-8 md:space-y-12 w-full pb-20">
-      
-      {/* Header section (Added for Participant greeting) */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div className="text-center sm:text-left z-10 flex-1">
-          <p className="text-orange-500 font-bold mb-1">{profile?.displayName || '참여자'}님, 댄스하이브에 오신 것을 환영합니다! 🐝</p>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white mb-2">오늘의 인기 행사와 소식을 확인해보세요</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
-            마감 임박 행사와 다양한 장르의 댄스 이벤트를 한 화면에서 만나보세요.
-          </p>
-        </div>
-      </div>
+  // --- Sub-contents ---
 
-      {/* Hero / Banner Area + Stats Grid equivalent to the dashboard layout */}
-      <section className="grid grid-cols-1 lg:grid-cols-[2.5fr_1fr] 2xl:grid-cols-[3.5fr_1fr] gap-6 xl:gap-8">
-        <div className="flex flex-col h-full min-h-[300px]">
-          {endingSoon.map((event, idx) => (
-            <EventCard key={event.id} event={event} featured={true} index={idx} />
-          ))}
-          {endingSoon.length === 0 && (
+  const renderExploreContent = () => (
+    <div className={clsx("space-y-12 flex flex-col pb-20 w-full", (profile && !forceMarketplace) ? "h-full overflow-y-auto pr-2" : "")}>
+      {/* Hero / Banner Area + Stats Grid */}
+      <section className="grid grid-cols-1 lg:grid-cols-[2.5fr_1fr] 2xl:grid-cols-[3fr_1fr] gap-8 xl:gap-10 shrink-0">
+        <div 
+          className="flex flex-col h-full min-h-[300px] overflow-hidden group/slider relative"
+          onMouseEnter={() => setIsSliderPaused(true)}
+          onMouseLeave={() => setIsSliderPaused(false)}
+        >
+          {displayBanners.length > 0 ? (
+            <div className="relative w-full h-[300px] lg:h-[400px] xl:h-[460px] overflow-hidden rounded-[24px]">
+              {displayBanners.map((event, idx) => (
+                <div 
+                  key={event.id} 
+                  className={clsx(
+                    "absolute inset-0 transition-opacity duration-1000 ease-in-out",
+                    idx === currentBannerIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                  )}
+                >
+                  <EventCard event={event} featured={true} index={idx} />
+                </div>
+              ))}
+              
+              {/* Pagination Indicators (Dots) */}
+              {displayBanners.length > 1 && (
+                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-20 px-4 py-2 bg-black/10 backdrop-blur-md rounded-full border border-white/10 group-hover/slider:bg-black/30 transition-all">
+                    {displayBanners.map((_, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => setCurrentBannerIndex(i)}
+                        className={clsx(
+                          "w-2.5 h-2.5 rounded-full transition-all duration-300",
+                          i === currentBannerIndex 
+                            ? "bg-white scale-125 shadow-[0_0_8px_rgba(255,255,255,0.8)]" 
+                            : "bg-white/40 hover:bg-white/60"
+                        )}
+                        aria-label={`Show banner ${i + 1}`}
+                      />
+                    ))}
+                 </div>
+              )}
+
+              {/* Number Indicator (Optional, but adds to the polished feel) */}
+              {displayBanners.length > 1 && (
+                <div className="absolute top-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[12px] font-bold text-white/90 z-20 border border-white/5">
+                  {currentBannerIndex + 1} / {displayBanners.length}
+                </div>
+              )}
+            </div>
+          ) : (
             <div className="w-full h-full min-h-[300px] bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 flex items-center justify-center">
-              현재 마감 임박 행사가 없습니다.
+              현재 등록된 배너 행사가 없습니다.
             </div>
           )}
         </div>
@@ -174,9 +228,9 @@ export default function ParticipantDashboard() {
       </section>
 
       {/* Categories Filter */}
-      <section>
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          {['all', 'IT', 'Music', 'Networking', 'Education'].map(cat => (
+      <section className="shrink-0">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide shrink-0">
+          {['all', 'party', 'workshop'].map(cat => (
             <button
               key={cat}
               onClick={() => setFilter(cat)}
@@ -187,18 +241,18 @@ export default function ParticipantDashboard() {
                   : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
               )}
             >
-              {cat === 'all' ? '전체 보기' : cat}
+              {cat === 'all' ? '전체 보기' : cat === 'party' ? '🎉 파티/배틀' : '💪 워크샵/연습'}
             </button>
           ))}
         </div>
       </section>
 
       {/* Event Grid */}
-      <section>
+      <section className="pb-8">
         <div className="flex justify-between items-end mb-6">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">예정된 행사</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">다가오는 행사</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 xl:gap-8">
           {others.map((event, idx) => (
             <EventCard key={event.id} event={event} index={idx} />
           ))}
@@ -211,14 +265,231 @@ export default function ParticipantDashboard() {
             <div className="col-span-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-16 text-center transition-colors">
               <CalendarDays className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-4" />
               <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-1">등록된 행사가 없습니다.</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">첫 번째 행사를 만들어보세요!</p>
-              <Link to="/create" className="text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-500">
-                행사 만들기 &rarr;
-              </Link>
+              <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">기대해주세요!</p>
             </div>
           )}
         </div>
       </section>
+    </div>
+  );
+
+  const renderTicketsContent = () => (
+    <div className="space-y-6 flex flex-col h-full pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          예매 내역
+        </button>
+        <button onClick={() => setActiveTab('used')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'used' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          이용 완료
+        </button>
+        <button onClick={() => setActiveTab('cancelled')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'cancelled' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          취소/환불
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+           <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">이번 달 남은 행사</div>
+           <div className="text-3xl font-black text-orange-600">2<span className="text-sm font-normal text-slate-500 ml-1">건</span></div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+           <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">올해 방문한 총 횟수</div>
+           <div className="text-3xl font-black text-slate-800 dark:text-white">5<span className="text-sm font-normal text-slate-500 ml-1">번</span></div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
+         <Ticket className="w-12 h-12 mb-4 text-slate-300" />
+         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">내역이 없습니다</h3>
+         <p>진행 중인 행사를 둘러보고 티켓을 구매해보세요.</p>
+         <button onClick={() => handleMenuClick('explore')} className="mt-6 px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900">
+           전체 행사 보기
+         </button>
+      </div>
+    </div>
+  );
+
+  const renderFavoritesContent = () => (
+    <div className="space-y-6 flex flex-col h-full pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          찜한 행사
+        </button>
+        <button onClick={() => setActiveTab('following')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'following' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          팔로잉 (DJ/강사)
+        </button>
+      </div>
+      <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
+         <Heart className="w-12 h-12 mb-4 text-slate-300" />
+         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">관심 목록이 비어있습니다</h3>
+         <p>마음에 드는 행사나 아티스트를 팔로우하면 여기에 표시됩니다.</p>
+      </div>
+    </div>
+  );
+
+  const renderCommunityContent = () => (
+    <div className="space-y-6 flex flex-col h-full pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          내가 쓴 글
+        </button>
+        <button onClick={() => setActiveTab('comments')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'comments' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          댓글 단 글
+        </button>
+        <button onClick={() => setActiveTab('messages')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'messages' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          쪽지함
+        </button>
+      </div>
+      <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
+         <MessageSquare className="w-12 h-12 mb-4 text-slate-300" />
+         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">활동 내역이 없습니다</h3>
+      </div>
+    </div>
+  );
+
+  const renderSettingsContent = () => (
+    <div className="space-y-6 flex flex-col h-full pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          개인정보
+        </button>
+        <button onClick={() => setActiveTab('notifications')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'notifications' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          알림 설정
+        </button>
+      </div>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex-1">
+          <div className="max-w-xl">
+             <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-6">사용자 프로필 설정</h3>
+             
+             <div className="space-y-4">
+               <div>
+                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">닉네임</label>
+                 <input type="text" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" defaultValue={profile?.displayName} />
+               </div>
+               <div>
+                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">연락처</label>
+                 <input type="text" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" placeholder="예: 010-0000-0000" />
+                 <p className="text-xs text-slate-500 mt-1">예매 정보 안내 시 사용될 기본 연락처입니다.</p>
+               </div>
+             </div>
+             
+             <button className="mt-8 px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 w-full sm:w-auto">변경사항 저장하기</button>
+          </div>
+      </div>
+    </div>
+  );
+
+  if (!profile || forceMarketplace) {
+    return (
+      <div className="w-full max-w-screen-2xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 py-8 lg:py-16">
+        {renderExploreContent()}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950 h-full w-full min-h-0">
+      
+      {/* LNB (Left Navigation Bar) */}
+      <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-sm z-10 shrink-0 pb-4 hidden lg:flex">
+        <div className="p-6">
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="w-20 h-20 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-orange-500/10 rotate-3 transition-transform group-hover:rotate-0">
+              <span className="text-3xl">🐝</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Welcome Back</p>
+              <p className="font-black text-lg text-slate-800 dark:text-white leading-tight">
+                오늘도 즐거운 댄스 생활 되세요,<br />
+                <span className="text-orange-500">{profile?.displayName || '참여자'}님!</span>
+              </p>
+            </div>
+          </div>
+
+          <nav className="space-y-1">
+            <button 
+              onClick={() => handleMenuClick('tickets')}
+              className={clsx("w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'tickets' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+              <div className="flex items-center gap-3"><Ticket className="w-5 h-5" /> 나의 활동 상세</div>
+              {activeMenu === 'tickets' && <ChevronRight className="w-4 h-4" />}
+            </button>
+            <button 
+              onClick={() => handleMenuClick('favorites')}
+              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'favorites' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+               <Heart className="w-5 h-5" /> 관심 목록
+            </button>
+            <button 
+              onClick={() => handleMenuClick('community')}
+              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'community' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+               <MessageSquare className="w-5 h-5" /> 커뮤니티
+            </button>
+          </nav>
+        </div>
+        
+        <div className="mt-auto p-6 border-t border-slate-100 dark:border-slate-800">
+           <button 
+              onClick={() => handleMenuClick('settings')}
+              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'settings' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+              <Settings className="w-5 h-5" /> 계정 설정
+            </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-hidden flex flex-col p-4 lg:p-10 min-h-0">
+        
+        {/* Mobile Navigation */}
+        <div className="lg:hidden w-full mb-6 max-w-full overflow-x-auto flex gap-2 shrink-0 no-scrollbar">
+           {['tickets', 'favorites', 'community', 'settings'].map((menu) => (
+              <button 
+                key={menu}
+                onClick={() => handleMenuClick(menu as MenuKey)}
+                className={clsx(
+                  "whitespace-nowrap px-4 py-2 rounded-xl font-black text-sm border transition-all shadow-sm", 
+                  activeMenu === menu 
+                    ? "bg-slate-800 dark:bg-amber-400 text-white dark:text-slate-900 border-slate-800 dark:border-amber-400 scale-105" 
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
+                )}
+              >
+                {menu === 'tickets' ? '활동' : menu === 'favorites' ? '관심' : menu === 'community' ? '커뮤니티' : '설정'}
+              </button>
+           ))}
+        </div>
+
+        {/* Breadcrumbs (Desktop) */}
+        <div className="hidden lg:flex items-center gap-2 text-sm text-slate-500 font-bold mb-8 tracking-tight shrink-0">
+          <span>Participant</span>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-slate-800 dark:text-white capitalize">
+            {activeMenu === 'explore' && '행사 탐색'}
+            {activeMenu === 'tickets' && '예매 현황'}
+            {activeMenu === 'favorites' && '관심 목록'}
+            {activeMenu === 'community' && '커뮤니티'}
+            {activeMenu === 'settings' && '계정 설정'}
+          </span>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeMenu}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 overflow-hidden flex flex-col h-full min-h-0"
+          >
+            {activeMenu === 'explore' && renderExploreContent()}
+            {activeMenu === 'tickets' && renderTicketsContent()}
+            {activeMenu === 'favorites' && renderFavoritesContent()}
+            {activeMenu === 'community' && renderCommunityContent()}
+            {activeMenu === 'settings' && renderSettingsContent()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
@@ -242,30 +513,32 @@ function EventCard({ event, featured = false, index }: { event: EventData, featu
       >
         <Link 
           to={`/event/${event.id}`}
-          className="group relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-br from-indigo-600 to-violet-600"
+          className="group relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-slate-200 dark:bg-slate-800"
         >
           {coverImage && (
-            <div className="absolute inset-0 opacity-40 mix-blend-overlay">
+            <div className="absolute inset-0">
               <img src={coverImage} alt={event.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" referrerPolicy="no-referrer" />
+              {/* Bottom gradient for better text readability */}
+              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
             </div>
           )}
           
-          <div className="absolute top-6 right-6 bg-red-500 px-4 py-2 rounded-full text-[13px] font-bold shadow-[0_4px_12px_rgba(239,68,68,0.3)] z-10 animate-pulse">
-            마감 임박: 잔여 {event.maxAttendees - event.currentAttendees}석
+          <div className="absolute top-6 right-6 bg-red-500 px-4 py-2 rounded-full text-[13px] font-bold shadow-[0_4px_12px_rgba(239,68,68,0.3)] z-10">
+            {isFull ? "모집 마감" : `마감 임박: 잔여 ${event.maxAttendees - event.currentAttendees}석`}
           </div>
           
-          <div className="relative z-10 w-full lg:max-w-[70%]">
-            <span className="inline-block px-4 py-1.5 rounded-lg text-[13px] font-bold bg-white/20 backdrop-blur-md shadow-sm text-white mb-4 tracking-wider uppercase">
+          <div className="relative z-10 w-full lg:max-w-[80%]">
+            <span className="inline-block px-4 py-1.5 rounded-lg text-[13px] font-bold bg-white/20 backdrop-blur-md shadow-sm text-white mb-4 tracking-wider uppercase border border-white/20">
               {event.category}
             </span>
-            <h3 className="font-extrabold text-[32px] lg:text-[40px] xl:text-[48px] leading-tight mb-4 truncate text-white drop-shadow-md">{event.title}</h3>
-            <p className="opacity-90 text-[16px] lg:text-[18px] truncate mb-8 flex items-center gap-2 drop-shadow">
+            <h3 className="font-extrabold text-[32px] lg:text-[40px] xl:text-[48px] leading-tight mb-4 truncate text-white drop-shadow-xl">{event.title}</h3>
+            <p className="opacity-90 text-[16px] lg:text-[18px] truncate mb-8 flex items-center gap-2 drop-shadow-lg">
               <MapPin className="w-5 h-5"/> {event.locationName} <span className="opacity-50">|</span> <Clock className="w-5 h-5"/> {format(dateObj, 'yyyy.MM.dd a h:mm', { locale: ko })}
             </p>
             
             <div className="flex gap-4">
               <div className="px-6 py-3.5 bg-white text-indigo-600 hover:bg-slate-50 font-bold text-[16px] rounded-xl shadow-lg transition-transform hover:-translate-y-0.5">참여 신청하기</div>
-              <div className="px-6 py-3.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-[16px] rounded-xl transition-colors">관심 등록</div>
+              <div className="px-6 py-3.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-[16px] rounded-xl transition-colors border border-white/20">관심 등록</div>
             </div>
           </div>
         </Link>

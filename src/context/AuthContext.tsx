@@ -58,6 +58,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 export type UserRole = 'user' | 'host' | 'admin' | 'dj' | 'instructor' | 'media';
 
+export type ViewMode = 'admin' | 'professional' | 'participant';
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -71,14 +73,17 @@ interface AuthContextType {
   user: FirebaseUser | null;
   profile: UserProfile | null;
   loading: boolean;
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true, viewMode: 'participant', setViewMode: () => {} });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('participant');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -90,16 +95,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data() as UserProfile;
-            // Admin override fallback just in case
             if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified && data.role !== 'admin') {
               data.role = 'admin';
               await setDoc(docRef, { role: 'admin' }, { merge: true });
             }
             setProfile(data);
+            
+            // Set initial viewMode based on role
+            if (data.role === 'admin') setViewMode('admin');
+            else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
+            else setViewMode('participant');
+
           } else {
             let intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'user';
             
-            // Admin default assignment
             if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified) {
               intendedRole = 'admin';
             }
@@ -118,6 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               handleFirestoreError(error, OperationType.WRITE, `users/${currentUser.uid}`);
             }
             setProfile(newProfile);
+            
+            if (newProfile.role === 'admin') setViewMode('admin');
+            else if (['host', 'dj', 'instructor', 'media'].includes(newProfile.role)) setViewMode('professional');
+            else setViewMode('participant');
           }
         } catch (error) {
           if (error instanceof Error && error.message.includes('Firestore Error')) {
@@ -135,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, viewMode, setViewMode }}>
       {!loading && children}
     </AuthContext.Provider>
   );

@@ -55,9 +55,11 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "aimaster1004@gmail.com" && request.auth.token.email_verified == true));
+      return isAuthenticated() && (
+        (request.auth.token.email == "aimaster1004@gmail.com" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
     
     function isValidEmail(email) {
@@ -71,10 +73,13 @@ service cloud.firestore {
     }
 
     function validOptionalStringLength(field, minLen, maxLen) {
-      return !(field in request.resource.data) ||
-         (request.resource.data[field] is string &&
-          request.resource.data[field].size() >= minLen &&
-          request.resource.data[field].size() <= maxLen);
+      return !(field in request.resource.data) || (
+        request.resource.data[field] == null ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen) ||
+        (request.resource.data[field] is list)
+      );
     }
 
     // ===============================================================
@@ -86,27 +91,35 @@ service cloud.firestore {
       return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
         data.uid is string &&
         data.email is string && isValidEmail(data.email) &&
-        data.role in ['user', 'host', 'admin'] &&
+        data.role in ['user', 'host', 'admin', 'dj', 'instructor', 'media'] &&
         data.createdAt is timestamp &&
         validOptionalStringLength('displayName', 0, 100) &&
         validOptionalStringLength('photoURL', 0, 1000);
     }
 
-    function isValidEvent() {
+    function isValidEvent(checkOwner) {
       let data = request.resource.data;
       return data.keys().hasAll(['title', 'description', 'category', 'date', 'endDate', 'locationName', 'maxAttendees', 'currentAttendees', 'hostId', 'hostName', 'status', 'createdAt']) &&
-        validStringLength('title', 1, 200) &&
-        validStringLength('description', 1, 10000) &&
-        validStringLength('category', 1, 50) &&
+        validStringLength('title', 1, 500) &&
+        validStringLength('description', 1, 20000) &&
+        validStringLength('category', 1, 100) &&
         data.date is timestamp &&
         data.endDate is timestamp &&
-        validStringLength('locationName', 1, 200) &&
-        validOptionalStringLength('locationAddress', 0, 500) &&
-        validOptionalStringLength('imageUrl', 0, 1000) &&
+        validStringLength('locationName', 1, 500) &&
+        validOptionalStringLength('formattedAddress', 0, 1000) &&
+        validOptionalStringLength('country', 0, 20) &&
+        validOptionalStringLength('city', 0, 500) &&
+        validOptionalStringLength('imageUrl', 0, 2000000) &&
+        (!('imageUrls' in data) || data.imageUrls is list) &&
+        (!('djs' in data) || data.djs is list) &&
+        (!('performances' in data) || data.performances is list) &&
+        (!('tickets' in data) || data.tickets is list) &&
+        (!('coverImageIndex' in data) || data.coverImageIndex is int) &&
+        (!('geoPoint' in data) || data.geoPoint == null || data.geoPoint is map) &&
         data.maxAttendees is number && data.maxAttendees > 0 &&
         data.currentAttendees is number && data.currentAttendees >= 0 &&
-        data.hostId is string && data.hostId == request.auth.uid &&
-        validStringLength('hostName', 1, 100) &&
+        data.hostId is string && (!checkOwner || data.hostId == request.auth.uid) &&
+        validStringLength('hostName', 1, 200) &&
         data.status in ['draft', 'published', 'cancelled'] &&
         data.createdAt is timestamp;
     }
@@ -131,10 +144,10 @@ service cloud.firestore {
                     isOwner(userId) && 
                     isValidUser() && 
                     request.resource.data.uid == userId &&
-                    ((request.resource.data.role in ['user', 'host']) || isAdmin());
+                    ((request.resource.data.role in ['user', 'host', 'dj', 'instructor', 'media']) || isAdmin());
                     
       allow update: if isAuthenticated() && 
-                    isOwner(userId) && 
+                    (isOwner(userId) || isAdmin()) && 
                     isValidUser() && 
                     request.resource.data.uid == resource.data.uid &&
                     request.resource.data.createdAt == resource.data.createdAt &&
@@ -147,27 +160,32 @@ service cloud.firestore {
       allow read: if true;
                   
       allow create: if isAuthenticated() && 
-                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['host', 'admin'] || isAdmin()) &&
-                    isValidEvent();
+                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['host', 'admin', 'dj', 'instructor', 'media'] || isAdmin()) &&
+                    isValidEvent(true);
                     
-      allow update: if isAuthenticated() && 
-                    isAdmin() || (
+      allow update: if isAuthenticated() && (
+                    (isAdmin() && isValidEvent(false)) || 
+                    (
                       resource.data.hostId == request.auth.uid &&
-                      isValidEvent() &&
+                      isValidEvent(true) &&
                       request.resource.data.hostId == resource.data.hostId &&
                       request.resource.data.createdAt == resource.data.createdAt
                     ) || (
                       // Allow ANY user to update currentAttendees implicitly for MVP (in reality restricted with getAfter)
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentAttendees'])
-                    );
+                    ));
                     
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.hostId == request.auth.uid && resource.data.status == 'draft');
     }
 
     match /registrations/{registrationId} {
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.hostId == request.auth.uid ||
+        // Allow user to see their own potential registration status (handles non-existent docs)
+        (registrationId.split('_')[1] == request.auth.uid) ||
+        (resource != null && (
+          resource.data.userId == request.auth.uid || 
+          get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.hostId == request.auth.uid
+        )) ||
         isAdmin()
       );
       

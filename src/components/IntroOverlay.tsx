@@ -45,36 +45,39 @@ export function HeroHeader() {
   const honeycombPattern = "data:image/svg+xml,%3Csvg width='28' height='49' viewBox='0 0 28 49' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f59e0b' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5L28 15V0H0v15zm0 34l12.98-7.5L28 49v-15.01L13.98 26.5 0 33.99V49zm13.98-15.5l14.02 8.1V49h-28V41.6l13.98-8.1zM28 0l-14.02 8.1V15h28V7.41L28 0z'/%3E%3C/g%3E%3C/svg%3E";
 
   return (
-    <div className="relative w-full overflow-hidden max-w-[1200px] mx-auto px-4 sm:px-6 py-12 sm:py-20 flex flex-col items-center justify-center min-h-[45vh] mb-12 border-b border-amber-200/50 dark:border-amber-900/30">
+    <div className="relative w-full overflow-hidden flex flex-col items-center justify-center min-h-[60vh] sm:min-h-[70vh] mb-12 border-b border-amber-200/50 dark:border-amber-900/30">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Animated Honeycomb Pattern */}
         <motion.div
           className="absolute inset-0 opacity-40 dark:opacity-20"
           animate={{ backgroundPosition: ['0px 0px', '28px 49px'] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
           style={{ backgroundImage: `url("${honeycombPattern}")` }}
         />
         
-        {/* Floating Honey Orbs */}
+        {/* Large Gradients for Full-Width feel */}
+        <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-amber-500/10 to-transparent pointer-events-none" />
+        
+        {/* Floating Honey Orbs - More dispersed for full-width */}
         <motion.div 
-          animate={{ x: [0, 50, 0], y: [0, 30, 0], scale: [1, 1.2, 1] }} 
+          animate={{ x: [0, 100, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }} 
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[10%] left-[10%] w-[40%] h-[40%] bg-amber-400/20 dark:bg-amber-400/10 rounded-full blur-[100px]" 
+          className="absolute top-[10%] left-[5%] w-[40%] h-[40%] bg-amber-400/20 dark:bg-amber-400/10 rounded-full blur-[120px]" 
         />
         <motion.div 
-          animate={{ x: [0, -40, 0], y: [0, -50, 0], scale: [1, 1.3, 1] }} 
+          animate={{ x: [0, -80, 0], y: [0, -70, 0], scale: [1, 1.3, 1] }} 
           transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute top-[40%] right-[10%] w-[35%] h-[35%] bg-yellow-400/20 dark:bg-yellow-400/10 rounded-full blur-[100px]" 
+          className="absolute top-[30%] right-[-5%] w-[35%] h-[35%] bg-yellow-400/20 dark:bg-yellow-400/10 rounded-full blur-[120px]" 
         />
         <motion.div 
-          animate={{ x: [0, 30, 0], y: [0, -40, 0], scale: [1, 1.5, 1] }} 
+          animate={{ x: [0, 60, 0], y: [0, -60, 0], scale: [1, 1.5, 1] }} 
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-          className="absolute bottom-[0%] left-[40%] w-[30%] h-[30%] bg-orange-400/20 dark:bg-orange-400/10 rounded-full blur-[100px]" 
+          className="absolute bottom-[-10%] left-[30%] w-[35%] h-[35%] bg-orange-400/20 dark:bg-orange-400/10 rounded-full blur-[120px]" 
         />
       </div>
 
-      <div className="relative z-10 w-full flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-12 py-20 sm:py-32 flex flex-col items-center">
         {/* Header section */}
         <div className="text-center mb-8 sm:mb-12 flex flex-col items-center">
           <motion.div
@@ -145,8 +148,8 @@ export function HeroFeatures() {
   };
 
   return (
-    <div className="relative w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-16 sm:py-24 flex flex-col items-center justify-center border-t border-slate-200 dark:border-slate-800/50 mt-16">
-      <div className="relative z-10 w-full flex flex-col items-center">
+    <div className="relative w-full py-24 sm:py-32 flex flex-col items-center justify-center border-t border-slate-200 dark:border-slate-800/50 mt-16">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-12 flex flex-col items-center">
         {/* Call to action (Scroll Down to more, or just the button from the screenshot) */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

@@ -1,218 +1,290 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, Image as ImageIcon, Briefcase, BarChart3 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, Image as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, Plus, BarChart3, CreditCard, PenTool } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import clsx from 'clsx';
+
+type MenuKey = 'activities' | 'events' | 'finance' | 'profile';
+type TabKey = string;
 
 export default function ProfessionalDashboard() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   
-  const getRoleIcon = () => {
-    switch(profile?.role) {
-      case 'dj': return <Music className="w-12 h-12 text-blue-500" />;
-      case 'instructor': return <GraduationCap className="w-12 h-12 text-emerald-500" />;
-      case 'media': return <Camera className="w-12 h-12 text-purple-500" />;
-      default: return <Star className="w-12 h-12 text-amber-500" />;
-    }
+  const [activeMenu, setActiveMenu] = useState<MenuKey>('activities');
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
+  
+  // Handlers
+  const handleMenuClick = (menu: MenuKey) => {
+    setActiveMenu(menu);
+    setActiveTab('all');
   };
 
-  const getRoleTitle = () => {
-    switch(profile?.role) {
-      case 'dj': return 'DJ 대시보드';
-      case 'instructor': return '강사 대시보드';
-      case 'media': return '포토/영상 대시보드';
-      default: return '전문가 대시보드';
-    }
-  };
-  
-  const getPersonalizedGreeting = () => {
-    const name = profile?.displayName || '전문가';
-    switch(profile?.role) {
-      case 'dj': return `${name} DJ님, 이번 주 파티 섭외 요청이 들어왔어요! 🎧`;
-      case 'instructor': return `${name} 강사님, 오늘 진행할 클래스가 1건 있습니다! 🏃‍♂️`;
-      case 'media': return `${name} 작가님, 오늘 촬영 스케줄은 2건입니다! 📸`;
-      default: return `${name}님, 멋진 하루 되세요! ✨`;
-    }
-  };
+  // --- Sub-contents ---
 
-  const renderRoleSpecificContent = () => {
-    switch(profile?.role) {
-      case 'dj':
-        return (
-          <>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
-                  <PlayCircle className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white">믹스셋 & 플레이리스트</h3>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">내 대표 장르와 최근 믹스셋을 업데이트하여 섭외 확률을 높이세요.</p>
-              <button className="w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                + 새 믹스셋 등록
+  const renderActivitiesContent = () => (
+    <div className="space-y-6 flex flex-col h-full overflow-y-auto no-scrollbar pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          예정된 스케줄
+        </button>
+        <button onClick={() => setActiveTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors flex items-center gap-2", activeTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          수락 대기
+          <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">3</span>
+        </button>
+        <button onClick={() => setActiveTab('completed')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'completed' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          완료/취소
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">이번 달 확정 스케줄</div>
+          <div className="text-3xl font-black text-slate-800 dark:text-white">5<span className="text-sm font-normal text-slate-500 ml-1">건</span></div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">진행 완료</div>
+          <div className="text-3xl font-black text-slate-800 dark:text-white">12<span className="text-sm font-normal text-slate-500 ml-1">건</span></div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center min-h-[300px]">
+          {activeTab === 'pending' ? (
+            <>
+              <Clock className="w-12 h-12 mb-4 text-orange-300" />
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">대기 중인 섭외 요청</h3>
+              <p>현재 검토해야 할 섭외 요청이 3건 있습니다.</p>
+              <button className="mt-4 px-6 py-2 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition-colors">요청 확인하기</button>
+            </>
+          ) : (
+            <>
+              <CalendarDays className="w-12 h-12 mb-4 text-slate-300" />
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">일정이 없습니다</h3>
+              <p>다양한 행사에 지원하거나 포트폴리오를 업데이트 해보세요.</p>
+            </>
+          )}
+      </div>
+    </div>
+  );
+
+  const renderEventsContent = () => (
+    <div className="space-y-6 flex flex-col h-full overflow-y-auto no-scrollbar pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          행사 등록 폼
+        </button>
+        <button onClick={() => setActiveTab('past')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'past' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          이전 등록 내역
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        {activeTab === 'all' ? (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center py-20">
+             <Plus className="w-16 h-16 text-indigo-200 dark:text-indigo-900 mb-6" />
+             <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-3">새로운 행사를 주최하시나요?</h3>
+             <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">기본 정보부터 포스터 등록까지 쉽고 편하게 새로운 댄스 행사를 개설하세요.</p>
+             <button onClick={() => navigate('/create')} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 text-lg">
+               <Plus className="w-5 h-5" /> 행사 등록 시작하기
+             </button>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center py-20">
+            <CalendarDays className="w-12 h-12 text-slate-300 mb-4" />
+            <p className="text-slate-500">이전에 등록했던 행사가 없습니다.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderFinanceContent = () => (
+    <div className="space-y-6 flex flex-col h-full overflow-y-auto no-scrollbar pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          정산 대기
+        </button>
+        <button onClick={() => setActiveTab('completed')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'completed' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          정산 완료
+        </button>
+        <button onClick={() => setActiveTab('tax')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'tax' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          세금계산서
+        </button>
+      </div>
+
+      <div className="bg-gradient-to-br from-slate-900 to-indigo-900 dark:from-slate-900 dark:to-indigo-900/60 rounded-3xl p-8 shadow-lg text-white shrink-0">
+        <div className="opacity-80 text-sm font-bold tracking-wider uppercase mb-2">이번 달 예상 정산액</div>
+        <div className="text-5xl font-black mb-6">₩1,200,000</div>
+        <div className="flex justify-between items-end">
+          <div className="opacity-75 text-sm">정산 예정일: 매월 10일</div>
+          <button className="px-5 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl font-bold transition-colors">
+            출금 신청
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 p-12 text-center text-slate-500 flex flex-col items-center justify-center min-h-[300px]">
+        <CreditCard className="w-12 h-12 mb-4 text-slate-300" />
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">최근 내역이 없습니다</h3>
+      </div>
+    </div>
+  );
+
+  const renderProfileContent = () => (
+    <div className="space-y-6 flex flex-col h-full overflow-y-auto no-scrollbar pb-20">
+      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          프로필 수정
+        </button>
+        <button onClick={() => setActiveTab('portfolio')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'portfolio' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          포트폴리오 관리
+        </button>
+        <button onClick={() => setActiveTab('reviews')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'reviews' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          팬/리뷰
+        </button>
+      </div>
+
+      <div className="flex-1">
+        {activeTab === 'portfolio' ? (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col h-full min-h-[400px]">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">내 포트폴리오</h3>
+              <button className="flex items-center gap-2 bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 px-4 py-2 rounded-lg font-bold text-sm hover:bg-indigo-200 transition-colors">
+                <Plus className="w-4 h-4" /> 포트폴리오 추가
               </button>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white">섭외 문의 관리</h3>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">대기 중인 문의</p>
-                  <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">1건</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">1</div>
-              </div>
-            </motion.div>
-          </>
-        );
-      case 'instructor':
-        return (
-          <>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl">
-                  <Users className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white">수강생 현황</h3>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">현재 진행 중인 클래스의 수강생 등록 및 출석 현황입니다.</p>
-              <div className="flex justify-between items-center text-sm mb-2">
-                <span className="text-slate-600 dark:text-slate-400">이번 달 수강생 수</span>
-                <span className="font-bold text-emerald-600">총 24명</span>
-              </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5">
-                <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: '65%' }}></div>
-              </div>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-teal-50 dark:bg-teal-900/20 text-teal-600 rounded-xl">
-                  <PlayCircle className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white">튜토리얼 영상 관리</h3>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">수강생들을 위한 안무 영상이나 튜토리얼을 업로드하세요.</p>
-              <button className="w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                + 새 클래스/영상 등록
-              </button>
-            </motion.div>
-          </>
-        );
-      case 'media':
-        return (
-          <>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded-xl">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white">촬영 의뢰 현황</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-center">
-                  <span className="block text-xs text-slate-500 dark:text-slate-400 mb-1">대기중</span>
-                  <span className="font-bold text-lg text-slate-800 dark:text-slate-200">2건</span>
-                </div>
-                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-xl text-center">
-                  <span className="block text-xs text-purple-600 dark:text-purple-400 mb-1">진행중</span>
-                  <span className="font-bold text-lg text-purple-700 dark:text-purple-300">1건</span>
-                </div>
-              </div>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-pink-50 dark:bg-pink-900/20 text-pink-600 rounded-xl">
-                  <ImageIcon className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white">고화질 원본 전달하기</h3>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">완성된 작업물의 구글 드라이브나 링크를 의뢰인에게 전달하세요.</p>
-              <button className="w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                새 링크 업로드
-              </button>
-            </motion.div>
-          </>
-        );
-      default: return null;
-    }
-  };
+            </div>
+            <div className="flex-1 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400">
+              등록된 포트폴리오 영상/사진이 없습니다.
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8">
+            <div className="max-w-xl">
+               <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-6">기본 정보 설정</h3>
+               
+               <div className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">활동명</label>
+                   <input type="text" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" defaultValue={profile?.displayName} />
+                 </div>
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">소개(한 줄)</label>
+                   <input type="text" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" placeholder="예: 힙합 베이스의 올라운더 댄서입니다" />
+                 </div>
+                 <div>
+                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">상세 이력 / 정보</label>
+                   <textarea className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 min-h-[120px]" placeholder="경력이나 상세한 장르 소개를 적어주세요."></textarea>
+                 </div>
+               </div>
+               
+               <button className="mt-8 px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 w-full sm:w-auto">변경사항 저장하기</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="w-full space-y-8 pb-20">
-      {/* Header section */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl ring-1 ring-slate-100 dark:ring-slate-700">
-          {getRoleIcon()}
+    <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950 h-full w-full min-h-0">
+      
+      {/* LNB (Left Navigation Bar) */}
+      <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-sm z-10 shrink-0 pb-4 hidden lg:flex">
+        <div className="p-6">
+          <div className="bg-indigo-600 rounded-2xl p-6 shadow-lg shadow-indigo-600/20 text-white mb-8">
+            <p className="font-bold text-indigo-100 text-[10px] uppercase tracking-widest mb-2">
+              {profile?.role === 'dj' ? 'Professional DJ' : 
+               profile?.role === 'instructor' ? 'Professional Instructor' : 
+               profile?.role === 'media' ? 'Media Expert' : 'Professional Host'}
+            </p>
+            <p className="text-indigo-200 text-xs font-medium mb-1 opacity-80">멋진 행사를 기대할게요!</p>
+            <p className="font-black text-xl leading-tight truncate">{profile?.displayName || '전문가'}님</p>
+          </div>
+
+          <nav className="space-y-1">
+            <button 
+              onClick={() => handleMenuClick('activities')}
+              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'activities' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+              <CalendarDays className="w-5 h-5" /> 활동 스케줄
+            </button>
+            <button 
+              onClick={() => handleMenuClick('events')}
+              className={clsx("w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'events' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+              <div className="flex items-center gap-3"><Star className="w-5 h-5" /> 내 행사 관리</div>
+              {activeMenu === 'events' && <ChevronRight className="w-4 h-4" />}
+            </button>
+            <button 
+              onClick={() => handleMenuClick('finance')}
+              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'finance' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+              <CreditCard className="w-5 h-5" /> 수익 및 정산
+            </button>
+          </nav>
         </div>
-        <div className="text-center sm:text-left z-10 flex-1">
-          <p className="text-orange-500 font-bold mb-1">{getPersonalizedGreeting()}</p>
-          <h1 className="text-3xl font-black text-slate-800 dark:text-white mb-2">{getRoleTitle()}</h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            {profile?.displayName || '전문가'}님의 활동과 포트폴리오를 관리하세요.
-          </p>
-        </div>
-        <div className="sm:ml-auto z-10 flex flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-           <Link to="/mypage" className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors shrink-0">
-             <Settings className="w-4 h-4" /> 프로필 설정
-           </Link>
+        
+        <div className="mt-auto p-6 border-t border-slate-100 dark:border-slate-800">
+           <button 
+              onClick={() => handleMenuClick('profile')}
+              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'profile' ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+              <Settings className="w-5 h-5" /> 프로필 설정
+            </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 transition-colors"
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-xl">
-              <CalendarDays className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-lg text-slate-800 dark:text-white">내 공연/작업 스케줄</h3>
-          </div>
-          <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">업무 및 행사 일정을 캘린더에서 한눈에 확인하세요.</p>
-          <div className="h-32 flex items-center justify-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-slate-400 text-sm">
-            등록된 일정이 없습니다.
-          </div>
-        </motion.div>
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-hidden flex flex-col p-4 lg:p-10 min-h-0">
+        
+        {/* Mobile Nav */}
+        <div className="lg:hidden w-full mb-6 max-w-full overflow-x-auto flex gap-2 shrink-0 no-scrollbar">
+           {['activities', 'events', 'finance', 'profile'].map((menu) => (
+              <button 
+                key={menu}
+                onClick={() => handleMenuClick(menu as MenuKey)}
+                className={clsx(
+                  "whitespace-nowrap px-4 py-2 rounded-xl font-black text-sm border transition-all shadow-sm", 
+                  activeMenu === menu 
+                    ? "bg-slate-800 dark:bg-indigo-400 text-white dark:text-slate-900 border-slate-800 dark:border-indigo-400 scale-105" 
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
+                )}
+              >
+                {menu === 'activities' ? '활동' : menu === 'events' ? '행사관리' : menu === 'finance' ? '정산' : '프로필'}
+              </button>
+           ))}
+        </div>
 
-        {renderRoleSpecificContent()}
+        {/* Breadcrumbs (Desktop) */}
+        <div className="hidden lg:flex items-center gap-2 text-sm text-slate-500 font-bold mb-8 tracking-tight shrink-0">
+          <span className="capitalize">{profile?.role || 'Professional'}</span>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-slate-800 dark:text-white capitalize">
+            {activeMenu === 'activities' && '활동 스케줄'}
+            {activeMenu === 'events' && '행사 관리'}
+            {activeMenu === 'finance' && '수익 내역'}
+            {activeMenu === 'profile' && '프로필 설정'}
+          </span>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeMenu}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 overflow-hidden flex flex-col h-full min-h-0"
+          >
+            {activeMenu === 'activities' && renderActivitiesContent()}
+            {activeMenu === 'events' && renderEventsContent()}
+            {activeMenu === 'finance' && renderFinanceContent()}
+            {activeMenu === 'profile' && renderProfileContent()}
+          </motion.div>
+        </AnimatePresence>
       </div>
+
     </div>
   );
 }

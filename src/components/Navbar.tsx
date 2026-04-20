@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, LogOut, Plus, Sun, Moon, Wind, Settings, UserCircle, Briefcase, Eye, LayoutDashboard } from 'lucide-react';
+import { LogIn, LogOut, Plus, Sun, Moon, Wind, Settings, UserCircle, Briefcase, Eye, LayoutDashboard, Languages } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage, Language } from '../context/LanguageContext';
+import { languageNames } from '../lib/gemini';
 import { logout } from '../firebase';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'motion/react';
@@ -10,7 +12,9 @@ import { AnimatePresence, motion } from 'motion/react';
 export default function Navbar() {
   const { user, profile, viewMode, setViewMode } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleModeSwitch = (mode: 'admin' | 'professional' | 'participant') => {
@@ -52,6 +56,49 @@ export default function Navbar() {
               </Link>
             </div>
             <div className="flex items-center gap-3 sm:gap-4 relative">
+              {/* Language Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                  className="inline-flex items-center p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                  title="언어 변경"
+                >
+                  <Languages className="h-5 w-5" />
+                  <span className="hidden lg:inline ml-2 text-xs font-bold uppercase">{language}</span>
+                </button>
+
+                <AnimatePresence>
+                  {langDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setLangDropdownOpen(false)}></div>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-1.5 z-40 overflow-hidden"
+                      >
+                        {(Object.keys(languageNames) as Language[]).map((lang) => (
+                          <button
+                            key={lang}
+                            onClick={() => {
+                              setLanguage(lang);
+                              setLangDropdownOpen(false);
+                            }}
+                            className={clsx(
+                              "w-full text-left px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-800",
+                              language === lang ? "text-orange-500 font-bold" : "text-slate-600 dark:text-slate-400"
+                            )}
+                          >
+                            {languageNames[lang]}
+                          </button>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <button
                 onClick={toggleTheme}
                 className="inline-flex items-center p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
@@ -161,7 +208,7 @@ export default function Navbar() {
                                 className="flex items-center gap-3 px-4 py-2 text-sm font-bold text-indigo-600 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                               >
                                 <LayoutDashboard className="w-4 h-4" />
-                                {viewMode === 'admin' ? '시스템 관리' : '나의 대시보드'}
+                                {viewMode === 'admin' ? '시스템 관리' : t('nav.tickets')}
                               </Link>
 
                               <Link 
@@ -170,7 +217,7 @@ export default function Navbar() {
                                 className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                               >
                                 <Settings className="w-4 h-4 text-slate-400" />
-                                계정 설정
+                                {t('nav.profile')}
                               </Link>
                               
                               <button 

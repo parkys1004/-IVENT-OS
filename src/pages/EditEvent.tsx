@@ -300,6 +300,7 @@ export default function EditEvent() {
         imageUrls: images,
         coverImageIndex: coverImageIndex,
         maxAttendees: Number(formData.maxAttendees),
+        likesCount: eventData?.likesCount || 0,
         djs: formData.djs.filter(dj => dj.trim() !== ''),
         performances: formData.performances.filter(p => p.trim() !== ''),
         tickets: formData.tickets.filter(t => t.name.trim() !== ''),

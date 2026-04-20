@@ -1,19 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, Image as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, Plus, BarChart3, CreditCard, PenTool } from 'lucide-react';
+import { Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, Image as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, Plus, BarChart3, CreditCard, PenTool, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import { db } from '../firebase';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 type MenuKey = 'activities' | 'events' | 'finance' | 'profile';
 type TabKey = string;
 
 export default function ProfessionalDashboard() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const navigate = useNavigate();
   
   const [activeMenu, setActiveMenu] = useState<MenuKey>('activities');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [followers, setFollowers] = useState<any[]>([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+
+  useEffect(() => {
+    if (activeMenu === 'profile' && activeTab === 'reviews' && user) {
+      const fetchFollowers = async () => {
+        setLoadingFollowers(true);
+        try {
+          // 1. Get follower relations
+          const q = query(collection(db, 'userFollowers'), where('followingId', '==', user.uid));
+          const snap = await getDocs(q);
+          
+          const followerData = await Promise.all(snap.docs.map(async (followerDoc) => {
+            const data = followerDoc.data();
+            // 2. Fetch profile for each follower
+            const userSnap = await getDoc(doc(db, 'users', data.followerId));
+            return {
+              id: followerDoc.id,
+              ...(userSnap.exists() ? userSnap.data() : { displayName: 'Unknown User' })
+            };
+          }));
+          
+          setFollowers(followerData);
+        } catch (error) {
+          console.error("Error fetching followers:", error);
+        } finally {
+          setLoadingFollowers(false);
+        }
+      };
+      fetchFollowers();
+    }
+  }, [activeMenu, activeTab, user]);
   
   // Handlers
   const handleMenuClick = (menu: MenuKey) => {
@@ -46,6 +80,10 @@ export default function ProfessionalDashboard() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
           <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">진행 완료</div>
           <div className="text-3xl font-black text-slate-800 dark:text-white">12<span className="text-sm font-normal text-slate-500 ml-1">건</span></div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm text-indigo-600 dark:text-indigo-400">
+          <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">팔로워</div>
+          <div className="text-3xl font-black">{profile?.followersCount || 0}<span className="text-sm font-normal text-slate-500 ml-1">명</span></div>
         </div>
       </div>
 
@@ -157,6 +195,38 @@ export default function ProfessionalDashboard() {
             <div className="flex-1 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400">
               등록된 포트폴리오 영상/사진이 없습니다.
             </div>
+          </div>
+        ) : activeTab === 'reviews' ? (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col h-full min-h-[400px]">
+            <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-6">팬 (팔로워)</h3>
+            {loadingFollowers ? (
+              <div className="flex-1 flex items-center justify-center">
+                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : followers.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {followers.map((follower) => (
+                  <div key={follower.id} className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center overflow-hidden shrink-0 border border-indigo-50 dark:border-indigo-900/20">
+                      {follower.photoURL ? (
+                        <img src={follower.photoURL} alt={follower.displayName} className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-5 h-5 text-indigo-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-800 dark:text-white truncate text-sm">{follower.displayName}</p>
+                      <p className="text-xs text-slate-500 truncate">{follower.role || 'Participant'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex-1 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 p-12 text-center">
+                <Users className="w-12 h-12 mb-4 opacity-20" />
+                <p>아직 팔로워가 없습니다.<br />활발한 활동을 통해 팬을 만들어보세요!</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8">

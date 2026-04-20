@@ -67,6 +67,7 @@ export interface UserProfile {
   photoURL?: string;
   role: UserRole;
   createdAt: any;
+  followersCount?: number;
 }
 
 interface AuthContextType {

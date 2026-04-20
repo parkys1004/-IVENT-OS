@@ -56,11 +56,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useJsApiLoader, GoogleMap, Marker } from '@react-google-maps/api';
+import { useLanguage } from '../context/LanguageContext';
+import { translateText, languageNames } from '../lib/gemini';
 
 const LIBRARIES: ("places")[] = ["places"];
 
@@ -68,13 +70,50 @@ export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { language, t } = useLanguage();
   
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [registration, setRegistration] = useState<any>(null);
+  const [isLiked, setIsLiked] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const [translatedData, setTranslatedData] = useState<{ title: string, description: string } | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  const getLocale = () => {
+    switch (language) {
+      case 'en': return enUS;
+      case 'ja': return ja;
+      case 'zh': return zhCN;
+      case 'th': return th;
+      case 'vi': return vi;
+      default: return ko;
+    }
+  };
+
+  const handleAutoTranslate = async () => {
+    if (isTranslating) return;
+    if (translatedData) {
+      setTranslatedData(null);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const [title, description] = await Promise.all([
+        translateText(event.title, languageNames[language]),
+        translateText(event.description, languageNames[language])
+      ]);
+      setTranslatedData({ title, description });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -104,6 +143,11 @@ export default function EventDetail() {
           if (regSnap.exists()) {
             setRegistration({ id: regSnap.id, ...regSnap.data() });
           }
+
+          // Fetch Like status
+          const likeId = `${id}_${user.uid}`;
+          const likeSnap = await getDoc(doc(db, 'eventLikes', likeId));
+          setIsLiked(likeSnap.exists());
         }
       } catch (err) {
         handleFirestoreError(err, OperationType.GET, `events/${id} or registrations`);
@@ -128,6 +172,7 @@ export default function EventDetail() {
       await setDoc(regRef, {
         eventId: id,
         userId: user.uid,
+        hostId: event.hostId,
         registeredAt: serverTimestamp(),
         status: 'confirmed'
       });
@@ -168,6 +213,39 @@ export default function EventDetail() {
       alert("취소 중 오류가 발생했습니다.");
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const toggleLike = async () => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    const likeId = `${id}_${user.uid}`;
+    const likeRef = doc(db, 'eventLikes', likeId);
+    
+    try {
+      if (isLiked) {
+        await deleteDoc(likeRef);
+        await updateDoc(doc(db, 'events', id!), {
+          likesCount: increment(-1)
+        });
+        setEvent((prev: any) => ({ ...prev, likesCount: Math.max(0, (prev.likesCount || 1) - 1) }));
+      } else {
+        await setDoc(likeRef, {
+          eventId: id,
+          userId: user.uid,
+          createdAt: serverTimestamp()
+        });
+        await updateDoc(doc(db, 'events', id!), {
+          likesCount: increment(1)
+        });
+        setEvent((prev: any) => ({ ...prev, likesCount: (prev.likesCount || 0) + 1 }));
+      }
+      setIsLiked(!isLiked);
+    } catch (err) {
+      console.error(err);
+      alert("찜하기 처리 중 오류가 발생했습니다.");
     }
   };
 
@@ -268,20 +346,40 @@ export default function EventDetail() {
                </div>
              )}
              
-             <div className="absolute top-6 left-6 flex gap-2">
+             <div className="absolute top-6 left-6 flex flex-col gap-2 items-start">
                <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur text-indigo-700 dark:text-indigo-400 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
                  {event.category}
                </span>
+               {language !== 'ko' && (
+                 <button 
+                  onClick={handleAutoTranslate}
+                  disabled={isTranslating}
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-600 dark:text-slate-400 rounded-full text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-lg"
+                 >
+                   <Sparkles className={clsx("w-3.5 h-3.5 text-amber-500", isTranslating && "animate-pulse")} />
+                   {isTranslating ? t('event.translating') : translatedData ? t('event.original') : t('event.translate')}
+                 </button>
+               )}
              </div>
           </div>
         ) : (
           <div className="w-full h-72 md:h-[400px] lg:h-[500px] bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex flex-col items-center justify-center text-indigo-300 dark:text-indigo-700">
             <Calendar className="h-20 w-20 mb-4" />
             <span className="text-xl font-medium tracking-wide">Event Image</span>
-            <div className="absolute top-6 left-6 flex gap-2">
+            <div className="absolute top-6 left-6 flex flex-col gap-2 items-start">
               <span className="bg-white/90 backdrop-blur text-indigo-700 font-bold px-4 py-1.5 rounded-full text-sm shadow-lg">
                 {event.category}
               </span>
+              {language !== 'ko' && (
+                <button 
+                  onClick={handleAutoTranslate}
+                  disabled={isTranslating}
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-white/90 backdrop-blur-md text-slate-600 rounded-full text-xs font-bold hover:bg-slate-100 transition-colors disabled:opacity-50 shadow-lg"
+                >
+                  <Sparkles className={clsx("w-3.5 h-3.5 text-amber-500", isTranslating && "animate-pulse")} />
+                  {isTranslating ? t('event.translating') : translatedData ? t('event.original') : t('event.translate')}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -289,45 +387,47 @@ export default function EventDetail() {
         <div className="p-8 md:p-12 lg:p-16 xl:flex xl:gap-20 relative">
           {/* Main Info */}
           <div className="flex-1">
-            <h1 className="text-3xl md:text-5xl font-extrabold text-slate-800 mb-8 leading-tight tracking-tight">{event.title}</h1>
+            <h1 className="text-3xl md:text-5xl font-extrabold text-slate-800 dark:text-white mb-8 leading-tight tracking-tight">
+              {translatedData ? translatedData.title : event.title}
+            </h1>
             
-            <div className="flex flex-col gap-4 text-slate-600 mb-12">
-              <div className="flex items-center text-lg bg-slate-50 p-5 rounded-2xl border border-slate-100">
+            <div className="flex flex-col gap-4 text-slate-600 dark:text-slate-400 mb-12">
+              <div className="flex items-center text-lg bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
                 <Calendar className="w-6 h-6 mr-5 text-indigo-500" />
-                <span className="font-bold text-slate-800 text-[18px]">
-                  {format(dateObj, 'yyyy년 M월 d일 (E) a h:mm', { locale: ko })}
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px]">
+                  {format(dateObj, 'yyyy년 M월 d일 (E) a h:mm', { locale: getLocale() })}
                 </span>
-                <a href={gCalUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-[14px] bg-white border border-slate-200 px-5 py-2.5 rounded-[12px] hover:bg-slate-50 text-indigo-600 font-bold transition-colors shadow-sm">
-                  캘린더 추가
+                <a href={gCalUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-[14px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-2.5 rounded-[12px] hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-bold transition-colors shadow-sm">
+                  {t('event.calendar.add')}
                 </a>
               </div>
-              <div className="flex items-center text-lg bg-slate-50 p-5 rounded-2xl border border-slate-100">
+              <div className="flex items-center text-lg bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
                 <MapPin className="w-6 h-6 mr-5 text-indigo-500" />
                 <div>
-                  <span className="font-bold text-slate-800 text-[18px] block">{event.locationName}</span>
-                  {event.formattedAddress && <span className="text-sm text-slate-500 block mt-1">{event.formattedAddress}</span>}
+                  <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px] block">{event.locationName}</span>
+                  {event.formattedAddress && <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1">{event.formattedAddress}</span>}
                 </div>
-                <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-[14px] bg-white border border-slate-200 px-5 py-2.5 rounded-[12px] hover:bg-slate-50 text-indigo-600 font-bold transition-colors flex items-center shadow-sm">
-                  길찾기 <ExternalLink className="w-4 h-4 ml-1.5" />
+                <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-[14px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-2.5 rounded-[12px] hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-bold transition-colors flex items-center shadow-sm">
+                  {t('event.directions')} <ExternalLink className="w-4 h-4 ml-1.5" />
                 </a>
               </div>
               
               {/* Google Maps Render */}
               {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
-                <div className="rounded-2xl bg-amber-50 border border-amber-200 p-6 flex flex-col items-center justify-center text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-6 flex flex-col items-center justify-center text-center">
+                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-800/30 rounded-full flex items-center justify-center mb-4">
                     <MapPin className="w-6 h-6 text-amber-600" />
                   </div>
-                  <h4 className="text-amber-900 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
-                  <p className="text-amber-700 text-sm max-w-sm mb-4">
-                    지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.
+                  <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
+                  <p className="text-amber-700 dark:text-amber-500 text-sm max-w-sm mb-4">
+                    지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.
                   </p>
-                  <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-amber-800 text-xs font-bold underline hover:text-amber-950">
+                  <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-amber-800 dark:text-amber-400 text-xs font-bold underline hover:text-amber-950">
                     구글 클라우드 콘솔에서 키 발급받기
                   </a>
                 </div>
               ) : isLoaded && event.geoPoint && event.geoPoint.lat ? (
-                <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm w-full h-[300px]">
+                <div className="rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm w-full h-[300px]">
                   <GoogleMap
                     mapContainerStyle={{ width: '100%', height: '100%' }}
                     center={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }}
@@ -338,23 +438,25 @@ export default function EventDetail() {
                   </GoogleMap>
                 </div>
               ) : (
-                <div className="rounded-2xl bg-slate-100 animate-pulse w-full h-[300px] flex items-center justify-center text-slate-400">
-                  지도를 불러오는 중...
+                <div className="rounded-2xl bg-slate-100 dark:bg-slate-800/50 animate-pulse w-full h-[300px] flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">
+                  {t('event.map.loading')}
                 </div>
               )}
-              <div className="flex items-center text-lg bg-slate-50 p-5 rounded-2xl border border-slate-100">
+              <div className="flex items-center text-lg bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
                 <Users className="w-6 h-6 mr-5 text-indigo-500" />
-                <span className="font-bold text-slate-800 text-[18px]">주최자: {event.hostName}</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px]">{t('event.host')}: {event.hostName}</span>
               </div>
             </div>
 
             <hr className="border-slate-100 my-12" />
 
             {/* Description */}
-            <div className="prose prose-indigo max-w-none">
-              <h3 className="text-2xl lg:text-3xl font-extrabold mb-6 text-slate-800 tracking-tight">상세 내용</h3>
-              <div className="whitespace-pre-wrap text-slate-600 leading-relaxed text-[16px] xl:text-[18px]">
-                {event.description}
+            <div className="prose prose-indigo dark:prose-invert max-w-none">
+              <h3 className="text-2xl lg:text-3xl font-extrabold mb-6 text-slate-800 dark:text-white tracking-tight">
+                {t('event.details')}
+              </h3>
+              <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-relaxed text-[16px] xl:text-[18px]">
+                {translatedData ? translatedData.description : event.description}
               </div>
             </div>
           </div>
@@ -363,10 +465,25 @@ export default function EventDetail() {
           <div className="w-full xl:w-[420px] shrink-0 mt-12 xl:mt-0 relative">
             <div className="sticky top-28 bg-white border border-slate-200 rounded-[24px] shadow-lg shadow-slate-200/50 p-8">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-slate-800">예매 정보</h3>
-                <button className="text-slate-400 hover:text-indigo-600 transition-colors">
-                  <Share2 className="w-5 h-5" />
-                </button>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">예매 정보</h3>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={toggleLike}
+                    className={clsx(
+                      "p-2 rounded-full transition-all",
+                      isLiked ? "bg-rose-50 text-rose-500" : "text-slate-400 hover:text-rose-500 hover:bg-rose-50"
+                    )}
+                  >
+                    <Heart className={clsx("w-5 h-5", isLiked && "fill-current")} />
+                  </button>
+                  <button className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-full hover:bg-slate-50">
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-2 flex items-center gap-1.5 px-1">
+                <span className="text-sm font-bold text-slate-700">관심행사 {event.likesCount || 0}</span>
               </div>
 
               <div className="mb-6">
@@ -389,16 +506,16 @@ export default function EventDetail() {
 
               {registration?.status === 'confirmed' ? (
                 <div className="space-y-4">
-                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center justify-center text-emerald-700 font-bold">
+                  <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-4 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold">
                     <Ticket className="w-5 h-5 mr-2" />
                     참여 확정되었습니다
                   </div>
                   <button 
                     onClick={handleCancel}
                     disabled={processing}
-                    className="w-full py-4 text-red-600 font-bold hover:bg-red-50 rounded-[12px] transition-colors disabled:opacity-50 border border-red-100"
+                    className="w-full py-4 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-[12px] transition-colors disabled:opacity-50 border border-red-100 dark:border-red-900/20"
                   >
-                    참여 취소하기
+                    {t('event.cancel')}
                   </button>
                 </div>
               ) : (
@@ -408,15 +525,52 @@ export default function EventDetail() {
                   className={clsx(
                     "w-full py-4 rounded-[12px] font-bold text-[15px] text-white shadow-sm transition-all",
                     isFull 
-                      ? "bg-slate-300 cursor-not-allowed shadow-none" 
-                      : "bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5",
+                      ? "bg-slate-300 dark:bg-slate-700 cursor-not-allowed shadow-none" 
+                      : "bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 shadow-indigo-600/20",
                     processing && "opacity-75 cursor-wait"
                   )}
                 >
-                  {isFull ? '모집 마감' : processing ? '처리 중...' : '참여 신청하기'}
+                  {isFull ? t('event.full') : processing ? '처리 중...' : t('event.register')}
                 </button>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Sticky RSVP Control for Mobile */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-30 lg:hidden">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleLike}
+              className={clsx(
+                "p-4 rounded-2xl border transition-all",
+                isLiked ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-500" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400"
+              )}
+            >
+              <Heart className={clsx("w-6 h-6", isLiked && "fill-current")} />
+            </button>
+            
+            {registration?.status === 'confirmed' ? (
+              <button 
+                onClick={handleCancel}
+                disabled={processing}
+                className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-4 rounded-2xl font-black tracking-tight hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+              >
+                {processing ? '처리 중...' : t('event.cancel')}
+              </button>
+            ) : isFull ? (
+              <div className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-400 py-4 rounded-2xl font-black text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
+                {t('event.full')}
+              </div>
+            ) : (
+              <button 
+                onClick={handleRegister}
+                disabled={processing}
+                className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
+              >
+                {processing ? '처리 중...' : t('event.register')}
+              </button>
+            )}
           </div>
         </div>
       </div>

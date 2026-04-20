@@ -9,7 +9,8 @@
         "email": { "type": "string" },
         "displayName": { "type": "string" },
         "photoURL": { "type": "string" },
-        "role": { "type": "string", "enum": ["user", "host", "admin"] },
+        "role": { "type": "string", "enum": ["user", "host", "admin", "dj", "instructor", "media"] },
+        "followersCount": { "type": "number" },
         "createdAt": { "type": "timestamp" }
       },
       "required": ["uid", "email", "role", "createdAt"]
@@ -33,6 +34,7 @@
         "tickets": { "type": "array" },
         "maxAttendees": { "type": "number" },
         "currentAttendees": { "type": "number" },
+        "likesCount": { "type": "number" },
         "hostId": { "type": "string" },
         "hostName": { "type": "string" },
         "status": { "type": "string", "enum": ["draft", "published", "cancelled"] },
@@ -47,10 +49,33 @@
       "properties": {
         "eventId": { "type": "string" },
         "userId": { "type": "string" },
+        "hostId": { "type": "string" },
         "registeredAt": { "type": "timestamp" },
         "status": { "type": "string", "enum": ["confirmed", "cancelled"] }
       },
-      "required": ["eventId", "userId", "registeredAt", "status"]
+      "required": ["eventId", "userId", "hostId", "registeredAt", "status"]
+    },
+    "EventLike": {
+      "title": "Event Like",
+      "description": "A user's like for an event",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["eventId", "userId", "createdAt"]
+    },
+    "UserFollow": {
+      "title": "User Follow",
+      "description": "A follow relationship between users",
+      "type": "object",
+      "properties": {
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["followerId", "followingId", "createdAt"]
     }
   },
   "firestore": {
@@ -65,6 +90,14 @@
     "/registrations/{registrationId}": {
       "schema": { "$ref": "#/entities/Registration" },
       "description": "Stores event registrations"
+    },
+    "/eventLikes/{likeId}": {
+      "schema": { "$ref": "#/entities/EventLike" },
+      "description": "Stores user event likes"
+    },
+    "/userFollowers/{followId}": {
+      "schema": { "$ref": "#/entities/UserFollow" },
+      "description": "Stores user follow relationships"
     }
   }
 }

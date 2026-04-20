@@ -1,204 +1,214 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: users
-    // Document ID: userId (matches auth.uid)
-    // Fields:
-    //   - uid: string (required, immutable)
-    //   - email: string (required)
-    //   - displayName: string (optional)
-    //   - photoURL: string (optional)
-    //   - role: string (required, enum: ['user', 'host', 'admin'])
-    //   - createdAt: timestamp (required, immutable)
-    //
-    // Collection: events
-    // Document ID: auto-generated
-    // Fields:
-    //   - title: string (required)
-    //   - description: string (required)
-    //   - category: string (required)
-    //   - date: timestamp (required)
-    //   - endDate: timestamp (required)
-    //   - locationName: string (required)
-    //   - locationAddress: string (optional)
-    //   - imageUrl: string (optional)
-    //   - maxAttendees: number (required)
-    //   - currentAttendees: number (required)
-    //   - hostId: string (required, immutable)
-    //   - hostName: string (required)
-    //   - status: string (required, enum: ['draft', 'published', 'cancelled'])
-    //   - createdAt: timestamp (required, immutable)
-    //
-    // Collection: registrations
-    // Document ID: {eventId}_{userId}
-    // Fields:
-    //   - eventId: string (required, immutable)
-    //   - userId: string (required, immutable)
-    //   - registeredAt: timestamp (required, immutable)
-    //   - status: string (required, enum: ['confirmed', 'cancelled'])
-    //
-    // ===============================================================
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
 
     // ===============================================================
     // Helper Functions
     // ===============================================================
-    function isAuthenticated() {
+    function isSignedIn() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
-    
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
     function isAdmin() {
-      return isAuthenticated() && (
+      // Use email check for bootstrapped admin and DB check for promoted roles
+      return isSignedIn() && (
         (request.auth.token.email == "aimaster1004@gmail.com" && request.auth.token.email_verified == true) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
-    
-    function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
-    }
-
-    function validStringLength(field, minLen, maxLen) {
-      return request.resource.data[field] is string &&
-        request.resource.data[field].size() >= minLen &&
-        request.resource.data[field].size() <= maxLen;
-    }
-
-    function validOptionalStringLength(field, minLen, maxLen) {
-      return !(field in request.resource.data) || (
-        request.resource.data[field] == null ||
-        (request.resource.data[field] is string &&
-         request.resource.data[field].size() >= minLen &&
-         request.resource.data[field].size() <= maxLen) ||
-        (request.resource.data[field] is list)
-      );
-    }
 
     // ===============================================================
-    // Domain Validators
+    // Validation Blueprints
     // ===============================================================
-    
-    function isValidUser() {
-      let data = request.resource.data;
+
+    function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
-        data.uid is string &&
-        data.email is string && isValidEmail(data.email) &&
-        data.role in ['user', 'host', 'admin', 'dj', 'instructor', 'media'] &&
+        data.uid is string && data.uid.size() <= 128 &&
+        data.email is string && data.email.size() <= 256 &&
+        data.role in ['user', 'host', 'dj', 'instructor', 'media', 'admin'] &&
         data.createdAt is timestamp &&
-        validOptionalStringLength('displayName', 0, 100) &&
-        validOptionalStringLength('photoURL', 0, 1000);
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
+        (!('followersCount' in data) || data.followersCount is int);
     }
 
-    function isValidEvent(checkOwner) {
-      let data = request.resource.data;
+    function isValidEvent(data) {
       return data.keys().hasAll(['title', 'description', 'category', 'date', 'endDate', 'locationName', 'maxAttendees', 'currentAttendees', 'hostId', 'hostName', 'status', 'createdAt']) &&
-        validStringLength('title', 1, 500) &&
-        validStringLength('description', 1, 20000) &&
-        validStringLength('category', 1, 100) &&
+        data.title is string && data.title.size() <= 500 &&
+        data.description is string && data.description.size() <= 20000 &&
+        data.category is string && data.category.size() <= 100 &&
         data.date is timestamp &&
         data.endDate is timestamp &&
-        validStringLength('locationName', 1, 500) &&
-        validOptionalStringLength('formattedAddress', 0, 1000) &&
-        validOptionalStringLength('country', 0, 20) &&
-        validOptionalStringLength('city', 0, 500) &&
-        validOptionalStringLength('imageUrl', 0, 2000000) &&
-        (!('imageUrls' in data) || data.imageUrls is list) &&
-        (!('djs' in data) || data.djs is list) &&
-        (!('performances' in data) || data.performances is list) &&
-        (!('tickets' in data) || data.tickets is list) &&
-        (!('coverImageIndex' in data) || data.coverImageIndex is int) &&
-        (!('geoPoint' in data) || data.geoPoint == null || data.geoPoint is map) &&
-        data.maxAttendees is number && data.maxAttendees > 0 &&
-        data.currentAttendees is number && data.currentAttendees >= 0 &&
-        data.hostId is string && (!checkOwner || data.hostId == request.auth.uid) &&
-        validStringLength('hostName', 1, 200) &&
+        data.locationName is string && data.locationName.size() <= 500 &&
+        data.maxAttendees is int && data.maxAttendees > 0 &&
+        data.currentAttendees is int && data.currentAttendees >= 0 &&
+        data.hostId is string && data.hostId.size() <= 128 &&
+        data.hostName is string && data.hostName.size() <= 200 &&
         data.status in ['draft', 'published', 'cancelled'] &&
+        data.createdAt is timestamp &&
+        (!('likesCount' in data) || data.likesCount is int) &&
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+        (!('imageUrls' in data) || data.imageUrls is list);
+    }
+
+    function isValidRegistration(data) {
+      return data.keys().hasAll(['eventId', 'userId', 'hostId', 'registeredAt', 'status']) &&
+        data.eventId is string && data.eventId.size() <= 128 &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.hostId is string && data.hostId.size() <= 128 &&
+        data.registeredAt is timestamp &&
+        data.status in ['confirmed', 'cancelled'];
+    }
+
+    function isValidLike(data) {
+      return data.keys().hasAll(['eventId', 'userId', 'createdAt']) &&
+        data.eventId is string && data.eventId.size() <= 128 &&
+        data.userId is string && data.userId == request.auth.uid &&
         data.createdAt is timestamp;
     }
 
-    function isValidRegistration() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['eventId', 'userId', 'registeredAt', 'status']) &&
-        data.eventId is string &&
-        data.userId is string && data.userId == request.auth.uid &&
-        data.registeredAt is timestamp &&
-        data.status in ['confirmed', 'cancelled'];
+    function isValidFollow(data) {
+      return data.keys().hasAll(['followerId', 'followingId', 'createdAt']) &&
+        data.followerId is string && data.followerId == request.auth.uid &&
+        data.followingId is string && data.followingId.size() <= 128 &&
+        data.followerId != data.followingId &&
+        data.createdAt is timestamp;
     }
 
     // ===============================================================
     // Rules
     // ===============================================================
-    
+
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if isSignedIn(); // Profiles are generally public for social features
       
-      allow create: if isAuthenticated() && 
-                    isOwner(userId) && 
-                    isValidUser() && 
-                    request.resource.data.uid == userId &&
-                    ((request.resource.data.role in ['user', 'host', 'dj', 'instructor', 'media']) || isAdmin());
+      allow create: if isOwner(userId) && 
+                    isValidUser(incoming()) && 
+                    incoming().uid == userId &&
+                    incoming().role != 'admin' &&
+                    incoming().createdAt == request.time;
                     
-      allow update: if isAuthenticated() && 
-                    (isOwner(userId) || isAdmin()) && 
-                    isValidUser() && 
-                    request.resource.data.uid == resource.data.uid &&
-                    request.resource.data.createdAt == resource.data.createdAt &&
-                    ((request.resource.data.role == resource.data.role) || isAdmin());
+      allow update: if (isOwner(userId) || isAdmin()) && 
+                    isValidUser(incoming()) && 
+                    incoming().uid == userId &&
+                    incoming().createdAt == existing().createdAt &&
+                    (isAdmin() || incoming().role == existing().role);
                     
       allow delete: if isAdmin();
     }
 
     match /events/{eventId} {
-      allow read: if true;
-                  
-      allow create: if isAuthenticated() && 
-                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['host', 'admin', 'dj', 'instructor', 'media'] || isAdmin()) &&
-                    isValidEvent(true);
+      allow get: if isValidId(eventId);
+      allow list: if true;
+      
+      allow create: if isSignedIn() && 
+                    isValidId(eventId) &&
+                    isValidEvent(incoming()) && 
+                    incoming().hostId == request.auth.uid &&
+                    incoming().createdAt == request.time &&
+                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['host', 'admin', 'dj', 'instructor', 'media']);
                     
-      allow update: if isAuthenticated() && (
-                    (isAdmin() && isValidEvent(false)) || 
+      allow update: if isValidId(eventId) && (
+                    (isAdmin() && isValidEvent(incoming())) || 
                     (
-                      resource.data.hostId == request.auth.uid &&
-                      isValidEvent(true) &&
-                      request.resource.data.hostId == resource.data.hostId &&
-                      request.resource.data.createdAt == resource.data.createdAt
+                      isOwner(existing().hostId) &&
+                      isValidEvent(incoming()) &&
+                      incoming().hostId == existing().hostId &&
+                      incoming().createdAt == existing().createdAt &&
+                      // Action: General Update
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'date', 'endDate', 'locationName', 'formattedAddress', 'imageUrl', 'imageUrls', 'maxAttendees', 'status', 'likesCount', 'currentAttendees', 'geoPoint', 'djs', 'performances', 'tickets', 'coverImageIndex'])
                     ) || (
-                      // Allow ANY user to update currentAttendees implicitly for MVP (in reality restricted with getAfter)
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentAttendees'])
+                      // Action: Registration Increment/Decrement
+                      incoming().diff(existing()).affectedKeys().hasOnly(['currentAttendees']) &&
+                      incoming().currentAttendees >= 0 &&
+                      incoming().currentAttendees <= existing().maxAttendees
+                    ) || (
+                      // Action: Like Count update (Increment/Decrement)
+                      incoming().diff(existing()).affectedKeys().hasOnly(['likesCount'])
                     ));
                     
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.hostId == request.auth.uid && resource.data.status == 'draft');
+      allow delete: if isAdmin() || (isOwner(existing().hostId) && existing().status == 'draft');
     }
 
     match /registrations/{registrationId} {
-      allow read: if isAuthenticated() && (
-        // Allow user to see their own potential registration status (handles non-existent docs)
-        (registrationId.split('_')[1] == request.auth.uid) ||
-        (resource != null && (
-          resource.data.userId == request.auth.uid || 
-          get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.hostId == request.auth.uid
-        )) ||
+      allow get: if isSignedIn() && (
+        registrationId.split('_')[1] == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.hostId == request.auth.uid ||
         isAdmin()
       );
       
-      allow create: if isAuthenticated() && 
-                    isValidRegistration() && 
-                    registrationId == request.resource.data.eventId + '_' + request.resource.data.userId;
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.hostId == request.auth.uid ||
+        isAdmin()
+      );
+      
+      allow create: if isSignedIn() && 
+                    isValidId(registrationId) &&
+                    isValidRegistration(incoming()) && 
+                    registrationId == incoming().eventId + '_' + incoming().userId &&
+                    incoming().registeredAt == request.time &&
+                    exists(/databases/$(database)/documents/events/$(incoming().eventId));
                     
-      allow update: if isAuthenticated() && 
-                    isValidRegistration() && 
-                    resource.data.userId == request.auth.uid && 
-                    request.resource.data.eventId == resource.data.eventId &&
-                    request.resource.data.userId == resource.data.userId &&
-                    request.resource.data.registeredAt == resource.data.registeredAt;
+      allow update: if isSignedIn() && 
+                    isValidRegistration(incoming()) && 
+                    isOwner(existing().userId) && 
+                    incoming().eventId == existing().eventId &&
+                    incoming().userId == existing().userId &&
+                    incoming().registeredAt == existing().registeredAt &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+                    
+      allow delete: if isAdmin() || isOwner(existing().userId);
+    }
+
+    match /eventLikes/{likeId} {
+      allow get: if isSignedIn() && (likeId.split('_')[1] == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isSignedIn() && 
+                    isValidId(likeId) &&
+                    isValidLike(incoming()) &&
+                    likeId == incoming().eventId + '_' + incoming().userId &&
+                    incoming().createdAt == request.time &&
+                    exists(/databases/$(database)/documents/events/$(incoming().eventId));
+                    
+      allow delete: if isAdmin() || isOwner(likeId.split('_')[1]);
+    }
+
+    match /userFollowers/{followId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      
+      allow create: if isSignedIn() && 
+                    isValidId(followId) &&
+                    isValidFollow(incoming()) &&
+                    followId == incoming().followerId + '_' + incoming().followingId &&
+                    incoming().createdAt == request.time &&
+                    exists(/databases/$(database)/documents/users/$(incoming().followingId));
+                    
+      allow delete: if isAdmin() || isOwner(followId.split('_')[0]);
     }
   }
 }

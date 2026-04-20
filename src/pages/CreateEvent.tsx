@@ -329,6 +329,7 @@ export default function CreateEvent() {
         hostName: profile.displayName || user.email?.split('@')[0] || 'Unknown',
         status: 'published',
         createdAt: serverTimestamp(),
+        likesCount: 0,
         // New fields
         djs: formData.djs.filter(dj => dj.trim() !== ''),
         performances: formData.performances.filter(p => p.trim() !== ''),

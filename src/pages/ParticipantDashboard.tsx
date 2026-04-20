@@ -5,9 +5,10 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Users, CalendarDays, Clock, Flame, Ticket, Heart, MessageSquare, Settings, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Users, CalendarDays, Clock, Flame, Ticket, Heart, MessageSquare, Settings, ChevronRight, Lock, ArrowUpDown } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 // Error handling spec
 enum OperationType {
@@ -79,6 +80,7 @@ interface EventData {
   currentAttendees: number;
   status: string;
   isBanner?: boolean;
+  likesCount?: number;
 }
 
 type MenuKey = 'explore' | 'tickets' | 'favorites' | 'community' | 'settings';
@@ -86,9 +88,12 @@ type TabKey = string;
 
 export default function ParticipantDashboard({ forceMarketplace = false }: { forceMarketplace?: boolean }) {
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('upcoming');
 
   const [activeMenu, setActiveMenu] = useState<MenuKey>('tickets');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
@@ -124,7 +129,28 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     return () => unsubscribe();
   }, []);
 
-  const filteredEvents = events.filter(e => filter === 'all' || e.category === filter);
+  const filteredEvents = events.filter(e => {
+    const matchesCategory = filter === 'all' || e.category.toLowerCase() === filter.toLowerCase();
+    const matchesSearch = searchQuery === '' || 
+      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (e.locationName && e.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    return matchesCategory && matchesSearch;
+  }).sort((a, b) => {
+    if (sortBy === 'upcoming') {
+      const dateA = a.date?.toDate ? a.date.toDate().getTime() : 0;
+      const dateB = b.date?.toDate ? b.date.toDate().getTime() : 0;
+      return dateA - dateB;
+    }
+    if (sortBy === 'latest') {
+      // Assuming id or some creation date if available. For now using same logic for demo.
+      return b.id.localeCompare(a.id); 
+    }
+    if (sortBy === 'popular') {
+      return (b.likesCount || 0) - (a.likesCount || 0);
+    }
+    return 0;
+  });
   
   // Banner logic: Prefer isBanner=true, up to 5. Fallback to earliest upcoming if none.
   const bannerEvents = events.filter(e => e.isBanner).slice(0, 5);
@@ -227,23 +253,69 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         </div>
       </section>
 
-      {/* Categories Filter */}
+      {/* Advanced Search & Filter Bar */}
       <section className="shrink-0">
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide shrink-0">
-          {['all', 'party', 'workshop'].map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              className={clsx(
-                "px-6 py-3 rounded-[12px] text-[14px] font-bold whitespace-nowrap transition-colors",
-                filter === cat 
-                  ? "bg-slate-800 dark:bg-indigo-600 text-white shadow-md shadow-slate-200 dark:shadow-none" 
-                  : "bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
-              )}
-            >
-              {cat === 'all' ? '전체 보기' : cat === 'party' ? '🎉 파티/배틀' : '💪 워크샵/연습'}
-            </button>
-          ))}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[20px] p-2 flex flex-col md:flex-row items-center gap-3 shadow-sm transition-colors">
+          {/* Search Input */}
+          <div className="relative w-full md:w-64 lg:w-80 group">
+            <input 
+              type="text" 
+              placeholder={t('search.placeholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[14px] pl-4 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-500 transition-all font-medium text-slate-700 dark:text-slate-200"
+            />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+          </div>
+
+          {/* Middle: Categories Segmented Control */}
+          <div className="h-10 border-l border-slate-200 dark:border-slate-800 hidden md:block mx-1"></div>
+          
+          <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-[14px] border border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar w-full md:w-auto">
+            {[
+              { id: 'all', label: t('search.category.all') },
+              { id: 'party', label: t('search.category.party') },
+              { id: 'lesson', label: t('search.category.lesson') }
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setFilter(cat.id)}
+                className={clsx(
+                  "flex items-center gap-1.5 px-4 py-1.5 rounded-[10px] text-xs font-bold transition-all whitespace-nowrap",
+                  filter === cat.id 
+                    ? "bg-indigo-600 dark:bg-indigo-600 text-white shadow-sm" 
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right: Sort Segmented Control */}
+          <div className="h-10 border-l border-slate-200 dark:border-slate-800 hidden md:block mx-1"></div>
+
+          <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-[14px] border border-slate-100 dark:border-slate-800 w-full md:w-auto">
+            {[
+              { id: 'upcoming', label: t('search.sort.upcoming'), icon: <Clock className="w-3.5 h-3.5" /> },
+              { id: 'latest', label: t('search.sort.latest') },
+              { id: 'popular', label: t('search.sort.popular'), icon: <Flame className="w-3.5 h-3.5 text-orange-500" /> }
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSortBy(s.id)}
+                className={clsx(
+                  "flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-[10px] text-xs font-bold transition-all whitespace-nowrap",
+                  sortBy === s.id 
+                    ? "bg-indigo-600 dark:bg-indigo-600 text-white shadow-sm" 
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                {s.icon && s.icon}
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -592,9 +664,14 @@ function EventCard({ event, featured = false, index }: { event: EventData, featu
           </div>
 
           <div className="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex -space-x-2">
+            <div className="flex -space-x-2 mr-3">
                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900 shadow-sm flex items-center justify-center"><Users className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"/></div>
                <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/50 border-2 border-white dark:border-slate-900 shadow-sm flex items-center justify-center text-[11px] text-indigo-600 dark:text-indigo-400 font-bold">+{event.currentAttendees}</div>
+            </div>
+            
+            <div className="flex items-center gap-1.5 mr-auto">
+              <Heart className="w-4 h-4 text-rose-500 fill-current" />
+              <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300">{event.likesCount || 0}</span>
             </div>
             
             <div className="text-[13px] font-bold flex flex-col items-end gap-1.5 focus-visible:outline-none">

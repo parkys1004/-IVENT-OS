@@ -89,11 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        // Fetch or create user profile
-        const docRef = doc(db, 'users', currentUser.uid);
-        try {
+      try {
+        if (currentUser) {
+          // Fetch or create user profile
+          const docRef = doc(db, 'users', currentUser.uid);
           const docSnap = await getDoc(docRef);
+          
           if (docSnap.exists()) {
             const data = docSnap.data() as UserProfile;
             if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified && data.role !== 'admin') {
@@ -133,16 +134,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             else if (['host', 'dj', 'instructor', 'media'].includes(newProfile.role)) setViewMode('professional');
             else setViewMode('participant');
           }
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('Firestore Error')) {
-            throw error; // Let the WRITE error propagate
-          }
-          handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
+        } else {
+          setProfile(null);
         }
-      } else {
-        setProfile(null);
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+        // We don't throw here to avoid hanging the 'loading' state
+        // The individual pages will handle missing profile/user data
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();

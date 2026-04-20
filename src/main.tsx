@@ -7,16 +7,26 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import './index.css';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <ThemeProvider>
-          <LanguageProvider>
-            <App />
-          </LanguageProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </StrictMode>,
-);
+console.log("App starting...");
+
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error("Root element not found");
+
+try {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <BrowserRouter>
+        <AuthProvider>
+          <ThemeProvider>
+            <LanguageProvider>
+              <App />
+            </LanguageProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </StrictMode>,
+  );
+  console.log("App mounted successfully");
+} catch (error) {
+  console.error("Critical mounting error:", error);
+}

@@ -1,3 +1,0 @@
-# SPA routing for Cloudflare Pages
-# This will serve index.html for any request that doesn't match an actual file
-/*    /index.html   200

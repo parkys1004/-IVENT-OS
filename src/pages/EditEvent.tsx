@@ -94,7 +94,7 @@ export default function EditEvent() {
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
 
-  const { isLoaded } = useGoogleMaps();
+  const { isLoaded, loadError } = useGoogleMaps();
 
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 

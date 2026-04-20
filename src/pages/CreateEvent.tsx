@@ -93,7 +93,7 @@ export default function CreateEvent() {
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
 
-  const { isLoaded } = useGoogleMaps();
+  const { isLoaded, loadError } = useGoogleMaps();
 
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
@@ -677,7 +677,7 @@ export default function CreateEvent() {
               </span>
             )}
           </label>
-          {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+          {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
             <div className="space-y-3">
               <input
                 required
@@ -688,12 +688,22 @@ export default function CreateEvent() {
                 className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
                 placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
               />
-              <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                💡 <b>Settings &gt; Secrets</b>에서 <code className="text-indigo-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
-                * <b>필수 활성화 API:</b><br/>
-                1. <b>Maps JavaScript API</b><br/>
-                2. <b>Places API</b> (Legacy 명칭인 'Places API'를 찾아 활성화해야 합니다)<br/>
-                <span className="text-rose-500 font-bold">* 'Places API (New)'만 활성화할 경우 오류가 발생할 수 있습니다.</span>
+              <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                {loadError ? (
+                  <div className="text-rose-500 space-y-2">
+                     <p className="font-bold flex items-center gap-1.5"><X className="w-3.5 h-3.5"/> 구글 맵 로드 오류</p>
+                     <p className="font-mono text-[10px] bg-rose-50 dark:bg-rose-900/20 p-2 rounded">{loadError.message}</p>
+                     <p className="text-slate-500 dark:text-slate-400 font-normal">
+                       <b>RefererNotAllowedMapError</b>가 발생했다면 아래 주소를 구글 콘솔의 <b>HTTP 리퍼러</b> 목록에 추가하세요:
+                       <code className="block mt-1 bg-slate-100 dark:bg-slate-700 p-1 rounded break-all">{window.location.origin}/*</code>
+                     </p>
+                  </div>
+                ) : (
+                  <>
+                    💡 <b>Settings &gt; Secrets</b>에서 <code className="text-indigo-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
+                    * <b>필수 활성화 API:</b> Maps JavaScript API, Places API
+                  </>
+                )}
               </div>
             </div>
           ) : isLoaded ? (

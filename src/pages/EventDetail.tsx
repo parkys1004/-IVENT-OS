@@ -89,7 +89,7 @@ export default function EventDetail() {
     }
   };
 
-  const { isLoaded } = useGoogleMaps();
+  const { isLoaded, loadError } = useGoogleMaps();
 
   useEffect(() => {
     if (!id) return;
@@ -261,7 +261,14 @@ export default function EventDetail() {
   // Format dates for Google Calendar (YYYYMMDDTHHMMSSZ)
   const formatForGCat = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g,"");
   const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${formatForGCat(dateObj)}/${formatForGCat(endDateObj)}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.locationName)}`;
-  const mapUrl = `https://map.kakao.com/link/search/${encodeURIComponent(event.locationName)}`;
+  
+  // Directions URL logic (Prefer Kakao Map directions link with coordinates if available)
+  const mapUrl = event.geoPoint 
+    ? `https://map.kakao.com/link/to/${encodeURIComponent(event.locationName)},${event.geoPoint.lat},${event.geoPoint.lng}`
+    : `https://map.kakao.com/link/search/${encodeURIComponent(event.formattedAddress || event.locationName)}`;
+
+  // Secondary Naver Map link for comparison/alternative
+  const naverMapUrl = `https://map.naver.com/v5/search/${encodeURIComponent(event.formattedAddress || event.locationName)}`;
 
   const isHost = user && event.hostId === user.uid;
   const isAdmin = profile?.role === 'admin';
@@ -357,26 +364,44 @@ export default function EventDetail() {
                   <span className="font-bold text-slate-800 dark:text-slate-200 text-[18px] block">{event.locationName}</span>
                   {event.formattedAddress && <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1">{event.formattedAddress}</span>}
                 </div>
-                <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-[14px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-5 py-2.5 rounded-[12px] hover:bg-slate-50 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-bold transition-colors flex items-center shadow-sm">
-                  {t('event.directions')} <ExternalLink className="w-4 h-4 ml-1.5" />
-                </a>
+                <div className="ml-auto flex flex-col sm:flex-row gap-2">
+                  <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] bg-amber-400 hover:bg-amber-500 text-slate-900 px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center justify-center">
+                    카카오맵 <ExternalLink className="w-3.5 h-3.5 ml-1.5 opacity-70" />
+                  </a>
+                  <a href={naverMapUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center justify-center">
+                    네이버 지도 <ExternalLink className="w-3.5 h-3.5 ml-1.5 opacity-70" />
+                  </a>
+                </div>
               </div>
               
               {/* Google Maps Render */}
-              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
                 <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 p-6 flex flex-col items-center justify-center text-center">
                   <div className="w-12 h-12 bg-amber-100 dark:bg-amber-800/30 rounded-full flex items-center justify-center mb-4">
                     <MapPin className="w-6 h-6 text-amber-600" />
                   </div>
-                  <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
-                  <p className="text-amber-700 dark:text-amber-500 text-sm max-w-sm mb-4">
-                    지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
-                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 opacity-80 mt-1 block">
-                      * 구글 클라우드 콘솔에서 <b>Maps JavaScript API</b>가 활성화되어 있어야 합니다.
-                    </span>
+                  <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">
+                    {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY 
+                      ? 'Google Maps API 키가 설정되지 않았습니다.' 
+                      : '지도를 불러오는 중 오류가 발생했습니다.'}
+                  </h4>
+                  {loadError && (
+                    <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px] p-2 rounded mb-4 font-mono">
+                      {loadError.message}
+                    </div>
+                  )}
+                  <p className="text-amber-700 dark:text-amber-500 text-sm max-w-md mb-4">
+                    {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+                      <>지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.</>
+                    ) : (
+                      <>
+                        <b>RefererNotAllowedMapError</b>가 발생한다면, 구글 클라우드 콘솔에서 현재 사이트 주소를 <b>허용 목록(HTTP 리퍼러)</b>에 추가해야 합니다.<br/>
+                        <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded block mt-2 text-[10px] break-all">{window.location.origin}</code>
+                      </>
+                    )}
                   </p>
                   <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-amber-800 dark:text-amber-400 text-xs font-bold underline hover:text-amber-950">
-                    구글 클라우드 콘솔에서 키 발급받기
+                    구글 클라우드 콘솔에서 설정 확인하기
                   </a>
                 </div>
               ) : isLoaded && event.geoPoint && event.geoPoint.lat ? (

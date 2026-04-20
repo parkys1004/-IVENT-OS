@@ -10,6 +10,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
+import AnimatedBackground from './components/AnimatedBackground';
 import clsx from 'clsx';
 import { useAuth } from './context/AuthContext';
 
@@ -22,10 +23,11 @@ function AppContent() {
 
   return (
     <div className={clsx(
-      "bg-[#FFFAEE] dark:bg-[#14100B] text-slate-800 dark:text-slate-100 font-sans flex flex-col transition-colors duration-200",
+      "text-slate-800 dark:text-slate-100 font-sans flex flex-col transition-colors duration-200",
       isDashboardView ? "h-screen overflow-hidden" : "min-h-screen"
     )}>
       <Navbar />
+      <AnimatedBackground />
       <main className={clsx(
         "w-full mx-auto flex-1 flex flex-col relative",
         isDashboardView ? "px-0 py-0 overflow-hidden min-h-0" : 

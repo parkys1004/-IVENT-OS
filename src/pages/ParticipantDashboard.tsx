@@ -460,7 +460,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-slate-50 dark:bg-slate-950 h-full w-full min-h-0">
+    <div className="flex-1 flex overflow-hidden bg-slate-50/50 dark:bg-slate-950/30 h-full w-full min-h-0 backdrop-blur-3xl transition-colors">
       
       {/* LNB (Left Navigation Bar) */}
       <div className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-sm z-10 shrink-0 pb-4 hidden lg:flex">

@@ -110,10 +110,10 @@ export default function ProfessionalDashboard() {
     <div className="space-y-6 flex flex-col h-full overflow-y-auto no-scrollbar pb-20">
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          행사 등록 폼
+          {profile?.role === 'instructor' ? '강습 등록 폼' : '행사 등록 폼'}
         </button>
         <button onClick={() => setActiveTab('past')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'past' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          이전 등록 내역
+          {profile?.role === 'instructor' ? '이전 강습 내역' : '이전 등록 내역'}
         </button>
       </div>
 
@@ -121,16 +121,24 @@ export default function ProfessionalDashboard() {
         {activeTab === 'all' ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center py-20">
              <Plus className="w-16 h-16 text-indigo-200 dark:text-indigo-900 mb-6" />
-             <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-3">새로운 행사를 주최하시나요?</h3>
-             <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">기본 정보부터 포스터 등록까지 쉽고 편하게 새로운 댄스 행사를 개설하세요.</p>
-             <button onClick={() => navigate('/create')} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 text-lg">
-               <Plus className="w-5 h-5" /> 행사 등록 시작하기
+             <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-3">
+               {profile?.role === 'instructor' ? '새로운 강습을 시작하시나요?' : '새로운 행사를 주최하시나요?'}
+             </h3>
+             <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">
+               {profile?.role === 'instructor' 
+                 ? '커리큘럼부터 수강공지까지 쉽고 편하게 새로운 강습을 모집하세요.'
+                 : '기본 정보부터 포스터 등록까지 쉽고 편하게 새로운 댄스 행사를 개설하세요.'}
+             </p>
+             <button onClick={() => navigate(profile?.role === 'instructor' ? '/create-lesson' : '/create')} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 text-lg">
+               <Plus className="w-5 h-5" /> {profile?.role === 'instructor' ? '강습 등록 시작하기' : '행사 등록 시작하기'}
              </button>
           </div>
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center py-20">
             <CalendarDays className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-slate-500">이전에 등록했던 행사가 없습니다.</p>
+            <p className="text-slate-500">
+               {profile?.role === 'instructor' ? '이전에 등록했던 강습이 없습니다.' : '이전에 등록했던 행사가 없습니다.'}
+            </p>
           </div>
         )}
       </div>

@@ -214,6 +214,17 @@ export default function Navbar() {
                       <span className="hidden sm:inline">행사 만들기</span>
                     </Link>
                   )}
+
+                  {/* Create Lesson Button for Instructors */}
+                  {profile?.role === 'instructor' && viewMode !== 'admin' && (
+                    <Link
+                      to="/create-lesson"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-[13px] font-bold rounded-lg shadow-sm text-white bg-teal-600 hover:bg-teal-700 transition-colors"
+                    >
+                      <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">강습 만들기</span>
+                    </Link>
+                  )}
                   
                   {/* Profile Dropdown Toggle */}
                   <div className="relative">

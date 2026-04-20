@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import DashboardSwitcher from './pages/DashboardSwitcher';
 import EventDetail from './pages/EventDetail';
 import CreateEvent from './pages/CreateEvent';
+import CreateLesson from './pages/CreateLesson';
 import EditEvent from './pages/EditEvent';
 import CategoryExplore from './pages/CategoryExplore';
 import Login from './pages/Login';
@@ -42,6 +43,7 @@ function AppContent() {
           <Route path="/explore/:category" element={<CategoryExplore />} />
           <Route path="/event/:id" element={<EventDetail />} />
           <Route path="/create" element={<CreateEvent />} />
+          <Route path="/create-lesson" element={<CreateLesson />} />
           <Route path="/edit/:id" element={<EditEvent />} />
           <Route path="/login" element={<Login />} />
           <Route path="/mypage" element={<MyPage />} />

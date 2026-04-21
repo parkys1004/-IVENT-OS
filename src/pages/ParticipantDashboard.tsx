@@ -9,7 +9,7 @@ import {
   Search, MapPin, Users, CalendarDays, Clock, Flame, Ticket, Heart, MessageSquare, 
   Settings, ChevronRight, Lock, ArrowUpDown, Camera, User, Plus, BarChart3, 
   Award, Trophy, Zap, LayoutGrid, List, QrCode, TrendingUp, Archive, Gift, Compass,
-  CheckCircle2, AlertCircle, Info, Star
+  CheckCircle2, AlertCircle, Info, Star, Music
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
@@ -230,43 +230,57 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     });
 
     // Fetch professionals
-    const usersQ = query(collection(db, 'users'));
-    const unsubscribeUsers = onSnapshot(usersQ, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({
-        uid: doc.id,
-        ...doc.data()
-      })) as UserProfile[];
-      
-      const filteredPros = usersData.filter(u => ['instructor', 'dj', 'media'].includes(u.role));
-      setProfessionals(filteredPros);
-    });
-
-    // Promo Banners fetching
-    const promoQ = collection(db, 'promoBanners');
-    const unsubscribePromo = onSnapshot(promoQ, (snapshot) => {
-      const promoData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as PromoBanner[];
-      setPromoBanners(promoData.filter(b => b.isActive));
-    });
-
-    // Fetch dashboard settings
-    const unsubscribeConfig = onSnapshot(doc(db, 'settings', 'dashboard'), (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setDashboardConfig(prev => ({
-          ...prev,
-          ...data
-        }));
+    const fetchProfessionals = async () => {
+      try {
+        const usersQ = query(
+          collection(db, 'users'), 
+          where('role', 'in', ['instructor', 'dj', 'media'])
+        );
+        const snapshot = await getDocs(usersQ);
+        const usersData = snapshot.docs.map(doc => ({
+          uid: doc.id,
+          ...doc.data()
+        })) as UserProfile[];
+        setProfessionals(usersData);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, 'users');
       }
-    });
+    };
+
+    // Promo Banners fetching - one-time fetch to save quota
+    const fetchPromoBanners = async () => {
+      try {
+        const promoQ = collection(db, 'promoBanners');
+        const snapshot = await getDocs(promoQ);
+        const promoData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as PromoBanner[];
+        setPromoBanners(promoData.filter(b => b.isActive));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, 'promoBanners');
+      }
+    };
+
+    // Fetch dashboard settings - one-time fetch to save quota
+    const fetchConfig = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, 'settings', 'dashboard'));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setDashboardConfig(prev => ({ ...prev, ...data }));
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, 'settings/dashboard');
+      }
+    };
+
+    fetchProfessionals();
+    fetchPromoBanners();
+    fetchConfig();
 
     return () => {
       unsubscribe();
-      unsubscribeUsers();
-      unsubscribePromo();
-      unsubscribeConfig();
     };
   }, []);
 
@@ -278,15 +292,22 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           const q = query(collection(db, 'registrations'), where('userId', '==', user.uid));
           const snap = await getDocs(q);
           
-          const regData = await Promise.all(snap.docs.map(async (regDoc) => {
-            const data = regDoc.data();
-            const eventSnap = await getDoc(doc(db, 'events', data.eventId));
-            const eventData = eventSnap.exists() 
-              ? { id: data.eventId, ...eventSnap.data() } as EventData 
-              : { id: data.eventId, title: '삭제된 행사', category: 'unknown', status: 'cancelled' } as any;
+          // Optimization: Collect event IDs and fetch them efficiently or find in existing events list
+          const regDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          
+          const regData = await Promise.all(regDocs.map(async (data: any) => {
+            // First, try to find in the already loaded 'events' array to save a Firestore read
+            let eventData = events.find(e => e.id === data.eventId);
+            
+            if (!eventData) {
+              const eventSnap = await getDoc(doc(db, 'events', data.eventId));
+              eventData = eventSnap.exists() 
+                ? { id: data.eventId, ...eventSnap.data() } as EventData 
+                : { id: data.eventId, title: '삭제된 행사', category: 'unknown', status: 'cancelled' } as any;
+            }
             
             return {
-              id: regDoc.id,
+              id: data.id,
               event: eventData,
               status: data.status,
               registeredAt: data.registeredAt
@@ -294,7 +315,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           }));
           
           setRegistrations(regData);
-        } catch (error) {
+        } catch (error: any) {
+          handleFirestoreError(error, OperationType.LIST, 'registrations');
           console.error("Error fetching registrations:", error);
         } finally {
           setLoadingRegistrations(false);
@@ -305,9 +327,14 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   }, [user, activeMenu]);
 
   const filteredEvents = events.filter(e => {
-    const matchesCategory = filter === 'all' || e.category.toLowerCase() === filter.toLowerCase();
+    // Robust category equality check with null safety
+    const eventCategory = e.category?.toLowerCase() || '';
+    const currentFilter = filter?.toLowerCase() || 'all';
+
+    const matchesCategory = currentFilter === 'all' || eventCategory === currentFilter;
+    
     const matchesSearch = searchQuery === '' || 
-      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (e.locationName && e.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
     
     return matchesCategory && matchesSearch;
@@ -450,18 +477,88 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         </div>
       </section>
 
-      {/* Main Events Grid */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-2 px-2">
-           <Trophy className="w-5 h-5 text-amber-500" />
-           <h3 className="text-xl font-black text-slate-800 dark:text-white">지금 인기 있는 행사</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-          {events.map((event, idx) => (
-            <EventCard key={idx} event={event} index={idx} />
-          ))}
-        </div>
-      </section>
+      {/* Main Events Grid - Restored Categorized Sections */}
+      <div className="space-y-16">
+        {dashboardConfig.sectionOrder.map((sectionKey) => {
+          if (sectionKey === 'parties') {
+            if (parties.length === 0) return null;
+            return (
+              <section key="parties" className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-orange-500" />
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white">HOT 파티 & 이벤트</h3>
+                  </div>
+                  <button onClick={() => setFilter('party')} className="text-xs font-bold text-slate-400 hover:text-orange-500 transition-colors uppercase tracking-wider">View All</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                  {parties.map((event, idx) => (
+                    <EventCard key={event.id} event={event} index={idx} />
+                  ))}
+                </div>
+              </section>
+            );
+          }
+          if (sectionKey === 'lessons') {
+            if (lessons.length === 0) return null;
+            return (
+              <section key="lessons" className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-amber-500" />
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white">BEST 댄스 강습</h3>
+                  </div>
+                  <button onClick={() => setFilter('class')} className="text-xs font-bold text-slate-400 hover:text-amber-500 transition-colors uppercase tracking-wider">View All</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                  {lessons.map((event, idx) => (
+                    <EventCard key={event.id} event={event} index={idx} />
+                  ))}
+                </div>
+              </section>
+            );
+          }
+          if (sectionKey === 'instructors') {
+            if (instructors.length === 0) return null;
+            return (
+              <section key="instructors" className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-indigo-500" />
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white">전문 강사</h3>
+                  </div>
+                  <button className="text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors uppercase tracking-wider">Meet All</button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {instructors.map((pro, idx) => (
+                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} />
+                  ))}
+                </div>
+              </section>
+            );
+          }
+          if (sectionKey === 'djMedia') {
+            if (djAndMedia.length === 0) return null;
+            return (
+              <section key="djMedia" className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <Music className="w-5 h-5 text-fuchsia-500" />
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white">DJ & 미디어</h3>
+                  </div>
+                  <button className="text-xs font-bold text-slate-400 hover:text-fuchsia-500 transition-colors uppercase tracking-wider">Explore</button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {djAndMedia.map((pro, idx) => (
+                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} />
+                  ))}
+                </div>
+              </section>
+            );
+          }
+          return null;
+        })}
+      </div>
     </div>
   );
 

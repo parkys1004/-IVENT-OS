@@ -42,7 +42,11 @@ async function testConnection() {
     }
     // We expect permission-denied if it connects successfully because /test/connection has no rules
     if (!(error instanceof Error && error.message.includes('Missing or insufficient permissions'))) {
-      console.error("Connection test failed:", error);
+      if (error instanceof Error && error.message.includes('Quota limit exceeded')) {
+        console.warn("Firestore Quota reached. Content will reset at 00:00 UTC. Some data might not be visible.");
+      } else {
+        console.error("Connection test failed:", error);
+      }
     }
   }
 }

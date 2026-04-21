@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 // Error handling spec
@@ -87,66 +87,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [viewMode, setViewMode] = useState<ViewMode>('participant');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let profileUnsubscribe: (() => void) | null = null;
+
+    const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      
+      if (profileUnsubscribe) {
+        profileUnsubscribe();
+        profileUnsubscribe = null;
+      }
+
       try {
         if (currentUser) {
-          // Fetch or create user profile
           const docRef = doc(db, 'users', currentUser.uid);
-          const docSnap = await getDoc(docRef);
           
-          if (docSnap.exists()) {
-            const data = docSnap.data() as UserProfile;
-            if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified && data.role !== 'admin') {
-              data.role = 'admin';
-              await setDoc(docRef, { role: 'admin' }, { merge: true });
-            }
-            setProfile(data);
-            
-            // Set initial viewMode based on role
-            if (data.role === 'admin') setViewMode('admin');
-            else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
-            else setViewMode('participant');
+          profileUnsubscribe = onSnapshot(docRef, async (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data() as UserProfile;
+              
+              // Set initial viewMode ONLY ONCE or if it remains compatible
+              setProfile(prev => {
+                if (!prev) {
+                  if (data.role === 'admin') setViewMode('admin');
+                  else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
+                  else setViewMode('participant');
+                }
+                return data;
+              });
+            } else {
+              // Create new profile if it doesn't exist
+              let intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'user';
+              if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified) {
+                intendedRole = 'admin';
+              }
 
-          } else {
-            let intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'user';
-            
-            if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified) {
-              intendedRole = 'admin';
-            }
+              const newProfile: UserProfile = {
+                uid: currentUser.uid,
+                email: currentUser.email || '',
+                displayName: currentUser.displayName || '',
+                photoURL: currentUser.photoURL || '',
+                role: intendedRole,
+                createdAt: serverTimestamp(),
+              };
 
-            const newProfile: UserProfile = {
-              uid: currentUser.uid,
-              email: currentUser.email || '',
-              displayName: currentUser.displayName || '',
-              photoURL: currentUser.photoURL || '',
-              role: intendedRole,
-              createdAt: serverTimestamp(),
-            };
-            try {
-              await setDoc(docRef, newProfile);
-            } catch (error) {
-              handleFirestoreError(error, OperationType.WRITE, `users/${currentUser.uid}`);
+              try {
+                await setDoc(docRef, newProfile);
+                // The onSnapshot will catch this creation and set the profile
+              } catch (error) {
+                handleFirestoreError(error, OperationType.WRITE, `users/${currentUser.uid}`);
+              }
             }
-            setProfile(newProfile);
-            
-            if (newProfile.role === 'admin') setViewMode('admin');
-            else if (['host', 'dj', 'instructor', 'media'].includes(newProfile.role)) setViewMode('professional');
-            else setViewMode('participant');
-          }
+          });
         } else {
           setProfile(null);
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        // We don't throw here to avoid hanging the 'loading' state
-        // The individual pages will handle missing profile/user data
       } finally {
         setLoading(false);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      authUnsubscribe();
+      if (profileUnsubscribe) profileUnsubscribe();
+    };
   }, []);
 
   return (

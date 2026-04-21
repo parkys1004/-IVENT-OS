@@ -8,11 +8,19 @@
         "uid": { "type": "string" },
         "email": { "type": "string" },
         "displayName": { "type": "string" },
-        "photoURL": { "type": "string" },
+        "photoURL": { "type": "string", "description": "Base64 data URL or remote URL for profile picture" },
         "role": { "type": "string", "enum": ["user", "host", "admin", "dj", "instructor", "media"] },
         "followersCount": { "type": "number" },
         "createdAt": { "type": "timestamp" },
-        "priority": { "type": "number", "description": "Display priority for professionals" }
+        "priority": { "type": "number", "description": "Display priority for professionals" },
+        "shortBio": { "type": "string" },
+        "description": { "type": "string" },
+        "specialties": { "type": "string" },
+        "career": { "type": "string" },
+        "portfolioUrl": { "type": "string" },
+        "studioLocation": { "type": "string" },
+        "profileUpdated": { "type": "boolean" },
+        "phone": { "type": "string" }
       },
       "required": ["uid", "email", "role", "createdAt"]
     },

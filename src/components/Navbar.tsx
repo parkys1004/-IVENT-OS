@@ -262,7 +262,7 @@ export default function Navbar() {
                            'USER'}
                         </div>
                       </div>
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-800 shrink-0 shadow-sm transition-transform group-hover:scale-105 bg-center bg-cover" style={user.photoURL ? {backgroundImage: `url(${user.photoURL})`} : {}}></div>
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-800 shrink-0 shadow-sm transition-transform group-hover:scale-105 bg-center bg-cover" style={(profile?.photoURL || user.photoURL) ? {backgroundImage: `url(${profile?.photoURL || user.photoURL})`} : {}}></div>
                     </button>
 
                     {/* Dropdown Menu */}

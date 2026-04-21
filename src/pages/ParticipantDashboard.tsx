@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -10,6 +10,8 @@ import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import EventCard, { EventData } from '../components/EventCard';
+import ProfessionalCard from '../components/ProfessionalCard';
+import { UserProfile } from '../context/AuthContext';
 
 // Error handling spec
 enum OperationType {
@@ -77,6 +79,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const { profile } = useAuth();
   const { t, categoryFilter, setCategoryFilter } = useLanguage();
   const [events, setEvents] = useState<EventData[]>([]);
+  const [professionals, setProfessionals] = useState<UserProfile[]>([]);
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilterLocal] = useState(categoryFilter);
@@ -94,6 +97,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
   const [activeMenu, setActiveMenu] = useState<MenuKey>('tickets');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [dashboardConfig, setDashboardConfig] = useState({
+    partiesLimit: 9,
+    lessonsLimit: 6,
+    instructorsLimit: 6,
+    djMediaLimit: 6,
+    sectionOrder: ['parties', 'lessons', 'instructors', 'djMedia']
+  });
 
   // Slider State
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
@@ -122,6 +132,18 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       setLoading(false); 
     });
 
+    // Fetch professionals
+    const usersQ = query(collection(db, 'users'));
+    const unsubscribeUsers = onSnapshot(usersQ, (snapshot) => {
+      const usersData = snapshot.docs.map(doc => ({
+        uid: doc.id,
+        ...doc.data()
+      })) as UserProfile[];
+      
+      const filteredPros = usersData.filter(u => ['instructor', 'dj', 'media'].includes(u.role));
+      setProfessionals(filteredPros);
+    });
+
     // Promo Banners fetching
     const promoQ = collection(db, 'promoBanners');
     const unsubscribePromo = onSnapshot(promoQ, (snapshot) => {
@@ -132,9 +154,22 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       setPromoBanners(promoData.filter(b => b.isActive));
     });
 
+    // Fetch dashboard settings
+    const unsubscribeConfig = onSnapshot(doc(db, 'settings', 'dashboard'), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setDashboardConfig(prev => ({
+          ...prev,
+          ...data
+        }));
+      }
+    });
+
     return () => {
       unsubscribe();
+      unsubscribeUsers();
       unsubscribePromo();
+      unsubscribeConfig();
     };
   }, []);
 
@@ -146,6 +181,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     
     return matchesCategory && matchesSearch;
   }).sort((a, b) => {
+    // 1. Priority First (Descending)
+    const priorityA = (a as any).priority || 0;
+    const priorityB = (b as any).priority || 0;
+    if (priorityA !== priorityB) return priorityB - priorityA;
+
+    // 2. Then SortBy logic
     const getTime = (val: any) => {
       if (!val) return 0;
       if (val.toDate) return val.toDate().getTime();
@@ -175,9 +216,17 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   });
   
   // Banner logic: Prefer isBanner=true, up to 5. Fallback to earliest upcoming if none.
-  const bannerEvents = events.filter(e => e.isBanner).slice(0, 5);
+  const bannerEvents = events.filter(e => e.isBanner).sort((a, b) => ((b as any).priority || 0) - ((a as any).priority || 0)).slice(0, 5);
   const displayBanners = bannerEvents.length > 0 ? bannerEvents : filteredEvents.slice(0, 1);
   const others = filteredEvents.filter(e => !displayBanners.find(b => b.id === e.id));
+
+  // Grouping for categorized grids - Apply priority sorting to professors too
+  const sortedProfessionals = [...professionals].sort((a, b) => ((b as any).priority || 0) - ((a as any).priority || 0));
+
+  const parties = others.filter(e => !e.isLesson).slice(0, dashboardConfig.partiesLimit || 9);
+  const lessons = others.filter(e => e.isLesson).slice(0, dashboardConfig.lessonsLimit || 6);
+  const instructors = sortedProfessionals.filter(u => u.role === 'instructor').slice(0, dashboardConfig.instructorsLimit || 6);
+  const djAndMedia = sortedProfessionals.filter(u => ['dj', 'media'].includes(u.role)).slice(0, dashboardConfig.djMediaLimit || 6);
 
   // Slider Auto-play Logic
   useEffect(() => {
@@ -357,29 +406,107 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         </div>
       </section>
 
-      {/* Event Grid */}
-      <section className="pb-8">
-        <div className="flex justify-between items-end mb-6">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">다가오는 행사</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 xl:gap-8">
-          {others.map((event, idx) => (
-            <EventCard key={event.id} event={event} index={idx} />
-          ))}
-          {others.length === 0 && events.length > 1 && (
-             <div className="col-span-full py-12 text-center text-slate-500 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 border-dashed">
-             해당 카테고리의 행사가 없습니다.
-           </div>
-          )}
-          {events.length === 0 && (
-            <div className="col-span-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-16 text-center transition-colors">
-              <CalendarDays className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-1">등록된 행사가 없습니다.</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">기대해주세요!</p>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Event Sections */}
+      {/* Categorized Sections with Dynamic Order */}
+      <div className="space-y-16">
+        {dashboardConfig.sectionOrder.map((sectionId) => {
+          if (sectionId === 'parties') {
+            return (
+              <section key="parties">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      <span className="text-indigo-600">HOT</span> 파티 & 이벤트
+                    </h2>
+                    <p className="text-slate-500 text-sm font-bold mt-1">함께 즐기는 최고의 소셜 댄스 파티</p>
+                  </div>
+                  <Link to="/marketplace?tab=parties" className="text-sm font-black text-indigo-600 hover:underline flex items-center gap-1 active:translate-x-1 transition-transform uppercase tracking-wider">전체보기 <ChevronRight className="w-4 h-4" /></Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-10">
+                  {parties.map((event, idx) => (
+                    <EventCard key={event.id} event={event} index={idx} />
+                  ))}
+                </div>
+                {parties.length === 0 && (
+                  <div className="py-16 text-center text-slate-400 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[32px]">
+                    등록된 파티가 없습니다.
+                  </div>
+                )}
+              </section>
+            );
+          }
+          if (sectionId === 'lessons') {
+            return (
+              <section key="lessons">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      <span className="text-emerald-600">BEST</span> 댄스 강습
+                    </h2>
+                    <p className="text-slate-500 text-sm font-bold mt-1">실력을 점프업할 수 있는 전문적인 강습</p>
+                  </div>
+                  <Link to="/marketplace?tab=lessons" className="text-sm font-black text-emerald-600 hover:underline flex items-center gap-1 active:translate-x-1 transition-transform uppercase tracking-wider">전체보기 <ChevronRight className="w-4 h-4" /></Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                  {lessons.map((event, idx) => (
+                    <EventCard key={event.id} event={event} index={idx} />
+                  ))}
+                </div>
+                {lessons.length === 0 && (
+                  <div className="py-16 text-center text-slate-400 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[32px]">
+                    등록된 강습이 없습니다.
+                  </div>
+                )}
+              </section>
+            );
+          }
+          if (sectionId === 'instructors') {
+            return (
+              <section key="instructors">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100">전문 강사</h2>
+                    <p className="text-slate-500 text-sm font-bold mt-1">당신의 춤을 가르쳐줄 최고의 마스터들</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                  {instructors.map((pro, idx) => (
+                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} />
+                  ))}
+                </div>
+                {instructors.length === 0 && (
+                  <div className="py-16 text-center text-slate-400 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[32px]">
+                    활동 중인 강사가 없습니다.
+                  </div>
+                )}
+              </section>
+            );
+          }
+          if (sectionId === 'djMedia') {
+            return (
+              <section key="djMedia">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100">DJ & 미디어</h2>
+                    <p className="text-slate-500 text-sm font-bold mt-1">파티의 에너지를 완성하는 아티스트</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                  {djAndMedia.map((pro, idx) => (
+                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} />
+                  ))}
+                </div>
+                {djAndMedia.length === 0 && (
+                  <div className="py-16 text-center text-slate-400 bg-white dark:bg-slate-900 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[32px]">
+                    활동 중인 아티스트가 없습니다.
+                  </div>
+                )}
+              </section>
+            );
+          }
+          return null;
+        })}
+      </div>
     </div>
   );
 

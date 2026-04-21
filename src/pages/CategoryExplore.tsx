@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, where, or, and, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, CalendarDays, Clock, Flame } from 'lucide-react';
@@ -20,16 +20,34 @@ export default function CategoryExplore() {
     setLoading(true);
     if (!category) return;
 
-    const q = category === 'party' 
-      ? query(
-          collection(db, 'events'),
-          where('status', '==', 'published')
-        )
-      : query(
-          collection(db, 'events'),
-          where('category', '==', category),
-          where('status', '==', 'published')
-        );
+    let q;
+    if (category === 'party') {
+      q = query(
+        collection(db, 'events'),
+        where('status', '==', 'published'),
+        limit(24)
+      );
+    } else if (category === 'lesson') {
+      // Special logic for lessons: show both general lesson category and specifically flagged lessons
+      q = query(
+        collection(db, 'events'),
+        and(
+          where('status', '==', 'published'),
+          or(
+            where('category', '==', 'lesson'),
+            where('isLesson', '==', true)
+          )
+        ),
+        limit(24)
+      );
+    } else {
+      q = query(
+        collection(db, 'events'),
+        where('category', '==', category),
+        where('status', '==', 'published'),
+        limit(24)
+      );
+    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const eventsData = snapshot.docs.map(doc => ({

@@ -365,10 +365,36 @@ export default function EditEvent() {
     return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
   }
 
+  if (loadError) {
+    return (
+      <div className="max-w-[1000px] mx-auto p-10 text-center">
+        <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 p-8 rounded-3xl">
+          <MapPin className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">지도를 불러올 수 없습니다</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
+            Google Maps API 설정에 문제가 있거나 네트워크 오류가 발생했습니다.<br />
+            설정에서 API 키를 확인해주세요.
+          </p>
+          <button onClick={() => navigate(-1)} className="px-6 py-2 bg-slate-800 text-white font-bold rounded-xl">뒤로 가기</button>
+        </div>
+      </div>
+    );
+  }
+
   // Check permissions: only host or admin can edit
   const isHost = user && eventData?.hostId === user.uid;
   const isAdmin = profile?.role === 'admin';
   
+  if (loadError) {
+    return (
+      <div className="max-w-[1000px] mx-auto glass-panel rounded-[24px] p-12 text-center">
+        <h2 className="text-xl font-bold text-red-600 mb-2">지구본 로드 실패</h2>
+        <p className="text-slate-500 mb-4">구글 맵 서비스를 불러올 수 없습니다. 인터넷 연결을 확인해주세요.</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold">새로고침</button>
+      </div>
+    );
+  }
+
   if (!isHost && !isAdmin) {
     return (
       <div className="text-center py-20">

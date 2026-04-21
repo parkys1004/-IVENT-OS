@@ -30,9 +30,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Use email check for bootstrapped admin and DB check for promoted roles
       return isSignedIn() && (
-        (request.auth.token.email == "aimaster1004@gmail.com" && request.auth.token.email_verified == true) ||
+        (request.auth.token.get('email', '') == "aimaster1004@gmail.com" && request.auth.token.get('email_verified', false) == true) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin')
       );
@@ -50,7 +49,8 @@ service cloud.firestore {
         data.createdAt is timestamp &&
         (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
         (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
-        (!('followersCount' in data) || data.followersCount is int);
+        (!('followersCount' in data) || data.followersCount is int) &&
+        (!('priority' in data) || data.priority is int);
     }
 
     function isValidEvent(data) {
@@ -69,6 +69,8 @@ service cloud.firestore {
         data.createdAt is timestamp &&
         (!('updatedAt' in data) || data.updatedAt is timestamp) &&
         (!('likesCount' in data) || data.likesCount is number) &&
+        (!('priority' in data) || data.priority is number) &&
+        (!('isBanner' in data) || data.isBanner is bool) &&
         (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000000)) &&
         (!('imageUrls' in data) || data.imageUrls is list) &&
         (!('formattedAddress' in data) || (data.formattedAddress is string && data.formattedAddress.size() <= 1000)) &&
@@ -82,28 +84,15 @@ service cloud.firestore {
         (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 2000)) &&
         (!('coverImageIndex' in data) || data.coverImageIndex is number);
     }
+
     function isValidRegistration(data) {
       return data.keys().hasAll(['eventId', 'userId', 'hostId', 'registeredAt', 'status']) &&
         data.eventId is string && data.eventId.size() <= 128 &&
         data.userId is string && data.userId == request.auth.uid &&
         data.hostId is string && data.hostId.size() <= 128 &&
         data.registeredAt is timestamp &&
-        data.status in ['confirmed', 'cancelled'];
-    }
-
-    function isValidLike(data) {
-      return data.keys().hasAll(['eventId', 'userId', 'createdAt']) &&
-        data.eventId is string && data.eventId.size() <= 128 &&
-        data.userId is string && data.userId == request.auth.uid &&
-        data.createdAt is timestamp;
-    }
-
-    function isValidFollow(data) {
-      return data.keys().hasAll(['followerId', 'followingId', 'createdAt']) &&
-        data.followerId is string && data.followerId == request.auth.uid &&
-        data.followingId is string && data.followingId.size() <= 128 &&
-        data.followerId != data.followingId &&
-        data.createdAt is timestamp;
+        data.status in ['confirmed', 'cancelled'] &&
+        (!('isLesson' in data) || data.isLesson is bool);
     }
 
     function isValidPromoBanner(data) {
@@ -119,21 +108,33 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isSignedIn(); // Profiles are generally public for social features
+      allow read: if true; // Public profiles for social dance platform
       
       allow create: if isOwner(userId) && 
                     isValidUser(incoming()) && 
                     incoming().uid == userId &&
-                    incoming().role != 'admin' &&
+                    (incoming().role != 'admin' || (request.auth.token.email == "aimaster1004@gmail.com" && request.auth.token.email_verified == true)) &&
                     incoming().createdAt == request.time;
                     
-      allow update: if (isOwner(userId) || isAdmin()) && 
-                    isValidUser(incoming()) && 
-                    incoming().uid == userId &&
-                    incoming().createdAt == existing().createdAt &&
-                    (isAdmin() || incoming().role == existing().role);
+      allow update: if isValidUser(incoming()) && (
+                    isAdmin() || 
+                    (
+                      isOwner(userId) && 
+                      incoming().uid == userId &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().role == existing().role
+                    ));
                     
       allow delete: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
     }
 
     match /events/{eventId} {
@@ -145,24 +146,23 @@ service cloud.firestore {
                     isValidEvent(incoming()) && 
                     incoming().hostId == request.auth.uid &&
                     incoming().createdAt == request.time &&
-                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['host', 'admin', 'dj', 'instructor', 'media']);
+                    (isAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['host', 'dj', 'instructor', 'media']);
                     
-      allow update: if isValidId(eventId) && (
+      allow update: if isValidId(eventId) && isValidEvent(incoming()) && (
                     isAdmin() || 
                     (
                       isOwner(existing().hostId) &&
-                      isValidEvent(incoming()) &&
                       incoming().hostId == existing().hostId &&
                       incoming().createdAt == existing().createdAt &&
-                      // Action: General Update
-                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'date', 'endDate', 'locationName', 'formattedAddress', 'country', 'city', 'imageUrl', 'imageUrls', 'maxAttendees', 'status', 'likesCount', 'currentAttendees', 'geoPoint', 'djs', 'performances', 'media', 'tickets', 'paymentMethod', 'coverImageIndex', 'updatedAt', 'hostName', 'hostId', 'createdAt'])
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'date', 'endDate', 'locationName', 'formattedAddress', 'country', 'city', 'imageUrl', 'imageUrls', 'maxAttendees', 'status', 'likesCount', 'currentAttendees', 'geoPoint', 'djs', 'performances', 'media', 'tickets', 'paymentMethod', 'coverImageIndex', 'updatedAt', 'hostName', 'hostId', 'createdAt', 'isBanner', 'priority'])
                     ) || (
                       // Action: Registration Increment/Decrement
+                      isSignedIn() &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['currentAttendees']) &&
-                      incoming().currentAttendees >= 0 &&
-                      incoming().currentAttendees <= existing().maxAttendees
+                      incoming().currentAttendees >= 0
                     ) || (
-                      // Action: Like Count update (Increment/Decrement)
+                      // Action: Like Count update
+                      isSignedIn() &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['likesCount'])
                     ));
                     
@@ -171,9 +171,8 @@ service cloud.firestore {
 
     match /registrations/{registrationId} {
       allow get: if isSignedIn() && (
-        registrationId.split('_')[1] == request.auth.uid ||
         resource.data.userId == request.auth.uid ||
-        get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.hostId == request.auth.uid ||
+        resource.data.hostId == request.auth.uid ||
         isAdmin()
       );
       
@@ -192,7 +191,7 @@ service cloud.firestore {
                     
       allow update: if isSignedIn() && 
                     isValidRegistration(incoming()) && 
-                    isOwner(existing().userId) && 
+                    (isOwner(existing().userId) || isOwner(existing().hostId) || isAdmin()) && 
                     incoming().eventId == existing().eventId &&
                     incoming().userId == existing().userId &&
                     incoming().registeredAt == existing().registeredAt &&
@@ -202,36 +201,29 @@ service cloud.firestore {
     }
 
     match /eventLikes/{likeId} {
-      allow get: if isSignedIn() && (likeId.split('_')[1] == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get, list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
       allow create: if isSignedIn() && 
                     isValidId(likeId) &&
-                    isValidLike(incoming()) &&
-                    likeId == incoming().eventId + '_' + incoming().userId &&
+                    likeId == incoming().eventId + '_' + request.auth.uid &&
                     incoming().createdAt == request.time &&
                     exists(/databases/$(database)/documents/events/$(incoming().eventId));
                     
       allow delete: if isAdmin() || isOwner(likeId.split('_')[1]);
     }
 
-    match /userFollowers/{followId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      
-      allow create: if isSignedIn() && 
-                    isValidId(followId) &&
-                    isValidFollow(incoming()) &&
-                    followId == incoming().followerId + '_' + incoming().followingId &&
-                    incoming().createdAt == request.time &&
-                    exists(/databases/$(database)/documents/users/$(incoming().followingId));
-                    
-      allow delete: if isAdmin() || isOwner(followId.split('_')[0]);
-    }
-
     match /promoBanners/{bannerId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidId(bannerId) && isValidPromoBanner(incoming());
+      allow write: if isAdmin() && isValidId(bannerId);
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
     }
   }
 }

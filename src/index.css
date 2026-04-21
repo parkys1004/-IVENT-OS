@@ -24,6 +24,15 @@
   --font-sans: "Pretendard", "Inter", -apple-system, sans-serif;
 }
 
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+}
+
 @layer utilities {
   .glass-panel {
     @apply bg-white/60 dark:bg-[#1A1612]/40 backdrop-blur-3xl border border-white/20 dark:border-white/5;

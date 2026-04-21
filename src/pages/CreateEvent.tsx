@@ -178,7 +178,7 @@ export default function CreateEvent() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-1.5-flash",
         contents: [
           {
             inlineData: {
@@ -380,6 +380,26 @@ export default function CreateEvent() {
     newTickets[index] = { ...newTickets[index], [field]: value };
     setFormData(prev => ({ ...prev, tickets: newTickets }));
   };
+
+  if (loading && !aiLoading) {
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-[1000px] mx-auto p-10 text-center">
+        <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 p-8 rounded-3xl">
+          <MapPin className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">지도를 불러올 수 없습니다</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
+            Google Maps API 설정에 문제가 있거나 네트워크 오류가 발생했습니다.<br />
+            설정에서 API 키를 확인해주세요.
+          </p>
+          <button onClick={() => navigate(-1)} className="px-6 py-2 bg-slate-800 text-white font-bold rounded-xl">뒤로 가기</button>
+        </div>
+      </div>
+    );
+  }
 
   if (!user || !['admin', 'host', 'dj', 'instructor', 'media'].includes(profile?.role || '')) {
     return (

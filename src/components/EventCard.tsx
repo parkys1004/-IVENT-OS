@@ -6,6 +6,8 @@ import { motion } from 'motion/react';
 import { MapPin, Clock, Users, Heart, CalendarDays } from 'lucide-react';
 import clsx from 'clsx';
 
+import TypeBadge from './TypeBadge';
+
 export interface EventData {
   id: string;
   title: string;
@@ -24,6 +26,7 @@ export interface EventData {
   currentAttendees: number;
   status: string;
   isBanner?: boolean;
+  isLesson?: boolean;
   likesCount?: number;
 }
 
@@ -46,7 +49,7 @@ export default function EventCard({ event, featured = false, index }: { event: E
       >
         <Link 
           to={`/event/${event.id}`}
-          className="group relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-slate-200 dark:bg-slate-800"
+          className="group relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-6 sm:p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-slate-200 dark:bg-slate-800"
         >
           {coverImage && (
             <div className="absolute inset-0">
@@ -56,22 +59,25 @@ export default function EventCard({ event, featured = false, index }: { event: E
             </div>
           )}
           
-          <div className="absolute top-6 right-6 bg-red-500 px-4 py-2 rounded-full text-[13px] font-bold shadow-[0_4px_12px_rgba(239,68,68,0.3)] z-10">
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-red-500 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-[13px] font-black shadow-[0_4px_12px_rgba(239,68,68,0.3)] z-10 transition-transform active:scale-95">
             {isFull ? "모집 마감" : `마감 임박: 잔여 ${event.maxAttendees - event.currentAttendees}석`}
           </div>
           
           <div className="relative z-10 w-full lg:max-w-[80%]">
-            <span className="inline-block px-4 py-1.5 rounded-lg text-[13px] font-bold bg-white/20 backdrop-blur-md shadow-sm text-white mb-4 tracking-wider uppercase border border-white/20">
+            <span className="inline-block px-3 py-1 sm:px-4 sm:py-1.5 rounded-lg text-[11px] sm:text-[13px] font-black bg-black/40 backdrop-blur-md shadow-sm text-white mb-3 sm:mb-4 tracking-wider uppercase border border-white/20">
               {event.category}
             </span>
-            <h3 className="font-extrabold text-[32px] lg:text-[40px] xl:text-[48px] leading-tight mb-4 truncate text-white drop-shadow-xl">{event.title}</h3>
-            <p className="opacity-90 text-[16px] lg:text-[18px] truncate mb-8 flex items-center gap-2 drop-shadow-lg">
-              <MapPin className="w-5 h-5"/> {event.locationName} <span className="opacity-50">|</span> <Clock className="w-5 h-5"/> {format(dateObj, 'yyyy.MM.dd a h:mm', { locale: ko })}
+            <h3 className="font-black text-[24px] sm:text-[32px] lg:text-[40px] xl:text-[48px] leading-tight mb-4 truncate text-white drop-shadow-2xl flex items-center gap-3">
+              <TypeBadge isLesson={event.isLesson} className="!text-[14px] sm:!text-[18px] px-2 sm:px-3 py-0.5 sm:py-1 border-white/30 shrink-0" />
+              <span className="truncate">{event.title}</span>
+            </h3>
+            <p className="opacity-90 text-[14px] sm:text-[16px] lg:text-[18px] truncate mb-6 sm:mb-8 flex items-center gap-2 drop-shadow-lg font-medium">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"/> <span className="truncate">{event.locationName}</span> <span className="opacity-30">|</span> <Clock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"/> <span className="truncate">{format(dateObj, 'yyyy.MM.dd a h:mm', { locale: ko })}</span>
             </p>
             
-            <div className="flex gap-4">
-              <div className="px-6 py-3.5 bg-white text-indigo-600 hover:bg-slate-50 font-bold text-[16px] rounded-xl shadow-lg transition-transform hover:-translate-y-0.5">참여 신청하기</div>
-              <div className="px-6 py-3.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-[16px] rounded-xl transition-colors border border-white/20">관심 등록</div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="h-12 sm:h-14 flex items-center justify-center px-6 bg-white text-indigo-600 hover:bg-slate-50 font-black text-[15px] sm:text-[16px] rounded-xl shadow-lg transition-all hover:translate-y-[-2px] active:scale-95 cursor-pointer text-center">참여 신청하기</div>
+              <div className="h-12 sm:h-14 flex items-center justify-center px-6 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-black text-[15px] sm:text-[16px] rounded-xl transition-all border border-white/20 active:scale-95 cursor-pointer text-center">관심 등록</div>
             </div>
           </div>
         </Link>
@@ -111,8 +117,9 @@ export default function EventCard({ event, featured = false, index }: { event: E
         )}
 
         <div className="p-6 flex flex-col flex-1">
-          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-[18px] xl:text-[20px] leading-[1.4] line-clamp-2 mb-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-            {event.title}
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-[18px] xl:text-[20px] leading-[1.4] line-clamp-2 mb-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-start">
+            <TypeBadge isLesson={event.isLesson} className="mt-1 shrink-0" />
+            <span className="line-clamp-2">{event.title}</span>
           </h3>
 
           <div className="text-[14px] text-slate-500 dark:text-slate-400 space-y-2.5 mb-6">

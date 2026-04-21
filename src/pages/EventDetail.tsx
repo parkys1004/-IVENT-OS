@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useLanguage } from '../context/LanguageContext';
+import TypeBadge from '../components/TypeBadge';
 
 // Error specs
 enum OperationType {
@@ -375,7 +376,8 @@ export default function EventDetail() {
 
       {/* Main Title - Bold and Large below image */}
       <div className="mb-12 px-4 md:px-0">
-        <h1 className="text-3xl md:text-5xl lg:text-6xl font-[900] text-slate-900 dark:text-white leading-tight tracking-tight">
+        <h1 className="text-3xl md:text-5xl lg:text-6xl font-[900] text-slate-900 dark:text-white leading-tight tracking-tight flex items-center">
+          <TypeBadge isLesson={event.isLesson} className="!text-[20px] md:!text-[24px] px-3 py-1 mr-4 border-slate-200 dark:border-slate-800" />
           {event.title}
         </h1>
       </div>

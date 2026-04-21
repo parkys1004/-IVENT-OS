@@ -11,7 +11,8 @@
         "photoURL": { "type": "string" },
         "role": { "type": "string", "enum": ["user", "host", "admin", "dj", "instructor", "media"] },
         "followersCount": { "type": "number" },
-        "createdAt": { "type": "timestamp" }
+        "createdAt": { "type": "timestamp" },
+        "priority": { "type": "number", "description": "Display priority for professionals" }
       },
       "required": ["uid", "email", "role", "createdAt"]
     },
@@ -38,7 +39,8 @@
         "hostId": { "type": "string" },
         "hostName": { "type": "string" },
         "status": { "type": "string", "enum": ["draft", "published", "cancelled"] },
-        "createdAt": { "type": "timestamp" }
+        "createdAt": { "type": "timestamp" },
+        "priority": { "type": "number", "description": "Display priority for events" }
       },
       "required": ["title", "description", "category", "date", "endDate", "locationName", "maxAttendees", "currentAttendees", "hostId", "hostName", "status", "createdAt"]
     },
@@ -88,6 +90,18 @@
         "updatedAt": { "type": "timestamp" }
       },
       "required": ["imageUrl", "isActive", "updatedAt"]
+    },
+    "DashboardConfig": {
+      "title": "Dashboard Config",
+      "description": "Settings for the participant dashboard layout",
+      "type": "object",
+      "properties": {
+        "partiesLimit": { "type": "number" },
+        "lessonsLimit": { "type": "number" },
+        "instructorsLimit": { "type": "number" },
+        "djMediaLimit": { "type": "number" },
+        "sectionOrder": { "type": "array" }
+      }
     }
   },
   "firestore": {
@@ -114,6 +128,10 @@
     "/promoBanners/{bannerId}": {
       "schema": { "$ref": "#/entities/PromoBanner" },
       "description": "Stores promotional banners"
+    },
+    "/settings/dashboard": {
+      "schema": { "$ref": "#/entities/DashboardConfig" },
+      "description": "Stores dashboard layout configuration"
     }
   }
 }

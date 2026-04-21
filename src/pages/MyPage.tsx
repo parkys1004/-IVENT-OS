@@ -8,6 +8,8 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 
+import TypeBadge from '../components/TypeBadge';
+
 export default function MyPage() {
   const { user, profile } = useAuth();
   const [displayName, setDisplayName] = useState('');
@@ -39,6 +41,7 @@ export default function MyPage() {
             ...reg,
             eventTitle: evData?.title || '알 수 없는 행사',
             eventDate: evData?.date,
+            isLesson: evData?.isLesson || false,
           };
         }));
         
@@ -50,7 +53,7 @@ export default function MyPage() {
       }
     }
     
-    if (profile?.role === 'user' || profile?.role === 'admin') {
+    if (profile?.role) {
        fetchRegistrations();
     }
   }, [user, profile]);
@@ -199,7 +202,8 @@ export default function MyPage() {
                                   예매일: {format(regDateObj, 'yyyy.MM.dd', { locale: ko })}
                                </span>
                             </div>
-                            <Link to={`/event/${reg.eventId}`} className="font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 text-[16px] transition-colors">
+                            <Link to={`/event/${reg.eventId}`} className="font-bold text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 text-[16px] transition-colors flex items-center">
+                              <TypeBadge isLesson={reg.isLesson} />
                               {reg.eventTitle}
                             </Link>
                             {dateObj && (

@@ -4,7 +4,7 @@ import { db } from '../firebase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage } from 'lucide-react';
+import { Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -68,14 +68,32 @@ interface PromoBanner {
   isActive: boolean;
 }
 
-type MenuKey = 'home' | 'users' | 'events' | 'finance' | 'banners' | 'settings';
+interface DashboardConfig {
+  partiesLimit: number;
+  lessonsLimit: number;
+  instructorsLimit: number;
+  djMediaLimit: number;
+  sectionOrder: string[];
+}
+
+type MenuKey = 'home' | 'users' | 'events' | 'finance' | 'banners' | 'config' | 'settings';
 type TabKey = string;
+
+import TypeBadge from '../components/TypeBadge';
+import { LayoutGrid, ArrowUp, ArrowDown, Hash, GraduationCap, Music } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const [events, setEvents] = useState<EventData[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
+  const [dashboardConfig, setDashboardConfig] = useState<DashboardConfig>({
+    partiesLimit: 9,
+    lessonsLimit: 6,
+    instructorsLimit: 6,
+    djMediaLimit: 6,
+    sectionOrder: ['parties', 'lessons', 'instructors', 'djMedia']
+  });
   const [loading, setLoading] = useState(true);
   
   // Promotion Banner Edit State
@@ -191,12 +209,15 @@ export default function AdminDashboard() {
     // Admin needs full access, so we just query everything
     let unsubEvents: () => void;
     let unsubUsers: () => void;
+    let unsubPromo: () => void;
+    let unsubConfig: () => void;
 
     const fetchAdminData = () => {
       try {
         const eventsQ = query(collection(db, 'events'), orderBy('date', 'desc'));
         const usersQ = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
         const promoQ = query(collection(db, 'promoBanners'), orderBy('updatedAt', 'desc'));
+        const configDoc = doc(db, 'settings', 'dashboard');
 
         // Realtime for events
         unsubEvents = onSnapshot(eventsQ, (snapshot) => {
@@ -216,14 +237,16 @@ export default function AdminDashboard() {
         });
 
         // Realtime for promo banners
-        const unsubPromo = onSnapshot(promoQ, (snapshot) => {
+        unsubPromo = onSnapshot(promoQ, (snapshot) => {
           setPromoBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as PromoBanner[]);
         });
 
-        return () => {
-          if (unsubPromo) unsubPromo();
-        };
-
+        // Realtime for dashboard config
+        unsubConfig = onSnapshot(configDoc, (snapshot) => {
+          if (snapshot.exists()) {
+            setDashboardConfig(snapshot.data() as DashboardConfig);
+          }
+        });
       } catch (err) {
         console.error("Admin fetch error", err);
         setLoading(false);
@@ -235,8 +258,34 @@ export default function AdminDashboard() {
     return () => {
       if (unsubEvents) unsubEvents();
       if (unsubUsers) unsubUsers();
+      if (unsubPromo) unsubPromo();
+      if (unsubConfig) unsubConfig();
     };
   }, []);
+
+  const handlePriorityChange = async (collectionName: 'events' | 'users', id: string, priority: number) => {
+    try {
+      await updateDoc(doc(db, collectionName, id), { priority });
+    } catch (error) {
+      console.error(`Failed to update ${collectionName} priority:`, error);
+    }
+  };
+
+  const handleConfigSave = async () => {
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, 'settings', 'dashboard'), {
+        ...dashboardConfig,
+        updatedAt: serverTimestamp()
+      });
+      alert('화면 설정이 저장되었습니다.');
+    } catch (error) {
+      console.error("Failed to save dashboard config:", error);
+      alert('설정 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
@@ -427,7 +476,10 @@ export default function AdminDashboard() {
                 const dateObj = event.date?.toDate ? event.date.toDate() : new Date();
                 return (
                   <tr key={event.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="p-4 font-bold text-slate-800 dark:text-white text-sm">{event.title}</td>
+                    <td className="p-4 font-bold text-slate-800 dark:text-white text-sm flex items-center">
+                      <TypeBadge isLesson={event.isLesson} />
+                      {event.title}
+                    </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400 text-sm">{event.hostName}</td>
                     <td className="p-4">
                       <span className={clsx("px-2 py-1 rounded-md text-[11px] font-bold",
@@ -505,7 +557,13 @@ export default function AdminDashboard() {
               onClick={() => handleMenuClick('banners')}
               className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'banners' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
             >
-               <Home className="w-5 h-5 text-indigo-500" /> 배너 관리
+               <ImageIcon className="w-5 h-5 text-indigo-500" /> 배너 관리
+            </button>
+            <button 
+              onClick={() => handleMenuClick('config')}
+              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'config' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+               <LayoutGrid className="w-5 h-5" /> 홈 화면 설정
             </button>
             <button 
               onClick={() => handleMenuClick('finance')}
@@ -532,10 +590,8 @@ export default function AdminDashboard() {
           <span>Admin</span>
           <ChevronRight className="w-4 h-4" />
           <span className="text-slate-800 dark:text-white">
-            {activeMenu === 'home' && '종합 대시보드'}
-            {activeMenu === 'users' && '회원 관리'}
-            {activeMenu === 'events' && '행사 관리'}
             {activeMenu === 'banners' && '메인 배너 관리'}
+            {activeMenu === 'config' && '홈 화면 설정'}
             {activeMenu === 'finance' && '정산 관리'}
             {activeMenu === 'settings' && '시스템 설정'}
           </span>
@@ -572,7 +628,10 @@ export default function AdminDashboard() {
                         {events.filter(e => e.isBanner).map(e => (
                           <div key={e.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                             <div className="flex-1 min-w-0 mr-4">
-                              <p className="font-bold text-slate-800 dark:text-white truncate">{e.title}</p>
+                              <p className="font-bold text-slate-800 dark:text-white truncate flex items-center">
+                                <TypeBadge isLesson={e.isLesson} />
+                                <span className="truncate">{e.title}</span>
+                              </p>
                               <p className="text-xs text-slate-500">{e.hostName}</p>
                             </div>
                             <button 
@@ -698,7 +757,7 @@ export default function AdminDashboard() {
                                    disabled={isSaving || isResizing}
                                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-sm transition-all disabled:opacity-50"
                                  >
-                                   <Save className="w-4 h-4" /> 저장
+                                    <Save className="w-4 h-4" /> 저장
                                  </button>
                                  <button 
                                    onClick={() => setEditBannerId(null)}
@@ -725,7 +784,7 @@ export default function AdminDashboard() {
                                ) : (
                                   <div className="aspect-[16/9] w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 gap-2">
                                      <ImageIcon className="w-8 h-8 opacity-20" />
-                                     <p className="text-xs font-medium">배어를 등록해주세요</p>
+                                     <p className="text-xs font-medium">배너를 등록해주세요</p>
                                   </div>
                                )}
                                <div className="flex items-center gap-2 text-xs truncate text-slate-500">
@@ -737,6 +796,196 @@ export default function AdminDashboard() {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {activeMenu === 'config' && (
+              <div className="space-y-8 h-full flex flex-col min-h-0 overflow-y-auto no-scrollbar pb-10">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm shrink-0 mb-8">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white">메인 섹션 순서 관리</h3>
+                      <p className="text-sm text-slate-500 mt-1">홈 화면에 노출될 각 섹션의 위아래 순서를 조정합니다.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {dashboardConfig.sectionOrder.map((section, idx) => {
+                      const getSectionInfo = (id: string) => {
+                        switch(id) {
+                          case 'parties': return { label: '🐝 파티 & 이벤트', color: 'text-indigo-600' };
+                          case 'lessons': return { label: '🎓 댄스 강습', color: 'text-emerald-600' };
+                          case 'instructors': return { label: '🕺 전문 강사', color: 'text-blue-600' };
+                          case 'djMedia': return { label: '🎧 DJ & 미디어', color: 'text-amber-600' };
+                          default: return { label: id, color: '' };
+                        }
+                      };
+                      const info = getSectionInfo(section);
+                      
+                      return (
+                        <div key={section} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center font-bold text-slate-400 border border-slate-100 dark:border-slate-800">
+                              {idx + 1}
+                            </div>
+                            <span className={clsx("font-extrabold", info.color)}>{info.label}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => {
+                                if (idx === 0) return;
+                                const newOrder = [...dashboardConfig.sectionOrder];
+                                [newOrder[idx], newOrder[idx - 1]] = [newOrder[idx - 1], newOrder[idx]];
+                                setDashboardConfig({ ...dashboardConfig, sectionOrder: newOrder });
+                              }}
+                              disabled={idx === 0}
+                              className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-indigo-600 transition-all disabled:opacity-30"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (idx === dashboardConfig.sectionOrder.length - 1) return;
+                                const newOrder = [...dashboardConfig.sectionOrder];
+                                [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
+                                setDashboardConfig({ ...dashboardConfig, sectionOrder: newOrder });
+                              }}
+                              disabled={idx === dashboardConfig.sectionOrder.length - 1}
+                              className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-indigo-600 transition-all disabled:opacity-30"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm shrink-0">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white">메인 그리드 갯수 설정</h3>
+                      <p className="text-sm text-slate-500 mt-1">홈 화면 각 섹션에 노출할 최대 카드 갯수를 지정합니다.</p>
+                    </div>
+                    <button 
+                      onClick={handleConfigSave}
+                      disabled={isSaving}
+                      className="px-6 py-2.5 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" /> 설정 저장
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[
+                      { key: 'partiesLimit', label: '파티 섹션 (기본 9)', icon: <Ticket className="text-indigo-500" /> },
+                      { key: 'lessonsLimit', label: '강습 섹션 (기본 6)', icon: <GraduationCap className="text-emerald-500" /> },
+                      { key: 'instructorsLimit', label: '강사 섹션 (기본 6)', icon: <Users className="text-blue-500" /> },
+                      { key: 'djMediaLimit', label: 'DJ/미디어 (기본 6)', icon: <Music className="text-amber-500" /> }
+                    ].map((item) => (
+                      <div key={item.key} className="space-y-3 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                          {item.icon}
+                          <label className="text-xs font-black uppercase tracking-wider">{item.label}</label>
+                        </div>
+                        <input 
+                          type="number"
+                          value={(dashboardConfig as any)[item.key]}
+                          onChange={(e) => setDashboardConfig({ ...dashboardConfig, [item.key]: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 font-black text-lg text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 shrink-0">
+                  {/* Event Priority Management */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+                      <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <ArrowUp className="w-5 h-5 text-indigo-500" /> 행사 노출 순서 (우선순위)
+                      </h3>
+                      <p className="text-[11px] text-slate-500 mt-1">숫자가 높을수록 상단에 노출됩니다. (기본값: 0)</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto max-h-[500px]">
+                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {events.filter(e => e.status === 'published').map(event => (
+                          <div key={event.id} className="p-6 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 truncate">
+                              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-indigo-600">
+                                {(event as any).priority || 0}
+                              </div>
+                              <div className="truncate">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <TypeBadge isLesson={event.isLesson} />
+                                  <p className="font-bold text-slate-800 dark:text-white truncate">{event.title}</p>
+                                </div>
+                                <p className="text-xs text-slate-500 truncate">{event.hostName}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <button 
+                                 onClick={() => handlePriorityChange('events', event.id, ((event as any).priority || 0) + 1)}
+                                 className="p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors"
+                               >
+                                 <ArrowUp className="w-4 h-4" />
+                               </button>
+                               <button 
+                                 onClick={() => handlePriorityChange('events', event.id, Math.max(0, ((event as any).priority || 0) - 1))}
+                                 className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                               >
+                                 <ArrowDown className="w-4 h-4" />
+                               </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Professional Priority Management */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+                      <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <UserCheck className="w-5 h-5 text-emerald-500" /> 전문가 노출 순서
+                      </h3>
+                      <p className="text-[11px] text-slate-500 mt-1">숫자가 높을수록 홈 화면 좌측 상단에 노출됩니다.</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto max-h-[500px]">
+                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {users.filter(u => ['instructor', 'dj', 'media'].includes(u.role)).map(user => (
+                          <div key={user.uid} className="p-6 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 truncate">
+                              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-emerald-600">
+                                {(user as any).priority || 0}
+                              </div>
+                              <div className="truncate">
+                                <p className="font-bold text-slate-800 dark:text-white truncate">{user.displayName}</p>
+                                <p className="text-xs text-slate-500 capitalize">{user.role}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <button 
+                                 onClick={() => handlePriorityChange('users', user.uid, ((user as any).priority || 0) + 1)}
+                                 className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors"
+                               >
+                                 <ArrowUp className="w-4 h-4" />
+                               </button>
+                               <button 
+                                 onClick={() => handlePriorityChange('users', user.uid, Math.max(0, ((user as any).priority || 0) - 1))}
+                                 className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                               >
+                                 <ArrowDown className="w-4 h-4" />
+                               </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

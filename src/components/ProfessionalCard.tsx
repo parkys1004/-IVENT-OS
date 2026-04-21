@@ -38,7 +38,7 @@ export default function ProfessionalCard({ professional, index }: { professional
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
-      className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+      className="group/pro bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
     >
       <div className="flex flex-col items-center text-center">
         {/* Avatar */}
@@ -48,7 +48,7 @@ export default function ProfessionalCard({ professional, index }: { professional
               <img 
                 src={professional.photoURL} 
                 alt={professional.displayName} 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover/pro:scale-110"
                 referrerPolicy="no-referrer"
               />
             ) : (
@@ -62,10 +62,10 @@ export default function ProfessionalCard({ professional, index }: { professional
             {getRoleIcon(professional.role)}
           </div>
         </div>
-
+ 
         {/* Name & Role */}
         <div className="mb-4">
-          <h4 className="font-black text-slate-800 dark:text-white text-lg group-hover:text-indigo-600 transition-colors">
+          <h4 className="font-black text-slate-800 dark:text-white text-lg group-hover/pro:text-orange-500 dark:group-hover/pro:text-orange-400 transition-colors">
             {professional.displayName || '이름 없음'}
           </h4>
           <span className={clsx(

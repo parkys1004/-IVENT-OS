@@ -49,11 +49,11 @@ export default function EventCard({ event, featured = false, index }: { event: E
       >
         <Link 
           to={`/event/${event.id}`}
-          className="group relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-6 sm:p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-slate-200 dark:bg-slate-800"
+          className="group/eventcard relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-6 sm:p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-slate-200 dark:bg-slate-800"
         >
           {coverImage && (
             <div className="absolute inset-0">
-              <img src={coverImage} alt={event.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" referrerPolicy="no-referrer" />
+              <img src={coverImage} alt={event.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover/eventcard:scale-105" referrerPolicy="no-referrer" />
               {/* Bottom gradient for better text readability */}
               <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
             </div>
@@ -67,7 +67,7 @@ export default function EventCard({ event, featured = false, index }: { event: E
             <span className="inline-block px-3 py-1 sm:px-4 sm:py-1.5 rounded-lg text-[11px] sm:text-[13px] font-black bg-black/40 backdrop-blur-md shadow-sm text-white mb-3 sm:mb-4 tracking-wider uppercase border border-white/20">
               {event.category}
             </span>
-            <h3 className="font-black text-[24px] sm:text-[32px] lg:text-[40px] xl:text-[48px] leading-tight mb-4 truncate text-white drop-shadow-2xl flex items-center gap-3">
+            <h3 className="font-black text-[24px] sm:text-[32px] lg:text-[40px] xl:text-[48px] leading-tight mb-4 truncate text-white drop-shadow-2xl flex items-center gap-3 group-hover/eventcard:text-orange-400 transition-colors">
               <TypeBadge isLesson={event.isLesson} className="!text-[14px] sm:!text-[18px] px-2 sm:px-3 py-0.5 sm:py-1 border-white/30 shrink-0" />
               <span className="truncate">{event.title}</span>
             </h3>
@@ -94,11 +94,11 @@ export default function EventCard({ event, featured = false, index }: { event: E
     >
       <Link 
         to={`/event/${event.id}`}
-        className="group flex flex-col h-full bg-white dark:bg-slate-900 rounded-[20px] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 overflow-hidden"
+        className="group/eventcard flex flex-col h-full bg-white dark:bg-slate-900 rounded-[20px] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 overflow-hidden"
       >
         {coverImage ? (
           <div className="w-full h-[180px] xl:h-[220px] bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
-            <img src={coverImage} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+            <img src={coverImage} alt={event.title} className="w-full h-full object-cover group-hover/eventcard:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
             <div className="absolute top-4 left-4">
               <span className="inline-block px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/90 text-indigo-700 shadow-sm backdrop-blur">
                 {event.category}
@@ -117,7 +117,7 @@ export default function EventCard({ event, featured = false, index }: { event: E
         )}
 
         <div className="p-6 flex flex-col flex-1">
-          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-[18px] xl:text-[20px] leading-[1.4] line-clamp-2 mb-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-start">
+          <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-[18px] xl:text-[20px] leading-[1.4] line-clamp-2 mb-4 group-hover/eventcard:text-orange-500 dark:group-hover/eventcard:text-orange-400 transition-colors flex items-start">
             <TypeBadge isLesson={event.isLesson} className="mt-1 shrink-0" />
             <span className="line-clamp-2">{event.title}</span>
           </h3>

@@ -54,6 +54,8 @@ const translations: Record<Language, Record<string, string>> = {
     'search.sort.latest': '최신순',
     'search.sort.upcoming': '날짜순',
     'search.sort.popular': '인기순',
+    'auth.loginEmail': '로그인 / 회원가입',
+    'auth.loginGoogle': 'Google 계정으로 계속하기',
   },
   en: {
     'nav.explore': 'Explore Events',
@@ -95,6 +97,8 @@ const translations: Record<Language, Record<string, string>> = {
     'search.sort.latest': 'Latest',
     'search.sort.upcoming': 'Upcoming',
     'search.sort.popular': 'Popular',
+    'auth.loginEmail': 'Login / Sign up',
+    'auth.loginGoogle': 'Continue with Google',
   },
   ja: {
     'nav.explore': 'イベントを探す',
@@ -136,6 +140,8 @@ const translations: Record<Language, Record<string, string>> = {
     'search.sort.latest': '最新順',
     'search.sort.upcoming': '日付順',
     'search.sort.popular': '人気順',
+    'auth.loginEmail': 'ログイン / 会員登録',
+    'auth.loginGoogle': 'Googleでログイン',
   },
   zh: {
     'nav.explore': '查找活动',
@@ -177,6 +183,8 @@ const translations: Record<Language, Record<string, string>> = {
     'search.sort.latest': '最新',
     'search.sort.upcoming': '近期',
     'search.sort.popular': '热门',
+    'auth.loginEmail': '登录 / 注册',
+    'auth.loginGoogle': '使用 Google 登录',
   },
   th: {
     'nav.explore': 'ค้นหากิจกรรม',
@@ -218,6 +226,8 @@ const translations: Record<Language, Record<string, string>> = {
     'search.sort.latest': 'ล่าสุด',
     'search.sort.upcoming': 'เร็วๆ นี้',
     'search.sort.popular': 'ยอดนิยม',
+    'auth.loginEmail': 'เข้าสู่ระบบ / ลงทะเบียน',
+    'auth.loginGoogle': 'เข้าสู่ระบบด้วย Google',
   },
   vi: {
     'nav.explore': 'Khám phá sự kiện',
@@ -259,6 +269,8 @@ const translations: Record<Language, Record<string, string>> = {
     'search.sort.latest': 'Mới nhất',
     'search.sort.upcoming': 'Sắp tới',
     'search.sort.popular': 'Phổ biến',
+    'auth.loginEmail': 'Đăng nhập / Đăng ký',
+    'auth.loginGoogle': 'Tiếp tục với Google',
   },
 };
 

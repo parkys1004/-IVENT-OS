@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginWithGoogle } from '../firebase';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, ShieldCheck, AlertCircle, Wind, Music, GraduationCap, Camera } from 'lucide-react';
+import { User, ShieldCheck, AlertCircle, Wind, Music, GraduationCap, Camera, CheckCircle2, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth, UserRole } from '../context/AuthContext';
+
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Login() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
@@ -72,10 +75,16 @@ export default function Login() {
         </h1>
         
         {isLoginMode ? (
-          <p className="text-slate-500 text-sm mb-8 leading-relaxed max-w-[280px] mx-auto">
-            다시 오신 것을 환영합니다!<br/>
-            계속하려면 로그인해주세요.
-          </p>
+          <div className="mb-8">
+            <p className="text-slate-500 text-sm mb-4 leading-relaxed max-w-[280px] mx-auto">
+              다시 오신 것을 환영합니다!<br/>
+              계속하려면 로그인해주세요.
+            </p>
+            <div className="flex items-center justify-center gap-2 text-[11px] text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/10 py-2 px-4 rounded-lg border border-amber-100 dark:border-amber-900/20 max-w-[300px] mx-auto font-bold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>처음이신가요? 하단의 "회원가입 하러가기"를 먼저 눌러주세요!</span>
+            </div>
+          </div>
         ) : (
           <p className="text-slate-500 text-sm mb-6 leading-relaxed max-w-[280px] mx-auto">
             Dancehive에서 어떤 활동을 하고 싶으신가요?<br/>
@@ -92,6 +101,30 @@ export default function Login() {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
+              {!selectedRole ? (
+                <p className="text-[13px] font-black text-amber-600 dark:text-amber-400 mb-4 animate-pulse">
+                  ↑ 활동하실 역할을 먼저 선택한 후 버튼을 눌러주세요!
+                </p>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-4 p-3 rounded-xl bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-orange-800 dark:text-amber-300 text-xs font-black leading-relaxed"
+                >
+                  <span className="flex items-center justify-center gap-1.5 mb-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-orange-500" />
+                    멋진 선택입니다!
+                  </span>
+                  이제 아래 버튼을 눌러{" "}
+                  <span className="text-orange-600 dark:text-amber-400 underline decoration-2 underline-offset-2">
+                    {selectedRole === 'user' ? '일반 참여자' : 
+                     selectedRole === 'host' ? '행사 주최자' : 
+                     selectedRole === 'dj' ? 'DJ' : 
+                     selectedRole === 'instructor' ? '강사' : '포토/영상 전문가'}
+                  </span>
+                  로 가입을 완료해주세요.
+                </motion.div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
                 <button
                   onClick={() => setSelectedRole('user')}
@@ -179,7 +212,7 @@ export default function Login() {
                 <path fill="none" d="M1 1h22v22H1z" />
               </svg>
             )}
-            <span>{loading ? '처리 중...' : 'Google 계정으로 계속하기'}</span>
+            <span>{loading ? '처리 중...' : t('auth.loginGoogle')}</span>
           </motion.button>
           
           <motion.button

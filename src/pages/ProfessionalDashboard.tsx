@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
-import { Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, Image as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, Plus, BarChart3, CreditCard, PenTool, User } from 'lucide-react';
+import { Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, Image as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, Plus, BarChart3, CreditCard, PenTool, User, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { db } from '../firebase';
@@ -18,6 +18,120 @@ export default function ProfessionalDashboard() {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [followers, setFollowers] = useState<any[]>([]);
   const [loadingFollowers, setLoadingFollowers] = useState(false);
+  
+  // Image handling from EditEvent.tsx logic
+  const portfolioFileInputRef = useRef<HTMLInputElement>(null);
+  const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+
+  const resizeAndCompressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1000;
+          const MAX_HEIGHT = 1000;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+          } else {
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/webp', 0.8);
+          resolve(dataUrl);
+        };
+        img.onerror = error => reject(error);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const fileArray = Array.from(files);
+    try {
+      setIsSaving(true);
+      const newImages = await Promise.all(fileArray.map(resizeAndCompressImage));
+      setPortfolioImages(prev => [...prev, ...newImages]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+      if (portfolioFileInputRef.current) portfolioFileInputRef.current.value = '';
+    }
+  };
+
+  const removePortfolioImage = (index: number) => {
+    setPortfolioImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Profile management state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [profileForm, setProfileForm] = useState({
+    displayName: '',
+    shortBio: '',
+    description: '',
+    specialties: '',
+    career: '',
+    portfolioUrl: '',
+    studioLocation: '',
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        displayName: profile.displayName || '',
+        shortBio: (profile as any).shortBio || '',
+        description: (profile as any).description || '',
+        specialties: (profile as any).specialties || '',
+        career: (profile as any).career || '',
+        portfolioUrl: (profile as any).portfolioUrl || '',
+        studioLocation: (profile as any).studioLocation || '',
+      });
+    }
+  }, [profile]);
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    setIsSaving(true);
+    setSaveMessage('');
+    try {
+      const { updateDoc, doc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: profileForm.displayName,
+        shortBio: profileForm.shortBio,
+        description: profileForm.description,
+        specialties: profileForm.specialties,
+        career: profileForm.career,
+        portfolioUrl: profileForm.portfolioUrl,
+        studioLocation: profileForm.studioLocation,
+        profileUpdated: true
+      });
+      setSaveMessage('프로필이 성공적으로 저장되었습니다.');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error(error);
+      setSaveMessage('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setProfileForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   useEffect(() => {
     if (activeMenu === 'profile' && activeTab === 'reviews' && user) {
@@ -195,14 +309,42 @@ export default function ProfessionalDashboard() {
         {activeTab === 'portfolio' ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col h-full min-h-[400px]">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white">내 포트폴리오</h3>
-              <button className="flex items-center gap-2 bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 px-4 py-2 rounded-lg font-bold text-sm hover:bg-indigo-200 transition-colors">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white">내 포트폴리오 (사진)</h3>
+              <button 
+                onClick={() => portfolioFileInputRef.current?.click()}
+                className="flex items-center gap-2 bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 px-4 py-2 rounded-lg font-bold text-sm hover:bg-indigo-200 transition-colors"
+              >
                 <Plus className="w-4 h-4" /> 포트폴리오 추가
               </button>
+              <input 
+                type="file" 
+                ref={portfolioFileInputRef} 
+                onChange={handlePortfolioUpload} 
+                multiple 
+                accept="image/*" 
+                className="hidden" 
+              />
             </div>
-            <div className="flex-1 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400">
-              등록된 포트폴리오 영상/사진이 없습니다.
-            </div>
+            {portfolioImages.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pr-2">
+                {portfolioImages.map((url, idx) => (
+                  <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-slate-100 dark:border-slate-800">
+                    <img src={url} alt={`portfolio-${idx}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" referrerPolicy="no-referrer" />
+                    <button 
+                      onClick={() => removePortfolioImage(idx)}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex-1 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-slate-400 gap-3">
+                <ImageIcon className="w-10 h-10 opacity-20" />
+                <p>등록된 포트폴리오 영상/사진이 없습니다.</p>
+              </div>
+            )}
           </div>
         ) : activeTab === 'reviews' ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col h-full min-h-[400px]">
@@ -239,24 +381,111 @@ export default function ProfessionalDashboard() {
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8">
             <div className="max-w-xl">
-               <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-6">기본 정보 설정</h3>
+               <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-6">
+                 {profile?.role === 'instructor' ? '강사 프로필 설정' : 
+                  profile?.role === 'dj' ? 'DJ 프로필 설정' : 
+                  profile?.role === 'media' ? '포토/영상 전문가 프로필 설정' : '프로필 설정'}
+               </h3>
                
-               <div className="space-y-4">
+               <form onSubmit={handleProfileSubmit} className="space-y-4">
                  <div>
-                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">활동명</label>
-                   <input type="text" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" defaultValue={profile?.displayName} />
+                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">활동명 (이름)</label>
+                   <input 
+                     type="text" 
+                     name="displayName"
+                     value={profileForm.displayName}
+                     onChange={handleFormChange}
+                     className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                     placeholder="활동명을 입력하세요" 
+                   />
                  </div>
+                 
                  <div>
-                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">소개(한 줄)</label>
-                   <input type="text" className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" placeholder="예: 힙합 베이스의 올라운더 댄서입니다" />
+                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">한 줄 소개</label>
+                   <input 
+                     type="text" 
+                     name="shortBio"
+                     value={profileForm.shortBio}
+                     onChange={handleFormChange}
+                     className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                     placeholder={profile?.role === 'instructor' ? '예: 10년 경력의 살사 전문 강사입니다' : '한 줄 프로필을 입력하세요'} 
+                   />
                  </div>
+
+                 {profile?.role === 'instructor' && (
+                   <div>
+                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">주요 레슨 장르 / 커리큘럼</label>
+                     <input 
+                        type="text" 
+                        name="specialties"
+                        value={profileForm.specialties}
+                        onChange={handleFormChange}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                        placeholder="예: 살사 온1, 바차타 센슈얼" 
+                     />
+                   </div>
+                 )}
+
+                 {profile?.role === 'dj' && (
+                   <div>
+                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">주요 플레이 장르 (Specialties)</label>
+                     <input 
+                        type="text" 
+                        name="specialties"
+                        value={profileForm.specialties}
+                        onChange={handleFormChange}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                        placeholder="예: Vinyl Salsa, Mambo, Guaguanco" 
+                     />
+                   </div>
+                 )}
+
+                 {(profile?.role === 'media' || profile?.role === 'dj' || profile?.role === 'instructor') && (
+                   <div>
+                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">포트폴리오 / SNS 링크</label>
+                     <input 
+                       type="url" 
+                       name="portfolioUrl"
+                       value={profileForm.portfolioUrl}
+                       onChange={handleFormChange}
+                       className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                       placeholder="https://instagram.com/your-id" 
+                     />
+                   </div>
+                 )}
+
                  <div>
-                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">상세 이력 / 정보</label>
-                   <textarea className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3 min-h-[120px]" placeholder="경력이나 상세한 장르 소개를 적어주세요."></textarea>
+                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">상세 경력 및 자기소개</label>
+                   <textarea 
+                     name="description"
+                     value={profileForm.description}
+                     onChange={handleFormChange}
+                     className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 min-h-[150px] text-slate-800 dark:text-white" 
+                     placeholder="회원님들에게 보여질 상세한 프로필 정보를 입력해주세요."
+                   ></textarea>
                  </div>
-               </div>
-               
-               <button className="mt-8 px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 w-full sm:w-auto">변경사항 저장하기</button>
+
+                 {isSaving && (
+                   <div className="flex items-center gap-2 text-indigo-500 font-bold text-sm">
+                     <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                     저장 중...
+                   </div>
+                 )}
+
+                 {saveMessage && (
+                   <div className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                     {saveMessage}
+                   </div>
+                 )}
+                 
+                 <button 
+                   type="submit"
+                   disabled={isSaving}
+                   className="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 w-full sm:w-auto shadow-md shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
+                 >
+                   프로필 저장하기
+                 </button>
+               </form>
             </div>
           </div>
         )}

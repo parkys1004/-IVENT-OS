@@ -205,12 +205,41 @@ export default function Navbar() {
                   )}
 
                   {profile?.role === 'instructor' && viewMode !== 'admin' && (
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to="/dashboard"
+                        className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-slate-200 dark:border-slate-800 text-[13px] font-black rounded-xl shadow-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all hover:translate-y-[-1px] active:scale-95"
+                      >
+                        <User className="h-5 w-5 sm:mr-1.5 text-indigo-500" />
+                        <span className="hidden sm:inline">강사프로필 만들기</span>
+                      </Link>
+                      <Link
+                        to="/create-lesson"
+                        className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent text-[13px] font-black rounded-xl shadow-sm text-white bg-teal-600 hover:bg-teal-700 transition-all hover:translate-y-[-1px] active:scale-95"
+                      >
+                        <Plus className="h-5 w-5 sm:mr-1.5" />
+                        <span className="hidden sm:inline">강습 만들기</span>
+                      </Link>
+                    </div>
+                  )}
+
+                  {profile?.role === 'dj' && viewMode !== 'admin' && (
                     <Link
-                      to="/create-lesson"
-                      className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent text-[13px] font-black rounded-xl shadow-sm text-white bg-teal-600 hover:bg-teal-700 transition-all hover:translate-y-[-1px] active:scale-95"
+                      to="/dashboard"
+                      className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-slate-200 dark:border-slate-800 text-[13px] font-black rounded-xl shadow-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all hover:translate-y-[-1px] active:scale-95"
                     >
-                      <Plus className="h-5 w-5 sm:mr-1.5" />
-                      <span className="hidden sm:inline">강습 만들기</span>
+                      <Music className="h-5 w-5 sm:mr-1.5 text-orange-500" />
+                      <span className="hidden sm:inline">DJ프로필 만들기</span>
+                    </Link>
+                  )}
+
+                  {profile?.role === 'media' && viewMode !== 'admin' && (
+                    <Link
+                      to="/dashboard"
+                      className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-slate-200 dark:border-slate-800 text-[13px] font-black rounded-xl shadow-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all hover:translate-y-[-1px] active:scale-95"
+                    >
+                      <Camera className="h-5 w-5 sm:mr-1.5 text-indigo-500" />
+                      <span className="hidden sm:inline">포토/영상프로필 만들기</span>
                     </Link>
                   )}
                   
@@ -352,217 +381,231 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile menu drawer */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <motion.div
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed inset-y-0 left-0 w-[280px] bg-white dark:bg-[#14100B] shadow-2xl z-50 lg:hidden flex flex-col p-6 overflow-y-auto"
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 group">
-                    <div className="p-1.5 bg-orange-50 dark:bg-orange-500/10 rounded-lg">
-                      <Wind className="h-6 w-6 text-orange-500" />
-                    </div>
-                    <span className="font-black text-2xl tracking-tighter bg-gradient-to-r from-amber-600 to-orange-500 dark:from-amber-400 dark:to-yellow-300 bg-clip-text text-transparent">
-                      Dancehive
-                    </span>
-                  </Link>
-                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg bg-slate-50 dark:bg-slate-800">
-                    <X className="w-6 h-6" />
-                  </button>
+      </nav>
+
+      {/* Mobile menu drawer - Moved outside nav for robust positioning */}
+      <AnimatePresence mode="wait">
+        {isMobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] lg:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-[85%] max-w-[320px] h-full sm:h-screen bg-white dark:bg-[#14100B] shadow-2xl z-[70] lg:hidden flex flex-col p-6 overflow-y-auto outline-none"
+            >
+              <div className="flex items-center justify-between mb-8 shrink-0">
+                <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 group">
+                  <div className="p-1.5 bg-orange-50 dark:bg-orange-500/10 rounded-lg">
+                    <Wind className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <span className="font-black text-2xl tracking-tighter bg-gradient-to-r from-amber-600 to-orange-500 dark:from-amber-400 dark:to-yellow-300 bg-clip-text text-transparent">
+                    Dancehive
+                  </span>
+                </Link>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg bg-slate-50 dark:bg-slate-800">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6 flex-1 flex flex-col">
+                {/* Explore Section */}
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Explore Activity</p>
+                  <div className="space-y-1">
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={clsx(
+                          "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                          location.pathname === link.to 
+                            ? "bg-orange-50 dark:bg-amber-400/10 text-orange-600 dark:text-amber-400 border border-orange-100 dark:border-amber-400/20" 
+                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        )}
+                      >
+                        <div className={clsx("p-2 rounded-xl transition-colors", location.pathname === link.to ? "bg-white dark:bg-slate-800 text-orange-500 dark:text-amber-400 shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
+                          {link.icon}
+                        </div>
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="space-y-6 flex-1 flex flex-col">
-                  {/* Explore Section */}
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Explore Activity</p>
-                    <div className="space-y-1">
-                      {navLinks.map((link) => (
+                {/* Account/Personal Section */}
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Your Account</p>
+                  <div className="space-y-1">
+                    {user ? (
+                      <>
                         <Link
-                          key={link.to}
-                          to={link.to}
+                          to="/dashboard"
                           onClick={() => setIsMobileMenuOpen(false)}
                           className={clsx(
                             "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
-                            location.pathname === link.to 
-                              ? "bg-orange-50 dark:bg-amber-400/10 text-orange-600 dark:text-amber-400 border border-orange-100 dark:border-amber-400/20" 
+                            location.pathname === '/dashboard' 
+                              ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20" 
                               : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                           )}
                         >
-                          <div className={clsx("p-2 rounded-xl transition-colors", location.pathname === link.to ? "bg-white dark:bg-slate-800 text-orange-500 dark:text-amber-400 shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
-                            {link.icon}
+                          <div className={clsx("p-2 rounded-xl transition-colors", location.pathname === '/dashboard' ? "bg-white dark:bg-slate-800 text-indigo-500 shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
+                            <LayoutDashboard className="w-5 h-5" />
                           </div>
-                          {link.label}
+                          {viewMode === 'professional' ? '전문가 대시보드' : t('nav.tickets')}
                         </Link>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Account/Personal Section */}
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Your Account</p>
-                    <div className="space-y-1">
-                      {user ? (
-                        <>
+                        <Link
+                          to="/mypage"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={clsx(
+                            "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                            location.pathname === '/mypage' 
+                              ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20" 
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400">
+                            <User className="w-5 h-5" />
+                          </div>
+                          프로필 설정
+                        </Link>
+
+                        {(profile?.role === 'instructor' || profile?.role === 'dj' || profile?.role === 'media') && (
                           <Link
                             to="/dashboard"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className={clsx(
-                              "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
-                              location.pathname === '/dashboard' 
-                                ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20" 
-                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            )}
+                            className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20"
                           >
-                            <div className={clsx("p-2 rounded-xl transition-colors", location.pathname === '/dashboard' ? "bg-white dark:bg-slate-800 text-indigo-500 shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
-                              <LayoutDashboard className="w-5 h-5" />
+                            <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                              {profile.role === 'instructor' ? <User className="w-5 h-5" /> : profile.role === 'dj' ? <Music className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
                             </div>
-                            {viewMode === 'professional' ? '전문가 대시보드' : t('nav.tickets')}
+                            {profile.role === 'instructor' ? '강사프로필 만들기' : profile.role === 'dj' ? 'DJ프로필 만들기' : '포토/영상프로필 만들기'}
                           </Link>
+                        )}
 
+                        {profile?.role === 'host' && (
                           <Link
-                            to="/mypage"
+                            to="/create"
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className={clsx(
-                              "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
-                              location.pathname === '/mypage' 
-                                ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20" 
-                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            )}
+                            className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20"
                           >
-                            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400">
-                              <User className="w-5 h-5" />
+                            <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                              <Plus className="w-5 h-5" />
                             </div>
-                            프로필 설정
+                            새 행사 만들기
                           </Link>
+                        )}
 
-                          {profile?.role === 'host' && (
-                            <Link
-                              to="/create"
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20"
-                            >
-                              <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">
-                                <Plus className="w-5 h-5" />
-                              </div>
-                              새 행사 만들기
-                            </Link>
-                          )}
-
-                          {profile?.role === 'instructor' && (
-                            <Link
-                              to="/create-lesson"
-                              onClick={() => setIsMobileMenuOpen(false)}
-                              className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-500/10 transition-all border border-transparent hover:border-teal-100 dark:hover:border-teal-500/20"
-                            >
-                              <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400">
-                                <Plus className="w-5 h-5" />
-                              </div>
-                              새 강습 만들기
-                            </Link>
-                          )}
-
-                          <button
-                            onClick={() => {
-                              setIsMobileMenuOpen(false);
-                              logout();
-                            }}
-                            className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all cursor-pointer"
+                        {profile?.role === 'instructor' && (
+                          <Link
+                            to="/create-lesson"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-500/10 transition-all border border-transparent hover:border-teal-100 dark:hover:border-teal-500/20"
                           >
-                            <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/20 text-red-600">
-                              <LogOut className="w-5 h-5" />
+                            <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400">
+                              <Plus className="w-5 h-5" />
                             </div>
-                            로그아웃
-                          </button>
-                        </>
-                      ) : (
-                        <Link
-                          to="/login"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className="flex items-center gap-4 px-4 py-4 rounded-2xl text-[15px] font-black bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20"
-                        >
-                          <div className="p-2 rounded-xl bg-white/20 text-white">
-                            <LogIn className="w-5 h-5" />
-                          </div>
-                          {t('auth.loginEmail')}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
+                            새 강습 만들기
+                          </Link>
+                        )}
 
-                  {/* Appearance & Language */}
-                  <div className="mt-auto space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Preferences</p>
-                      <div className="flex flex-col gap-2">
                         <button
-                          onClick={toggleTheme}
-                          className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 font-black text-sm transition-all active:scale-95"
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            logout();
+                          }}
+                          className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all cursor-pointer"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
-                              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                            </div>
-                            Appearance
+                          <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/20 text-red-600">
+                            <LogOut className="w-5 h-5" />
                           </div>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 uppercase tracking-tighter">
-                            {theme === 'dark' ? 'Light' : 'Dark'}
-                          </span>
+                          로그아웃
                         </button>
+                      </>
+                    ) : (
+                      <Link
+                        to="/login"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-4 px-4 py-4 rounded-2xl text-[15px] font-black bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20"
+                      >
+                        <div className="p-2 rounded-xl bg-white/20 text-white">
+                          <LogIn className="w-5 h-5" />
+                        </div>
+                        {t('auth.loginEmail')}
+                      </Link>
+                    )}
+                  </div>
+                </div>
 
-                        <div className="relative group/lang">
-                          <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-2 border border-slate-100 dark:border-slate-800">
-                             <div className="flex items-center gap-3 px-3 py-2 text-slate-400">
-                               <Languages className="w-4 h-4" />
-                               <span className="text-[10px] font-black uppercase tracking-widest">Select Language</span>
-                             </div>
-                             <div className="grid grid-cols-2 gap-1.5 p-1">
-                               {(Object.keys(languageNames) as Language[]).map((lang) => (
-                                 <button
-                                   key={lang}
-                                   onClick={() => {
-                                     setLanguage(lang);
-                                   }}
-                                   className={clsx(
-                                     "px-3 py-2.5 rounded-xl text-[12px] font-black transition-all border",
-                                     language === lang 
-                                       ? "bg-white dark:bg-slate-800 text-orange-600 dark:text-amber-400 border-orange-100 dark:border-amber-400/20 shadow-sm" 
-                                       : "text-slate-500 dark:text-slate-400 border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50"
-                                   )}
-                                 >
-                                   {languageNames[lang].split(' ')[0]}
-                                 </button>
-                               ))}
-                             </div>
+                {/* Appearance & Language */}
+                <div className="mt-auto space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Preferences</p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={toggleTheme}
+                        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 font-black text-sm transition-all active:scale-95"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
                           </div>
+                          Appearance
+                        </div>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 uppercase tracking-tighter">
+                          {theme === 'dark' ? 'Light' : 'Dark'}
+                        </span>
+                      </button>
+
+                      <div className="relative group/lang">
+                        <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-2 border border-slate-100 dark:border-slate-800">
+                           <div className="flex items-center gap-3 px-3 py-2 text-slate-400">
+                             <Languages className="w-4 h-4" />
+                             <span className="text-[10px] font-black uppercase tracking-widest">Select Language</span>
+                           </div>
+                           <div className="grid grid-cols-2 gap-1.5 p-1">
+                             {(Object.keys(languageNames) as Language[]).map((lang) => (
+                               <button
+                                 key={lang}
+                                 onClick={() => {
+                                   setLanguage(lang);
+                                 }}
+                                 className={clsx(
+                                   "px-3 py-2.5 rounded-xl text-[12px] font-black transition-all border",
+                                   language === lang 
+                                     ? "bg-white dark:bg-slate-800 text-orange-600 dark:text-amber-400 border-orange-100 dark:border-amber-400/20 shadow-sm" 
+                                     : "text-slate-500 dark:text-slate-400 border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50"
+                                 )}
+                               >
+                                 {languageNames[lang].split(' ')[0]}
+                               </button>
+                             ))}
+                           </div>
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center justify-center gap-4 py-4 text-[11px] font-bold text-slate-400">
-                      <Link to="/terms" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-slate-600">이용약관</Link>
-                      <span className="w-1 h-1 rounded-full bg-slate-200"></span>
-                      <Link to="/privacy" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-slate-600">개인정보처리방침</Link>
-                    </div>
+                  <div className="flex items-center justify-center gap-4 py-4 text-[11px] font-bold text-slate-400">
+                    <Link to="/terms" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-slate-600">이용약관</Link>
+                    <span className="w-1 h-1 rounded-full bg-slate-200"></span>
+                    <Link to="/privacy" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-slate-600">개인정보처리방침</Link>
                   </div>
                 </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </nav>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

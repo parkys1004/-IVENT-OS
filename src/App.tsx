@@ -19,10 +19,12 @@ import { useAuth } from './context/AuthContext';
 import { AlertCircle, ExternalLink } from 'lucide-react';
 
 function SupabaseConfigWarning() {
-  const isPlaceholder = import.meta.env.VITE_SUPABASE_URL === undefined || 
-                       import.meta.env.VITE_SUPABASE_URL.includes('placeholder-url');
+  // Don't show warning in production environments or if keys are actually set
+  const isProd = import.meta.env.PROD;
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const isPlaceholder = !url || url === '' || url.includes('placeholder-url');
 
-  if (!isPlaceholder) return null;
+  if (isProd || !isPlaceholder) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[9999] max-w-sm bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 p-4 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">

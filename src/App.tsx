@@ -19,12 +19,12 @@ import { useAuth } from './context/AuthContext';
 import { AlertCircle, ExternalLink } from 'lucide-react';
 
 function SupabaseConfigWarning() {
-  // Don't show warning in production environments or if keys are actually set
-  const isProd = import.meta.env.PROD;
   const url = import.meta.env.VITE_SUPABASE_URL;
-  const isPlaceholder = !url || url === '' || url.includes('placeholder-url');
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const isPlaceholder = !url || url === '' || url.includes('placeholder-url') || !anonKey;
 
-  if (isProd || !isPlaceholder) return null;
+  // In production, we only show this if it's DEFINITELY misconfigured
+  if (!isPlaceholder) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[9999] max-w-sm bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 p-4 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">

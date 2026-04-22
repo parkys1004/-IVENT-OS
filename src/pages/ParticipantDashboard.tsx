@@ -36,6 +36,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [professionals, setProfessionals] = useState<UserProfile[]>([]);
   const [promoBanners, setPromoBanners] = useState<PromoBanner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [filter, setFilterLocal] = useState(categoryFilter);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('upcoming');
@@ -243,7 +244,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         
         if (configData) setDashboardConfig(prev => ({ ...prev, ...configData.value }));
 
-      } catch (error) {
+      } catch (error: any) {
+        setFetchError(error.message || '데이터를 불러오는 중 오류가 발생했습니다.');
         handleSupabaseError(error, OperationType.LIST, 'events');
       } finally {
         setLoading(false);
@@ -367,7 +369,39 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   }, [displayBanners.length, isSliderPaused]);
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div></div>;
+    return (
+      <div className="flex-1 flex items-center justify-center py-20 min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-slate-400 font-medium animate-pulse">정보를 불러오고 있습니다...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center min-h-[400px]">
+        <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-2xl flex items-center justify-center mb-6 text-rose-600 dark:text-rose-400">
+          <AlertCircle className="w-10 h-10" />
+        </div>
+        <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">데이터를 불러오지 못했습니다</h3>
+        <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8 leading-relaxed">
+          {fetchError.includes('Failed to fetch') 
+            ? '서버와의 연결이 원활하지 않습니다. 인터넷 연결이나 Supabase 설정을 확인해 주세요.' 
+            : fetchError}
+        </p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+        >
+          다시 시도하기
+        </button>
+        {import.meta.env.VITE_SUPABASE_URL?.includes('placeholder') && (
+          <p className="mt-4 text-[10px] text-rose-500 font-mono">Warning: Using placeholder Supabase URL</p>
+        )}
+      </div>
+    );
   }
 
   // --- Sub-contents ---

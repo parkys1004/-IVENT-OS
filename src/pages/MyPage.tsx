@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User, Settings, Save, AtSign, ShieldCheck, Ticket } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import TypeBadge from '../components/TypeBadge';
 
 export default function MyPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -22,27 +22,36 @@ export default function MyPage() {
     if (profile?.displayName) {
       setDisplayName(profile.displayName);
     }
-  }, [profile]);
+  }, [profile?.displayName]); // Dependency on specific field
 
   useEffect(() => {
     async function fetchRegistrations() {
       if (!user) return;
       setLoadingRegs(true);
       try {
-        const q = query(collection(db, 'registrations'), where('userId', '==', user.uid));
+        const q = query(
+          collection(db, 'registrations'), 
+          where('userId', '==', user.uid),
+          orderBy('registeredAt', 'desc')
+        );
         const snap = await getDocs(q);
         const regs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // Fetch event details for each registration
+        // Fetch event details for each registration - Using doc() + getDoc() is more efficient than query()
+        const { getDoc, doc } = await import('firebase/firestore');
         const regsWithEvents = await Promise.all(regs.map(async (reg: any) => {
-          const eventSnap = await getDocs(query(collection(db, 'events'), where('__name__', '==', reg.eventId)));
-          const evData = eventSnap.docs[0]?.data();
-          return {
-            ...reg,
-            eventTitle: evData?.title || '알 수 없는 행사',
-            eventDate: evData?.date,
-            isLesson: evData?.isLesson || false,
-          };
+          try {
+            const eventSnap = await getDoc(doc(db, 'events', reg.eventId));
+            const evData = eventSnap.exists() ? eventSnap.data() : null;
+            return {
+              ...reg,
+              eventTitle: evData?.title || '알 수 없는 행사',
+              eventDate: evData?.date,
+              isLesson: evData?.isLesson || false,
+            };
+          } catch (err) {
+            return { ...reg, eventTitle: '불러오기 실패' };
+          }
         }));
         
         setRegistrations(regsWithEvents);
@@ -53,10 +62,10 @@ export default function MyPage() {
       }
     }
     
-    if (profile?.role) {
+    if (user?.uid) {
        fetchRegistrations();
     }
-  }, [user, profile]);
+  }, [user?.uid]); // Only fetch when UID changes, not on profile object updates
 
   if (!user || !profile) {
     return <div className="p-20 text-center text-slate-500">로그인이 필요합니다.</div>;
@@ -69,6 +78,7 @@ export default function MyPage() {
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, { displayName });
+      await refreshProfile();
       setSaveMessage('프로필이 성공적으로 업데이트되었습니다.');
       // Update local profile object if necessary, but AuthContext handles real-time ideally?
       // AuthContext fetches once on auth state load. Real-time updates for profile might need page reload.

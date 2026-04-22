@@ -2,59 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-
-// Error handling spec
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const currentUser = auth.currentUser;
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: currentUser?.uid,
-      email: currentUser?.email ?? undefined,
-      emailVerified: currentUser?.emailVerified,
-      isAnonymous: currentUser?.isAnonymous,
-      tenantId: currentUser?.tenantId ?? undefined,
-      providerInfo: currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
+import { handleFirestoreError, OperationType } from '../lib/firestoreError';
 
 export type UserRole = 'user' | 'host' | 'admin' | 'dj' | 'instructor' | 'media';
 
@@ -76,9 +24,10 @@ interface AuthContextType {
   loading: boolean;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true, viewMode: 'participant', setViewMode: () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true, viewMode: 'participant', setViewMode: () => {}, refreshProfile: async () => {} });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -86,60 +35,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('participant');
 
-  useEffect(() => {
-    let profileUnsubscribe: (() => void) | null = null;
+  const refreshProfile = async () => {
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as UserProfile;
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error("Profile refresh error:", error);
+    }
+  };
 
+  useEffect(() => {
     const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
-      if (profileUnsubscribe) {
-        profileUnsubscribe();
-        profileUnsubscribe = null;
+      if (!currentUser) {
+        setProfile(null);
+        setLoading(false);
+        return;
       }
 
       try {
-        if (currentUser) {
-          const docRef = doc(db, 'users', currentUser.uid);
+        const docRef = doc(db, 'users', currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data() as UserProfile;
+          setProfile(data);
           
-          profileUnsubscribe = onSnapshot(docRef, async (docSnap) => {
-            if (docSnap.exists()) {
-              const data = docSnap.data() as UserProfile;
-              
-              // Set initial viewMode ONLY ONCE or if it remains compatible
-              setProfile(prev => {
-                if (!prev) {
-                  if (data.role === 'admin') setViewMode('admin');
-                  else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
-                  else setViewMode('participant');
-                }
-                return data;
-              });
-            } else {
-              // Create new profile if it doesn't exist
-              let intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'user';
-              if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified) {
-                intendedRole = 'admin';
-              }
-
-              const newProfile: UserProfile = {
-                uid: currentUser.uid,
-                email: currentUser.email || '',
-                displayName: currentUser.displayName || '',
-                photoURL: currentUser.photoURL || '',
-                role: intendedRole,
-                createdAt: serverTimestamp(),
-              };
-
-              try {
-                await setDoc(docRef, newProfile);
-                // The onSnapshot will catch this creation and set the profile
-              } catch (error) {
-                handleFirestoreError(error, OperationType.WRITE, `users/${currentUser.uid}`);
-              }
-            }
-          });
+          // Initial viewMode logic
+          if (data.role === 'admin') setViewMode('admin');
+          else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
+          else setViewMode('participant');
         } else {
-          setProfile(null);
+          // Create new profile
+          let intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'user';
+          if (currentUser.email === 'aimaster1004@gmail.com' && currentUser.emailVerified) {
+            intendedRole = 'admin';
+          }
+
+          const newProfile: UserProfile = {
+            uid: currentUser.uid,
+            email: currentUser.email || '',
+            displayName: currentUser.displayName || '',
+            photoURL: currentUser.photoURL || '',
+            role: intendedRole,
+            createdAt: serverTimestamp(),
+          };
+
+          await setDoc(docRef, newProfile);
+          setProfile(newProfile as UserProfile);
+          
+          if (intendedRole === 'admin') setViewMode('admin');
+          else if (['host', 'dj', 'instructor', 'media'].includes(intendedRole)) setViewMode('professional');
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
@@ -148,14 +100,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => {
-      authUnsubscribe();
-      if (profileUnsubscribe) profileUnsubscribe();
-    };
+    return () => authUnsubscribe();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, viewMode, setViewMode }}>
+    <AuthContext.Provider value={{ user, profile, loading, viewMode, setViewMode, refreshProfile }}>
       {!loading && children}
     </AuthContext.Provider>
   );

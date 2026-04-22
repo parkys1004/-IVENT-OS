@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, getDocs, getDoc, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
@@ -81,6 +81,7 @@ type MenuKey = 'bookings' | 'records' | 'find' | 'favorites' | 'community' | 're
 type TabKey = string;
 
 export default function ParticipantDashboard({ forceMarketplace = false }: { forceMarketplace?: boolean }) {
+  const navigate = useNavigate();
   const { profile, user } = useAuth();
   const { t, categoryFilter, setCategoryFilter } = useLanguage();
   const [events, setEvents] = useState<EventData[]>([]);
@@ -241,7 +242,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       try {
         const usersQ = query(
           collection(db, 'users'), 
-          where('role', 'in', ['instructor', 'dj', 'media'])
+          where('role', 'in', ['instructor', 'dj', 'media']),
+          limit(20) // Limit to save reads
         );
         const snapshot = await getDocs(usersQ);
         const usersData = snapshot.docs.map(doc => ({
@@ -497,7 +499,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                     <Flame className="w-5 h-5 text-orange-500" />
                     <h3 className="text-xl font-black text-slate-800 dark:text-white">HOT 파티 & 이벤트</h3>
                   </div>
-                  <button onClick={() => setFilter('party')} className="text-xs font-bold text-slate-400 hover:text-orange-500 transition-colors uppercase tracking-wider">View All</button>
+                  <button onClick={() => navigate('/explore/party')} className="text-xs font-bold text-slate-400 hover:text-orange-500 transition-colors uppercase tracking-wider flex items-center gap-1 group">
+                    {t('ui.viewAll')}
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
                   {parties.map((event, idx) => (
@@ -516,7 +521,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                     <Star className="w-5 h-5 text-amber-500" />
                     <h3 className="text-xl font-black text-slate-800 dark:text-white">BEST 댄스 강습</h3>
                   </div>
-                  <button onClick={() => setFilter('class')} className="text-xs font-bold text-slate-400 hover:text-amber-500 transition-colors uppercase tracking-wider">View All</button>
+                  <button onClick={() => navigate('/explore/lesson')} className="text-xs font-bold text-slate-400 hover:text-amber-500 transition-colors uppercase tracking-wider flex items-center gap-1 group">
+                    {t('ui.viewAll')}
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
                   {lessons.map((event, idx) => (
@@ -535,7 +543,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                     <Award className="w-5 h-5 text-indigo-500" />
                     <h3 className="text-xl font-black text-slate-800 dark:text-white">전문 강사</h3>
                   </div>
-                  <button className="text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors uppercase tracking-wider">Meet All</button>
+                  <button onClick={() => navigate('/explore/instructor')} className="text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors uppercase tracking-wider flex items-center gap-1 group">
+                    {t('ui.viewAll')}
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {instructors.map((pro, idx) => (
@@ -554,7 +565,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                     <Music className="w-5 h-5 text-fuchsia-500" />
                     <h3 className="text-xl font-black text-slate-800 dark:text-white">DJ & 미디어</h3>
                   </div>
-                  <button className="text-xs font-bold text-slate-400 hover:text-fuchsia-500 transition-colors uppercase tracking-wider">Explore</button>
+                  <button onClick={() => navigate('/explore/dj_media')} className="text-xs font-bold text-slate-400 hover:text-fuchsia-500 transition-colors uppercase tracking-wider flex items-center gap-1 group">
+                    {t('ui.viewAll')}
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {djAndMedia.map((pro, idx) => (
@@ -1000,13 +1014,19 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
             {/* Smart Recommendations */}
             <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                    <Star className="w-5 h-5 fill-current" />
+               <div className="flex items-center justify-between px-2">
+                 <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                      <Star className="w-5 h-5 fill-current" />
+                   </div>
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white">회원님이 좋아하실 만한 추천 행사</h3>
                  </div>
-                 <h3 className="text-xl font-black text-slate-800 dark:text-white">회원님이 좋아하실 만한 추천 행사</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 <button onClick={() => navigate('/explore/party')} className="text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors uppercase tracking-wider flex items-center gap-1 group">
+                   {t('ui.viewAll')}
+                   <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                 </button>
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {events.slice(0, 3).map((event, idx) => (
                    <EventCard key={event.id} event={event} index={idx} />
                  ))}

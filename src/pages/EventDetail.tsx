@@ -1,59 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, updateDoc, increment, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useLanguage } from '../context/LanguageContext';
 import TypeBadge from '../components/TypeBadge';
+import { handleFirestoreError, OperationType } from '../lib/firestoreError';
+import { EventData } from '../components/EventCard';
 
-// Error specs
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const currentUser = auth.currentUser;
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: currentUser?.uid,
-      email: currentUser?.email ?? undefined,
-      emailVerified: currentUser?.emailVerified,
-      isAnonymous: currentUser?.isAnonymous,
-      providerInfo: currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error Detailed: ', JSON.stringify(errInfo, null, 2));
-  return errInfo;
+interface RegistrationData {
+  id?: string;
+  eventId: string;
+  userId: string;
+  hostId: string;
+  registeredAt: any;
+  status: 'confirmed' | 'cancelled';
 }
 
 import { format } from 'date-fns';
@@ -132,7 +92,7 @@ export default function EventDetail() {
   }, [id, user, navigate]);
 
   const handleRegister = async () => {
-    if (!user) {
+    if (!user || !event || !id) {
       alert("로그인이 필요합니다.");
       return;
     }
@@ -140,47 +100,68 @@ export default function EventDetail() {
     try {
       const regId = `${id}_${user.uid}`;
       const regRef = doc(db, 'registrations', regId);
+      const eventRef = doc(db, 'events', id);
       
-      await setDoc(regRef, {
-        eventId: id,
-        userId: user.uid,
-        hostId: event.hostId,
-        registeredAt: serverTimestamp(),
-        status: 'confirmed'
-      });
+      await runTransaction(db, async (transaction) => {
+        const eventSnap = await transaction.get(eventRef);
+        if (!eventSnap.exists()) throw new Error("EVENT_NOT_FOUND");
+        
+        const eventData = eventSnap.data() as EventData;
+        if (eventData.currentAttendees >= eventData.maxAttendees) {
+          throw new Error("FULL");
+        }
 
-      // Increment attendees
-      await updateDoc(doc(db, 'events', id!), {
-        currentAttendees: increment(1)
+        transaction.set(regRef, {
+          eventId: id,
+          userId: user.uid,
+          hostId: event.hostId,
+          registeredAt: serverTimestamp(),
+          status: 'confirmed'
+        });
+
+        transaction.update(eventRef, {
+          currentAttendees: increment(1)
+        });
       });
 
       setRegistration({ status: 'confirmed' });
       setEvent((prev: any) => ({ ...prev, currentAttendees: prev.currentAttendees + 1 }));
       alert("참여 신청이 완료되었습니다!");
-    } catch (err) {
-      console.error(err);
-      alert("신청 중 오류가 발생했습니다.");
+    } catch (err: any) {
+      if (err.message === "FULL") {
+        alert("정원이 초과되어 신청할 수 없습니다.");
+      } else {
+        console.error(err);
+        alert("신청 중 오류가 발생했습니다.");
+      }
     } finally {
       setProcessing(false);
     }
   };
 
   const handleCancel = async () => {
+    if (!user || !id) return;
     if (!window.confirm("정말 참여를 취소하시겠습니까?")) return;
     setProcessing(true);
     try {
-      const regId = `${id}_${user?.uid}`;
-      await deleteDoc(doc(db, 'registrations', regId));
-      
-      // Decrement attendees
-      await updateDoc(doc(db, 'events', id!), {
-        currentAttendees: increment(-1)
+      const regId = `${id}_${user.uid}`;
+      const regRef = doc(db, 'registrations', regId);
+      const eventRef = doc(db, 'events', id);
+
+      await runTransaction(db, async (transaction) => {
+        const regSnap = await transaction.get(regRef);
+        if (!regSnap.exists()) throw new Error("NOT_REGISTERED");
+
+        transaction.delete(regRef);
+        transaction.update(eventRef, {
+          currentAttendees: increment(-1)
+        });
       });
 
       setRegistration(null);
-      setEvent((prev: any) => ({ ...prev, currentAttendees: prev.currentAttendees - 1 }));
+      setEvent((prev: any) => ({ ...prev, currentAttendees: Math.max(0, prev.currentAttendees - 1) }));
       alert("참여가 취소되었습니다.");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       alert("취소 중 오류가 발생했습니다.");
     } finally {
@@ -189,28 +170,39 @@ export default function EventDetail() {
   };
 
   const toggleLike = async () => {
-    if (!user) {
+    if (!user || !id) {
       alert("로그인이 필요합니다.");
       return;
     }
     const likeId = `${id}_${user.uid}`;
     const likeRef = doc(db, 'eventLikes', likeId);
+    const eventRef = doc(db, 'events', id);
     
     try {
       if (isLiked) {
-        await deleteDoc(likeRef);
-        await updateDoc(doc(db, 'events', id!), {
-          likesCount: increment(-1)
+        await runTransaction(db, async (transaction) => {
+          const likeSnap = await transaction.get(likeRef);
+          if (!likeSnap.exists()) return;
+
+          const eventSnap = await transaction.get(eventRef);
+          const currentLikes = eventSnap.data()?.likesCount || 0;
+
+          transaction.delete(likeRef);
+          transaction.update(eventRef, {
+            likesCount: Math.max(0, currentLikes - 1)
+          });
         });
-        setEvent((prev: any) => ({ ...prev, likesCount: Math.max(0, (prev.likesCount || 1) - 1) }));
+        setEvent((prev: any) => ({ ...prev, likesCount: Math.max(0, (prev.likesCount || 0) - 1) }));
       } else {
-        await setDoc(likeRef, {
-          eventId: id,
-          userId: user.uid,
-          createdAt: serverTimestamp()
-        });
-        await updateDoc(doc(db, 'events', id!), {
-          likesCount: increment(1)
+        await runTransaction(db, async (transaction) => {
+          transaction.set(likeRef, {
+            eventId: id,
+            userId: user.uid,
+            createdAt: serverTimestamp()
+          });
+          transaction.update(eventRef, {
+            likesCount: increment(1)
+          });
         });
         setEvent((prev: any) => ({ ...prev, likesCount: (prev.likesCount || 0) + 1 }));
       }

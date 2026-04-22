@@ -4,58 +4,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Autocomplete } from '@react-google-maps/api';
 
-// Error specs
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const currentUser = auth.currentUser;
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: currentUser?.uid,
-      email: currentUser?.email ?? undefined,
-      emailVerified: currentUser?.emailVerified,
-      isAnonymous: currentUser?.isAnonymous,
-      tenantId: currentUser?.tenantId ?? undefined,
-      providerInfo: currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error Detailed: ', JSON.stringify(errInfo, null, 2));
-  return errInfo;
-}
+import { handleFirestoreError, OperationType } from '../lib/firestoreError';
 
 import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, Image as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -175,10 +124,10 @@ export default function CreateEvent() {
       const base64Data = (await resizeAndCompressImage(file)).split(',')[1];
       const mimeType = 'image/webp';
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
       
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash", // Updated to latest stable flash model
         contents: [
           {
             inlineData: {
@@ -186,7 +135,7 @@ export default function CreateEvent() {
               mimeType: mimeType
             }
           },
-          "Extract event information from this poster/flyer image. Strictly follow the JSON schema. Use one of these categories: 'IT', 'Music', 'Networking', 'Education'. If info is missing, leave empty string. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For locationName, extract the venue name. For formattedAddress, extract the official address. For city, extract the city name (e.g., Seoul)., For country, use 2-letter code (e.g., KR)."
+          "Extract event information from this dance poster. Strictly follow the JSON schema. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson'. If info is missing, leave empty string. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For locationName, extract the venue name. For formattedAddress, extract the official address. For city, extract the city name (e.g., Seoul)., For country, use 2-letter code (e.g., KR)."
         ],
         config: {
           responseMimeType: "application/json",
@@ -195,7 +144,7 @@ export default function CreateEvent() {
             properties: {
               title: { type: Type.STRING, description: "Event title" },
               description: { type: Type.STRING, description: "Event detailed description" },
-              category: { type: Type.STRING, description: "Category of the event (only IT, Music, Networking, Education)" },
+              category: { type: Type.STRING, description: "Category of the event (salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson)" },
               date: { type: Type.STRING, description: "Event start date in YYYY-MM-DD format" },
               time: { type: Type.STRING, description: "Event start time in 24h HH:mm format" },
               endDate: { type: Type.STRING, description: "Event end date in YYYY-MM-DD format" },
@@ -213,11 +162,12 @@ export default function CreateEvent() {
       
       if (response.text) {
         const parsed = JSON.parse(response.text);
+        const validCategories = ['salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson'];
         setFormData(prev => ({
            ...prev,
            title: parsed.title || prev.title,
            description: parsed.description || prev.description,
-           category: ['IT', 'Music', 'Networking', 'Education'].includes(parsed.category) ? parsed.category : prev.category,
+           category: validCategories.includes(parsed.category) ? parsed.category : 'party',
            date: parsed.date || prev.date,
            time: parsed.time || prev.time,
            endDate: parsed.endDate || prev.endDate,
@@ -302,6 +252,19 @@ export default function CreateEvent() {
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
       const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
+
+      // Basic Date Validations
+      const now = new Date();
+      if (startDate < now) {
+        alert("시작 시간은 현재보다 과거일 수 없습니다.");
+        setLoading(false);
+        return;
+      }
+      if (endDate <= startDate) {
+        alert("종료 시간은 시작 시간 이후여야 합니다.");
+        setLoading(false);
+        return;
+      }
 
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : '';

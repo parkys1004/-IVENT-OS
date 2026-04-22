@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, setDoc, serverTimestamp, limit, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -109,12 +109,47 @@ export default function AdminDashboard() {
   // Navigation State
   const [activeMenu, setActiveMenu] = useState<MenuKey>('home');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchAdminData = async () => {
+    setLoading(true);
+    setIsRefreshing(true);
+    try {
+      // Use limits to prevent massive read quota consumption
+      const eventsQ = query(collection(db, 'events'), orderBy('date', 'desc'), limit(100));
+      const usersQ = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(100));
+      const promoQ = query(collection(db, 'promoBanners'), orderBy('updatedAt', 'desc'));
+      const configDoc = doc(db, 'settings', 'dashboard');
+
+      const [eventsSnap, usersSnap, promoSnap, configSnap] = await Promise.all([
+        getDocs(eventsQ),
+        getDocs(usersQ),
+        getDocs(promoQ),
+        getDoc(configDoc)
+      ]);
+
+      setEvents(eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as EventData[]);
+      setUsers(usersSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as UserProfile[]);
+      setPromoBanners(promoSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as PromoBanner[]);
+      
+      if (configSnap.exists()) {
+        setDashboardConfig(configSnap.data() as DashboardConfig);
+      }
+    } catch (err) {
+      console.error("Admin fetch error", err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   const handleRoleChange = async (uid: string, newRole: string) => {
     try {
       await updateDoc(doc(db, 'users', uid), {
         role: newRole
       });
+      // Update local state instead of re-fetching everything
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole } : u));
     } catch (error) {
       console.error("Failed to update user role:", error);
       alert("회원 유형 변경 중 오류가 발생했습니다.");
@@ -131,6 +166,7 @@ export default function AdminDashboard() {
       await updateDoc(doc(db, 'events', eventId), {
         isBanner: !currentStatus
       });
+      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, isBanner: !currentStatus } : e));
     } catch (error) {
       console.error("Failed to update banner status:", error);
     }
@@ -141,6 +177,7 @@ export default function AdminDashboard() {
       await updateDoc(doc(db, 'events', eventId), {
         status: 'published'
       });
+      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'published' } : e));
       alert('행사가 승인 및 공개되었습니다.');
     } catch (error) {
       console.error("Failed to approve event:", error);
@@ -151,12 +188,22 @@ export default function AdminDashboard() {
   const handlePromoBannerSave = async (id: string) => {
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'promoBanners', id), {
+      const bannerData = {
         imageUrl: editImageUrl,
         linkUrl: editLinkUrl,
         isActive: true,
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      };
+      await setDoc(doc(db, 'promoBanners', id), bannerData, { merge: true });
+      
+      setPromoBanners(prev => {
+        const existing = prev.find(b => b.id === id);
+        if (existing) {
+          return prev.map(b => b.id === id ? { ...b, ...bannerData, updatedAt: new Date() } : b);
+        }
+        return [{ id, ...bannerData, updatedAt: new Date() } as any, ...prev];
+      });
+
       setEditBannerId(null);
       alert('홍보 배너가 저장되었습니다.');
     } catch (error) {
@@ -206,61 +253,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    // Admin needs full access, so we just query everything
-    let unsubEvents: () => void;
-    let unsubUsers: () => void;
-    let unsubPromo: () => void;
-    let unsubConfig: () => void;
-
-    const fetchAdminData = () => {
-      try {
-        const eventsQ = query(collection(db, 'events'), orderBy('date', 'desc'));
-        const usersQ = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-        const promoQ = query(collection(db, 'promoBanners'), orderBy('updatedAt', 'desc'));
-        const configDoc = doc(db, 'settings', 'dashboard');
-
-        // Realtime for events
-        unsubEvents = onSnapshot(eventsQ, (snapshot) => {
-          setEvents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as EventData[]);
-        }, (error) => {
-          console.error("Admin events snapshot error:", error);
-          setLoading(false);
-        });
-
-        // Realtime for users
-        unsubUsers = onSnapshot(usersQ, (snapshot) => {
-          setUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as UserProfile[]);
-          setLoading(false);
-        }, (error) => {
-          console.error("Admin users snapshot error:", error);
-          setLoading(false);
-        });
-
-        // Realtime for promo banners
-        unsubPromo = onSnapshot(promoQ, (snapshot) => {
-          setPromoBanners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as PromoBanner[]);
-        });
-
-        // Realtime for dashboard config
-        unsubConfig = onSnapshot(configDoc, (snapshot) => {
-          if (snapshot.exists()) {
-            setDashboardConfig(snapshot.data() as DashboardConfig);
-          }
-        });
-      } catch (err) {
-        console.error("Admin fetch error", err);
-        setLoading(false);
-      }
-    };
-
     fetchAdminData();
-    
-    return () => {
-      if (unsubEvents) unsubEvents();
-      if (unsubUsers) unsubUsers();
-      if (unsubPromo) unsubPromo();
-      if (unsubConfig) unsubConfig();
-    };
   }, []);
 
   const handlePriorityChange = async (collectionName: 'events' | 'users', id: string, priority: number) => {
@@ -586,15 +579,29 @@ export default function AdminDashboard() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden flex flex-col p-6 lg:p-10 min-h-0">
-        <div className="flex items-center gap-2 text-sm text-slate-500 font-bold mb-6 tracking-tight shrink-0">
-          <span>Admin</span>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-slate-800 dark:text-white">
-            {activeMenu === 'banners' && '메인 배너 관리'}
-            {activeMenu === 'config' && '홈 화면 설정'}
-            {activeMenu === 'finance' && '정산 관리'}
-            {activeMenu === 'settings' && '시스템 설정'}
-          </span>
+        <div className="text-slate-800 dark:text-white flex justify-between items-center w-full">
+          <div className="flex items-center gap-2">
+            <span>Admin</span>
+            <ChevronRight className="w-4 h-4" />
+            <span>
+              {activeMenu === 'banners' && '메인 배너 관리'}
+              {activeMenu === 'config' && '홈 화면 설정'}
+              {activeMenu === 'finance' && '정산 관리'}
+              {activeMenu === 'settings' && '시스템 설정'}
+              {activeMenu === 'home' && '종합 대시보드'}
+              {activeMenu === 'users' && '회원 관리'}
+              {activeMenu === 'events' && '행사 관리'}
+            </span>
+          </div>
+          
+          <button 
+            onClick={fetchAdminData}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+            {isRefreshing ? '새로고침 중...' : '데이터 새로고침'}
+          </button>
         </div>
 
         {/* Render body by activeMenu */}

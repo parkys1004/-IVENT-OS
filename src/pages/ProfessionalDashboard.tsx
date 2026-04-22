@@ -16,7 +16,7 @@ type MenuKey = 'activities' | 'events' | 'profile' | 'participants' | 'community
 type TabKey = string;
 
 export default function ProfessionalDashboard() {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   
   const [activeMenu, setActiveMenu] = useState<MenuKey>('activities');
@@ -127,8 +127,9 @@ export default function ProfessionalDashboard() {
     photoURL: '',
   });
 
+  const isInitializedRef = useRef(false);
   useEffect(() => {
-    if (profile) {
+    if (profile && !isInitializedRef.current) {
       setProfileForm({
         displayName: profile.displayName || '',
         shortBio: (profile as any).shortBio || '',
@@ -139,6 +140,7 @@ export default function ProfessionalDashboard() {
         studioLocation: (profile as any).studioLocation || '',
         photoURL: profile.photoURL || '',
       });
+      isInitializedRef.current = true;
     }
   }, [profile]);
 
@@ -175,6 +177,7 @@ export default function ProfessionalDashboard() {
         photoURL: profileForm.photoURL,
         profileUpdated: true
       });
+      await refreshProfile();
       setSaveMessage('프로필이 성공적으로 저장되었습니다.');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (error) {

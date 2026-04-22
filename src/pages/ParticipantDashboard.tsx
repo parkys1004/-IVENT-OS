@@ -434,14 +434,14 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       </div>
 
       {/* Hero / Banner Area */}
-      <section className="grid grid-cols-1 lg:grid-cols-[2.5fr_1fr] 2xl:grid-cols-[3fr_1fr] gap-8 xl:gap-10 shrink-0">
+      <section className="grid grid-cols-1 lg:grid-cols-[2.5fr_1fr] 2xl:grid-cols-[3fr_1fr] gap-8 xl:gap-10 shrink-0 lg:h-[400px] xl:h-[460px]">
         <div 
-          className="flex flex-col h-full min-h-[300px] overflow-hidden group/slider relative"
+          className="flex flex-col h-[300px] lg:h-full overflow-hidden group/slider relative"
           onMouseEnter={() => setIsSliderPaused(true)}
           onMouseLeave={() => setIsSliderPaused(false)}
         >
           {displayBanners.length > 0 ? (
-            <div className="relative w-full h-[300px] lg:h-[400px] xl:h-[460px] overflow-hidden rounded-[24px]">
+            <div className="relative w-full h-full overflow-hidden rounded-[24px]">
               {displayBanners.map((event, idx) => (
                 <div 
                   key={event.id} 
@@ -470,20 +470,58 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
               )}
             </div>
           ) : (
-            <div className="w-full h-full min-h-[300px] bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 flex items-center justify-center">
+            <div className="w-full h-full bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 flex items-center justify-center">
               현재 등록된 배너 행사가 없습니다.
             </div>
           )}
         </div>
         
-        <div className="flex flex-col h-full gap-4 xl:gap-6">
-          <div className="bg-indigo-600 dark:bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden flex-1 shadow-xl">
-            <Zap className="absolute -right-8 -bottom-8 w-40 h-40 opacity-10 rotate-12" />
-            <h4 className="text-xl font-black mb-2 relative z-10">Daily Match</h4>
-            <p className="text-indigo-100 text-sm font-bold opacity-80 leading-relaxed relative z-10">
-              오늘 밤 함께 춤출<br />최고의 파트너를 찾아보세요.
-            </p>
-          </div>
+        <div className="flex flex-col h-full gap-4 xl:gap-6 min-h-[300px] lg:min-h-0">
+          {promoBanners.find(b => b.id === 'sidebar1') ? (
+            <a 
+              href={promoBanners.find(b => b.id === 'sidebar1')?.linkUrl || '#'} 
+              target={promoBanners.find(b => b.id === 'sidebar1')?.linkUrl?.startsWith('http') ? "_blank" : "_self"}
+              rel="noreferrer"
+              className="relative flex-1 overflow-hidden rounded-[2rem] shadow-xl group cursor-pointer min-h-[140px]"
+            >
+              <img 
+                src={promoBanners.find(b => b.id === 'sidebar1')?.imageUrl} 
+                alt="Promotion 1" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+              />
+            </a>
+          ) : (
+            <div className="bg-indigo-600 dark:bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden flex-1 shadow-xl flex items-center justify-center min-h-[140px]">
+              <div className="text-center">
+                <Zap className="w-8 h-8 text-indigo-200 mb-2 mx-auto opacity-50" />
+                <p className="text-xs font-black uppercase tracking-widest opacity-40">Side Ad 1</p>
+              </div>
+            </div>
+          )}
+
+          {promoBanners.find(b => b.id === 'sidebar2') ? (
+            <a 
+              href={promoBanners.find(b => b.id === 'sidebar2')?.linkUrl || '#'} 
+              target={promoBanners.find(b => b.id === 'sidebar2')?.linkUrl?.startsWith('http') ? "_blank" : "_self"}
+              rel="noreferrer"
+              className="relative flex-1 overflow-hidden rounded-[2rem] shadow-xl group cursor-pointer min-h-[140px]"
+            >
+              <img 
+                src={promoBanners.find(b => b.id === 'sidebar2')?.imageUrl} 
+                alt="Promotion 2" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+              />
+            </a>
+          ) : (
+            <div className="bg-slate-800 dark:bg-slate-950 rounded-[2rem] p-8 text-white relative overflow-hidden flex-1 shadow-xl flex items-center justify-center min-h-[140px]">
+               <div className="text-center">
+                <Music className="w-8 h-8 text-slate-400 mb-2 mx-auto opacity-50" />
+                <p className="text-xs font-black uppercase tracking-widest opacity-40">Side Ad 2</p>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

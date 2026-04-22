@@ -48,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchProfile = async (userId: string) => {
+    console.log("Fetching profile for user:", userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -55,8 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase profile error:", error);
+        throw error;
+      }
+      
       if (data) {
+        console.log("Profile found:", data.display_name);
         const mappedProfile: UserProfile = {
           uid: data.id,
           email: data.email,
@@ -73,9 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.role === 'admin') setViewMode('admin');
         else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
         else setViewMode('participant');
+      } else {
+        console.warn("User has no profile record in 'profiles' table.");
       }
     } catch (error) {
-      console.error("Profile fetch error:", error);
+      console.error("Critical failure in fetchProfile:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,27 +94,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log("AuthProvider initialized, checking session...");
+    
+    // Safety timeout: If loading isn't finished in 5s, force it
+    const timer = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) {
+          console.warn("Auth loading exceeded 5s. Forcing resolution to avoid hang.");
+          return false;
+        }
+        return prev;
+      });
+    }, 5000);
+
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Session fetched:", session ? "User active" : "No session");
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
       }
+    }).catch(err => {
+      console.error("getSession error:", err);
       setLoading(false);
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log("Auth state change event:", _event);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        fetchProfile(session.user.id);
       } else {
         setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

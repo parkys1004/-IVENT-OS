@@ -21,8 +21,13 @@ export default function DashboardSwitcher({ forceExplore = false }: { forceExplo
     }
   }, [profile, viewMode, setViewMode, forceExplore]);
 
-  if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div></div>;
+  if (loading && !profile) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center py-40">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
+        <p className="text-slate-400 font-bold animate-pulse text-sm">보안 세션을 확인하고 있습니다...</p>
+      </div>
+    );
   }
 
   // Determine dashboard based on viewMode

@@ -239,7 +239,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           .from('settings')
           .select('value')
           .eq('key', 'dashboard')
-          .single();
+          .maybeSingle();
         
         if (configData) setDashboardConfig(prev => ({ ...prev, ...configData.value }));
 

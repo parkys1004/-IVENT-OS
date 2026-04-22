@@ -109,7 +109,7 @@ export default function AdminDashboard() {
         supabase.from('events').select('*').order('date', { ascending: false }).limit(100),
         supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100),
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
-        supabase.from('settings').select('value').eq('key', 'dashboard').single()
+        supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle()
       ]);
 
       if (eventsData) setEvents(eventsData.map(e => ({ 

@@ -92,14 +92,17 @@ export default function EventDetail() {
 
         if (user) {
           // Check registration
-          const { data: regData } = await supabase
+          const { data: regData, error: regError } = await supabase
             .from('registrations')
             .select('*')
             .eq('event_id', id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
           
           if (regData) setRegistration(regData);
+          if (regError && regError.code !== 'PGRST116') {
+            console.error("Error fetching registration:", regError);
+          }
 
           // Check Like status (Placeholder if event_likes table exists)
           // In simpler setup, we can use a separate table or just skip if not critical
@@ -124,12 +127,12 @@ export default function EventDetail() {
     try {
       console.log("Attempting registration:", { event_id: id, user_id: user.id });
       // Direct insertion. RLS will handle auth checks.
+      // We removed explicit 'status: confirmed' to let it default to 'pending' if the policy is strict.
       const { data, error } = await supabase
         .from('registrations')
         .insert({
           event_id: id,
-          user_id: user.id,
-          status: 'confirmed'
+          user_id: user.id
         })
         .select();
 

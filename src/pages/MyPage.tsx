@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Settings, Save, AtSign, ShieldCheck, Ticket } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase';
-import { doc, updateDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { supabase } from '../supabase';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -22,39 +21,42 @@ export default function MyPage() {
     if (profile?.displayName) {
       setDisplayName(profile.displayName);
     }
-  }, [profile?.displayName]); // Dependency on specific field
+  }, [profile?.displayName]);
 
   useEffect(() => {
     async function fetchRegistrations() {
       if (!user) return;
       setLoadingRegs(true);
       try {
-        const q = query(
-          collection(db, 'registrations'), 
-          where('userId', '==', user.uid),
-          orderBy('registeredAt', 'desc')
-        );
-        const snap = await getDocs(q);
-        const regs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const { data, error } = await supabase
+          .from('registrations')
+          .select(`
+            id,
+            status,
+            registered_at,
+            event_id,
+            event:events (
+              title,
+              date,
+              is_lesson
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('registered_at', { ascending: false });
+
+        if (error) throw error;
         
-        // Fetch event details for each registration - Using doc() + getDoc() is more efficient than query()
-        const { getDoc, doc } = await import('firebase/firestore');
-        const regsWithEvents = await Promise.all(regs.map(async (reg: any) => {
-          try {
-            const eventSnap = await getDoc(doc(db, 'events', reg.eventId));
-            const evData = eventSnap.exists() ? eventSnap.data() : null;
-            return {
-              ...reg,
-              eventTitle: evData?.title || '알 수 없는 행사',
-              eventDate: evData?.date,
-              isLesson: evData?.isLesson || false,
-            };
-          } catch (err) {
-            return { ...reg, eventTitle: '불러오기 실패' };
-          }
-        }));
+        const mappedRegs = data?.map((reg: any) => ({
+          id: reg.id,
+          eventId: reg.event_id,
+          status: reg.status,
+          registeredAt: reg.registered_at,
+          eventTitle: reg.event?.title || '알 수 없는 행사',
+          eventDate: reg.event?.date,
+          isLesson: reg.event?.is_lesson || false,
+        })) || [];
         
-        setRegistrations(regsWithEvents);
+        setRegistrations(mappedRegs);
       } catch (error) {
         console.error("Error fetching registrations:", error);
       } finally {
@@ -62,10 +64,10 @@ export default function MyPage() {
       }
     }
     
-    if (user?.uid) {
+    if (user?.id) {
        fetchRegistrations();
     }
-  }, [user?.uid]); // Only fetch when UID changes, not on profile object updates
+  }, [user?.id]);
 
   if (!user || !profile) {
     return <div className="p-20 text-center text-slate-500">로그인이 필요합니다.</div>;
@@ -76,12 +78,15 @@ export default function MyPage() {
     setIsSaving(true);
     setSaveMessage('');
     try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { displayName });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ display_name: displayName })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
       await refreshProfile();
       setSaveMessage('프로필이 성공적으로 업데이트되었습니다.');
-      // Update local profile object if necessary, but AuthContext handles real-time ideally?
-      // AuthContext fetches once on auth state load. Real-time updates for profile might need page reload.
     } catch (error) {
       console.error(error);
       setSaveMessage('업데이트 중 오류가 발생했습니다.');
@@ -115,8 +120,8 @@ export default function MyPage() {
              </div>
              <form onSubmit={handleUpdateProfile} className="p-6 space-y-5">
                <div className="flex flex-col items-center mb-6">
-                 {user.photoURL ? (
-                    <img src={user.photoURL} alt="Profile" className="w-20 h-20 rounded-full mb-3 shadow-sm border border-slate-200 dark:border-slate-700" referrerPolicy="no-referrer" />
+                 {profile.photoURL ? (
+                    <img src={profile.photoURL} alt="Profile" className="w-20 h-20 rounded-full mb-3 shadow-sm border border-slate-200 dark:border-slate-700" referrerPolicy="no-referrer" />
                  ) : (
                     <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
                       <User className="w-8 h-8 text-slate-300 dark:text-slate-600" />
@@ -198,8 +203,8 @@ export default function MyPage() {
                ) : (
                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
                    {registrations.map(reg => {
-                     const dateObj = reg.eventDate?.toDate ? reg.eventDate.toDate() : null;
-                     const regDateObj = reg.registeredAt?.toDate ? reg.registeredAt.toDate() : new Date();
+                     const dateObj = reg.eventDate ? new Date(reg.eventDate) : null;
+                     const regDateObj = reg.registeredAt ? new Date(reg.registeredAt) : new Date();
 
                      return (
                        <div key={reg.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">

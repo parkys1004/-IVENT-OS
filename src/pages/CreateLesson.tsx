@@ -1,63 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { supabase } from '../supabase';
+import { handleSupabaseError } from '../lib/supabaseError';
 import { Autocomplete } from '@react-google-maps/api';
-
-// Error specs
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const currentUser = auth.currentUser;
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: currentUser?.uid,
-      email: currentUser?.email ?? undefined,
-      emailVerified: currentUser?.emailVerified,
-      isAnonymous: currentUser?.isAnonymous,
-      tenantId: currentUser?.tenantId ?? undefined,
-      providerInfo: currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error Detailed: ', JSON.stringify(errInfo, null, 2));
-  return errInfo;
-}
-
-import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, Image as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, GraduationCap } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import clsx from 'clsx';
@@ -67,7 +13,6 @@ export default function CreateLesson() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const multiFileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -205,35 +150,32 @@ export default function CreateLesson() {
     setLoading(true);
     try {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
-      const endDateTime = new Date(`${formData.endDate || formData.date}T${formData.endTime || formData.time}`);
+      // const endDateTime = new Date(`${formData.endDate || formData.date}T${formData.endTime || formData.time}`);
 
-      const docRef = await addDoc(collection(db, 'events'), {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        date: startDateTime,
-        endDate: endDateTime,
-        locationName: formData.locationName,
-        formattedAddress: formData.formattedAddress,
-        country: formData.country,
-        city: formData.city,
-        geoPoint: formData.geoPoint,
-        imageUrl: formData.imageUrl,
-        maxAttendees: formData.maxAttendees,
-        currentAttendees: 0,
-        hostId: user.uid,
-        hostName: profile.displayName || '강사',
-        status: 'published',
-        isLesson: true, // Explicit flag for lesson page
-        createdAt: serverTimestamp(),
-        paymentMethod: formData.paymentMethod,
-        tickets: formData.tickets,
-        level: formData.level, // Saved for lessons
-      });
+      const { data, error } = await supabase
+        .from('events')
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          date: startDateTime.toISOString(),
+          location_name: formData.locationName,
+          image_url: formData.imageUrl,
+          max_attendees: formData.maxAttendees,
+          host_id: user.id,
+          status: 'published',
+          is_lesson: true,
+          // level, paymentMethod, tickets etc to be handled
+        })
+        .select()
+        .single();
 
-      navigate(`/event/${docRef.id}`);
+      if (error) throw error;
+      if (data) {
+        navigate(`/event/${data.id}`);
+      }
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'events');
+      handleSupabaseError(error, 'create', 'events', user?.id || '');
       alert('강습 등록 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);

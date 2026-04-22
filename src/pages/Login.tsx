@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginWithGoogle } from '../firebase';
+import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, ShieldCheck, AlertCircle, Wind, Music, GraduationCap, Camera, CheckCircle2, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth, UserRole } from '../context/AuthContext';
-
 import { useLanguage } from '../context/LanguageContext';
 
 export default function Login() {
@@ -38,14 +37,15 @@ export default function Login() {
     }
 
     try {
-      await loginWithGoogle();
-      navigate('/');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
     } catch (error: any) {
-      if (error?.code === 'auth/popup-closed-by-user') {
-        setErrorMsg(null);
-      } else {
-        setErrorMsg(`로그인 처리 중 문제가 발생했습니다. 아이프레임 차단 이슈일 수 있으니 우측 상단 "🔗 새 탭에서 열기"를 눌러 다시 시도해주세요. (${error.message || '오류'})`);
-      }
+      setErrorMsg(`로그인 처리 중 문제가 발생했습니다. (${error.message || '오류'})`);
       window.sessionStorage.removeItem('intendedRole');
     } finally {
       setLoading(false);
@@ -117,7 +117,7 @@ export default function Login() {
                   </span>
                   이제 아래 버튼을 눌러{" "}
                   <span className="text-orange-600 dark:text-amber-400 underline decoration-2 underline-offset-2">
-                    {selectedRole === 'user' ? '일반 참여자' : 
+                    {selectedRole === 'participant' ? '일반 참여자' : 
                      selectedRole === 'host' ? '행사 주최자' : 
                      selectedRole === 'dj' ? 'DJ' : 
                      selectedRole === 'instructor' ? '강사' : '포토/영상 전문가'}
@@ -127,15 +127,15 @@ export default function Login() {
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
                 <button
-                  onClick={() => setSelectedRole('user')}
+                  onClick={() => setSelectedRole('participant')}
                   className={clsx(
                     "flex flex-col items-center justify-center gap-2 p-3 rounded-[16px] border-2 transition-all",
-                    selectedRole === 'user' 
+                    selectedRole === 'participant' 
                       ? "border-orange-500 bg-amber-50 dark:bg-amber-900/20 text-orange-700 dark:text-amber-400" 
                       : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500 hover:border-amber-200 hover:bg-amber-50/50 dark:hover:border-slate-700 dark:hover:bg-slate-800"
                   )}
                 >
-                  <User className={clsx("w-6 h-6", selectedRole === 'user' ? "text-orange-600 dark:text-amber-400" : "text-slate-400")} />
+                  <User className={clsx("w-6 h-6", selectedRole === 'participant' ? "text-orange-600 dark:text-amber-400" : "text-slate-400")} />
                   <span className="font-bold text-xs">일반 참여자</span>
                 </button>
 

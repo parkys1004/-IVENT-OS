@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { supabase } from '../supabase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -12,7 +11,7 @@ interface EventData {
   id: string;
   title: string;
   category: string;
-  date: any;
+  date: string;
   currentAttendees: number;
   maxAttendees: number;
   status: string;
@@ -26,26 +25,35 @@ export default function HostDashboard() {
   useEffect(() => {
     if (!user) return;
     
-    // Only fetch events created by this host
-    const q = query(
-      collection(db, 'events'),
-      where('hostId', '==', user.uid),
-      orderBy('date', 'desc')
-    );
+    const fetchEvents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('host_id', user.id)
+          .order('date', { ascending: false });
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const eventsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as EventData[];
-      setMyEvents(eventsData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching host events:", error);
-      setLoading(false);
-    });
+        if (error) throw error;
+        
+        const mappedData = (data || []).map(e => ({
+          id: e.id,
+          title: e.title,
+          category: e.category,
+          date: e.date,
+          currentAttendees: e.current_attendees || 0,
+          maxAttendees: e.max_attendees || 0,
+          status: e.status
+        })) as EventData[];
 
-    return () => unsubscribe();
+        setMyEvents(mappedData);
+      } catch (error) {
+        console.error("Error fetching host events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
   }, [user]);
 
   if (loading) {
@@ -126,7 +134,7 @@ export default function HostDashboard() {
               </thead>
               <tbody>
                 {myEvents.map(event => {
-                  const dateObj = event.date?.toDate ? event.date.toDate() : new Date();
+                  const dateObj = event.date ? new Date(event.date) : new Date();
                   const fillPercentage = Math.round((event.currentAttendees / event.maxAttendees) * 100) || 0;
                   
                   return (

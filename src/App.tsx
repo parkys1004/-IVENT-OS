@@ -16,6 +16,37 @@ import AnimatedBackground from './components/AnimatedBackground';
 import clsx from 'clsx';
 import { useAuth } from './context/AuthContext';
 
+import { AlertCircle, ExternalLink } from 'lucide-react';
+
+function SupabaseConfigWarning() {
+  const isPlaceholder = import.meta.env.VITE_SUPABASE_URL === undefined || 
+                       import.meta.env.VITE_SUPABASE_URL.includes('placeholder-url');
+
+  if (!isPlaceholder) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[9999] max-w-sm bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 p-4 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex gap-3">
+        <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+        <div className="space-y-2">
+          <h4 className="text-sm font-bold text-rose-900 dark:text-rose-100">Supabase 설정 필요</h4>
+          <p className="text-xs text-rose-700 dark:text-rose-300 leading-relaxed">
+            실제 데이터를 불러오려면 Supabase URL과 Anon Key를 설정해야 합니다. AI Studio의 <strong>Settings &gt; Secrets</strong> 메뉴에서 설정해 주세요.
+          </p>
+          <div className="flex gap-3">
+             <div className="text-[10px] font-mono bg-rose-100 dark:bg-rose-950 px-1.5 py-0.5 rounded text-rose-600 dark:text-rose-400">
+               VITE_SUPABASE_URL
+             </div>
+             <div className="text-[10px] font-mono bg-rose-100 dark:bg-rose-950 px-1.5 py-0.5 rounded text-rose-600 dark:text-rose-400">
+               VITE_SUPABASE_ANON_KEY
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const { profile, viewMode } = useAuth();
   const location = useLocation();
@@ -53,6 +84,7 @@ function AppContent() {
       </main>
       {!isDashboardView && <Footer />}
       <ScrollToTop />
+      <SupabaseConfigWarning />
     </div>
   );
 }

@@ -1,12 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { supabase } from '../supabase';
+import { handleSupabaseError } from '../lib/supabaseError';
 import { Autocomplete } from '@react-google-maps/api';
-
-import { handleFirestoreError, OperationType } from '../lib/firestoreError';
-
-import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, Image as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
@@ -40,6 +37,7 @@ export default function CreateEvent() {
     media: [] as string[],
     paymentMethod: '',
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
+    isLesson: false,
   });
 
   const { isLoaded, loadError } = useGoogleMaps();
@@ -121,7 +119,8 @@ export default function CreateEvent() {
   const handleAiAnalyze = async (file: File) => {
     setAiLoading(true);
     try {
-      const base64Data = (await resizeAndCompressImage(file)).split(',')[1];
+      const dataUrl = await resizeAndCompressImage(file);
+      const base64Data = dataUrl.split(',')[1];
       const mimeType = 'image/webp';
 
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
@@ -267,42 +266,38 @@ export default function CreateEvent() {
       }
 
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
-      const mainImageUrl = images.length > 0 ? images[coverImageIndex] : '';
+      const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
 
-      const newEvent = {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        date: startDate,
-        endDate: endDate,
-        locationName: formData.locationName,
-        formattedAddress: formData.formattedAddress,
-        country: formData.country,
-        city: formData.city,
-        geoPoint: formData.geoPoint,
-        imageUrl: mainImageUrl, 
-        imageUrls: images,
-        coverImageIndex: coverImageIndex,
-        maxAttendees: Number(formData.maxAttendees),
-        currentAttendees: 0,
-        hostId: user.uid,
-        hostName: profile.displayName || user.email?.split('@')[0] || 'Unknown',
-        status: 'draft',
-        createdAt: serverTimestamp(),
-        likesCount: 0,
-        // New fields
-        djs: formData.djs.filter(dj => dj.trim() !== ''),
-        performances: formData.performances.filter(p => p.trim() !== ''),
-        media: formData.media.filter(m => m.trim() !== ''),
-        paymentMethod: formData.paymentMethod,
-        tickets: formData.tickets.filter(t => t.name.trim() !== ''),
-      };
+      const { data, error } = await supabase
+        .from('events')
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          date: startDate.toISOString(),
+          // endDate: endDate.toISOString(), // Not in SQL schema yet, using as date
+          location_name: formData.locationName,
+          // formattedAddress: formData.formattedAddress,
+          // country: formData.country,
+          // city: formData.city,
+          // geoPoint: formData.geoPoint,
+          image_url: mainImageUrl, 
+          // imageUrls: images,
+          // coverImageIndex: coverImageIndex,
+          max_attendees: Number(formData.maxAttendees),
+          host_id: user.id,
+          status: 'draft',
+          is_lesson: formData.isLesson,
+          // djs, performances, media, paymentMethod, tickets usually go to JSONB or related tables
+          // Setting point for now
+        });
 
-      await addDoc(collection(db, 'events'), newEvent);
+      if (error) throw error;
+      
       navigate('/');
     } catch (err) {
-      const errInfo = handleFirestoreError(err, OperationType.CREATE, 'events');
-      alert(`행사 생성 중 오류가 발생했습니다: ${errInfo.error}\n데이터 형식이 맞지 않거나 권한이 부족할 수 있습니다.`);
+      handleSupabaseError(err, 'create', 'events', user?.id || '');
+      alert(`행사 생성 중 오류가 발생했습니다.`);
     } finally {
       setLoading(false);
     }

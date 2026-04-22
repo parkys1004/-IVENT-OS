@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { collection, query, orderBy, onSnapshot, where, or, and, limit, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, CalendarDays, Clock, Flame, Users } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -31,17 +30,22 @@ export default function CategoryExplore() {
           let roles = [category];
           if (category === 'dj_media') roles = ['dj', 'media'];
           
-          const usersQ = query(
-            collection(db, 'users'), 
-            where('role', 'in', roles),
-            limit(100)
-          );
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('role', roles)
+            .limit(100);
           
-          const snapshot = await getDocs(usersQ);
-          const usersData = snapshot.docs.map(doc => ({
-            uid: doc.id,
-            ...doc.data()
-          })) as UserProfile[];
+          if (error) throw error;
+          
+          const usersData = data.map(u => ({
+            uid: u.id,
+            email: u.email,
+            displayName: u.display_name,
+            photoURL: u.photo_url,
+            role: u.role,
+            priority: u.priority
+          })) as any;
           
           setProfessionals(usersData);
           setLoading(false);
@@ -55,40 +59,34 @@ export default function CategoryExplore() {
     }
 
     const fetchItems = async () => {
-      let q;
-      if (category === 'party') {
-        q = query(
-          collection(db, 'events'),
-          where('status', '==', 'published'),
-          limit(48)
-        );
-      } else if (category === 'lesson') {
-        q = query(
-          collection(db, 'events'),
-          and(
-            where('status', '==', 'published'),
-            or(
-              where('category', '==', 'lesson'),
-              where('isLesson', '==', true)
-            )
-          ),
-          limit(48)
-        );
-      } else {
-        q = query(
-          collection(db, 'events'),
-          where('category', '==', category),
-          where('status', '==', 'published'),
-          limit(48)
-        );
-      }
-
       try {
-        const snapshot = await getDocs(q);
-        const eventsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...(doc.data() as any)
-        })) as EventData[];
+        let queryBuilder = supabase.from('events').select('*').eq('status', 'published');
+
+        if (category === 'party') {
+          // All published events for party? Or specific? Usually 'party' is a category.
+          queryBuilder = queryBuilder.eq('category', 'party');
+        } else if (category === 'lesson') {
+          queryBuilder = queryBuilder.or('category.eq.lesson,is_lesson.eq.true');
+        } else {
+          queryBuilder = queryBuilder.eq('category', category);
+        }
+
+        const { data, error } = await queryBuilder.limit(48);
+
+        if (error) throw error;
+        
+        const eventsData = data.map(e => ({
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          date: e.date,
+          category: e.category,
+          locationName: e.location_name,
+          imageUrl: e.image_url,
+          isLesson: e.is_lesson,
+          likesCount: e.likes_count,
+          createdAt: e.created_at
+        })) as any;
         
         setEvents(eventsData);
         setLoading(false);
@@ -113,24 +111,15 @@ export default function CategoryExplore() {
       ).sort((a, b) => {
         const getTime = (val: any) => {
           if (!val) return 0;
-          if (val.toDate) return val.toDate().getTime();
-          if (val instanceof Date) return val.getTime();
-          if (typeof val === 'string') return new Date(val).getTime();
-          if (typeof val === 'number') return val;
-          if (val.seconds) return val.seconds * 1000;
-          return 0;
+          return new Date(val).getTime();
         };
 
         if (sortBy === 'upcoming') {
-          const timeA = getTime(a.date);
-          const timeB = getTime(b.date);
-          return timeA - timeB;
+          return getTime(a.date) - getTime(b.date);
         }
         if (sortBy === 'latest') {
-          const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (typeof a.id === 'string' ? parseInt(a.id.substring(0, 8), 16) || 0 : 0);
-          const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (typeof b.id === 'string' ? parseInt(b.id.substring(0, 8), 16) || 0 : 0);
-          
-          if (timeA === 0 && timeB === 0) return b.id.localeCompare(a.id);
+          const timeA = getTime(a.createdAt);
+          const timeB = getTime(b.createdAt);
           return timeB - timeA;
         }
         if (sortBy === 'popular') {

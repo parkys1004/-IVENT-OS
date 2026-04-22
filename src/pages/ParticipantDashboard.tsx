@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, getDocs, getDoc, limit } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { supabase } from '../supabase';
 import { useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -17,58 +16,7 @@ import { useLanguage } from '../context/LanguageContext';
 import EventCard, { EventData } from '../components/EventCard';
 import ProfessionalCard from '../components/ProfessionalCard';
 import { UserProfile } from '../context/AuthContext';
-
-// Error handling spec
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const currentUser = auth.currentUser;
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: currentUser?.uid,
-      email: currentUser?.email ?? undefined,
-      emailVerified: currentUser?.emailVerified,
-      isAnonymous: currentUser?.isAnonymous,
-      tenantId: currentUser?.tenantId ?? undefined,
-      providerInfo: currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-}
+import { handleSupabaseError, OperationType } from '../lib/supabaseError';
 
 interface PromoBanner {
   id: string;
@@ -82,7 +30,7 @@ type TabKey = string;
 
 export default function ParticipantDashboard({ forceMarketplace = false }: { forceMarketplace?: boolean }) {
   const navigate = useNavigate();
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const { t, categoryFilter, setCategoryFilter } = useLanguage();
   const [events, setEvents] = useState<EventData[]>([]);
   const [professionals, setProfessionals] = useState<UserProfile[]>([]);
@@ -106,12 +54,20 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [showQR, setShowQR] = useState<string | null>(null);
   
-  // Gamification Metrics (Derived or placeholder)
+  // Gamification Metrics
   const [points] = useState(1250);
   const [rankPercentile] = useState(15);
   const [monthlyGoal] = useState(10);
   const [currentMonthVisits] = useState(7);
-  
+
+  const [dashboardConfig, setDashboardConfig] = useState({
+    partiesLimit: 9,
+    lessonsLimit: 6,
+    instructorsLimit: 6,
+    djMediaLimit: 6,
+    sectionOrder: ['parties', 'lessons', 'instructors', 'djMedia']
+  });
+
   const [registrations, setRegistrations] = useState<{id: string, event: EventData, status: string, registeredAt: any}[]>([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -121,6 +77,49 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   });
   const [isSaving, setIsSaving] = useState(false);
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
+
+  const resizeAndCompressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+          } else {
+            if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/webp', 0.8));
+        };
+        img.onerror = error => reject(error);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await resizeAndCompressImage(file);
+        setProfileForm(prev => ({ ...prev, photoURL: base64 }));
+      } catch (error) {
+        console.error("Image processing failed:", error);
+      }
+    }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -132,61 +131,22 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     }
   }, [profile]);
 
-  const resizeAndCompressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1000;
-          const MAX_HEIGHT = 1000;
-          let width = img.width;
-          let height = img.height;
-          if (width > height) {
-            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-          } else {
-            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/webp', 0.8);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setIsSaving(true);
-      const dataUrl = await resizeAndCompressImage(file);
-      setProfileForm(prev => ({ ...prev, photoURL: dataUrl }));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        displayName: profileForm.displayName,
-        phone: profileForm.phone,
-        photoURL: profileForm.photoURL
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: profileForm.displayName,
+          phone: profileForm.phone,
+          photo_url: profileForm.photoURL
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      await refreshProfile();
       alert('프로필이 저장되었습니다.');
     } catch (error) {
       console.error(error);
@@ -195,13 +155,6 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       setIsSaving(false);
     }
   };
-  const [dashboardConfig, setDashboardConfig] = useState({
-    partiesLimit: 9,
-    lessonsLimit: 6,
-    instructorsLimit: 6,
-    djMediaLimit: 6,
-    sectionOrder: ['parties', 'lessons', 'instructors', 'djMedia']
-  });
 
   // Slider State
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
@@ -213,128 +166,144 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   };
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchData = async () => {
       try {
-        // Optimization: Server-side filtering and limit to save massive amounts of read units
-        const q = query(
-          collection(db, 'events'),
-          where('status', '==', 'published'), // Only fetch what we need
-          orderBy('date', 'asc'),
-          limit(60) // Safety limit to prevent scanning thousands of docs
-        );
+        setLoading(true);
+        // 1. Fetch Events
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('events')
+          .select('*')
+          .eq('status', 'published')
+          .order('date', { ascending: true })
+          .limit(60);
 
-        const snapshot = await getDocs(q);
-        const eventsData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as EventData[];
+        if (eventsError) throw eventsError;
         
-        setEvents(eventsData);
-        setLoading(false);
-      } catch (error: any) {
-        handleFirestoreError(error, OperationType.LIST, 'events');
-        setLoading(false); 
-      }
-    };
+        const mappedEvents = eventsData.map(e => ({
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          date: e.date,
+          category: e.category,
+          locationName: e.location_name,
+          status: e.status,
+          price: e.price,
+          capacity: e.capacity,
+          hostId: e.host_id,
+          imageUrl: e.image_url,
+          isBanner: e.is_banner,
+          isLesson: e.is_lesson,
+          priority: e.priority,
+          likesCount: e.likes_count,
+          createdAt: e.created_at
+        })) as unknown as EventData[];
+        
+        setEvents(mappedEvents);
 
-    // Fetch professionals
-    const fetchProfessionals = async () => {
-      try {
-        const usersQ = query(
-          collection(db, 'users'), 
-          where('role', 'in', ['instructor', 'dj', 'media']),
-          limit(20) // Limit to save reads
-        );
-        const snapshot = await getDocs(usersQ);
-        const usersData = snapshot.docs.map(doc => ({
-          uid: doc.id,
-          ...doc.data()
+        // 2. Fetch Professionals
+        const { data: proData, error: proError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('role', ['instructor', 'dj', 'media'])
+          .limit(20);
+
+        if (proError) throw proError;
+        const mappedPros = proData.map(p => ({
+          uid: p.id,
+          email: p.email,
+          displayName: p.display_name,
+          photoURL: p.photo_url,
+          role: p.role,
+          createdAt: p.created_at,
+          points: p.points
         })) as UserProfile[];
-        setProfessionals(usersData);
+        setProfessionals(mappedPros);
+
+        // 3. Fetch Banners
+        const { data: bannerData, error: bannerError } = await supabase
+          .from('promo_banners')
+          .select('*')
+          .eq('is_active', true);
+
+        if (bannerError) throw bannerError;
+        const mappedBanners = bannerData.map(b => ({
+          id: b.id,
+          imageUrl: b.image_url,
+          linkUrl: b.link_url,
+          isActive: b.is_active
+        }));
+        setPromoBanners(mappedBanners);
+
+        // 4. Fetch Config
+        const { data: configData } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'dashboard')
+          .single();
+        
+        if (configData) setDashboardConfig(prev => ({ ...prev, ...configData.value }));
+
       } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'users');
+        handleSupabaseError(error, OperationType.LIST, 'events');
+      } finally {
+        setLoading(false);
       }
     };
 
-    // Promo Banners fetching - one-time fetch to save quota
-    const fetchPromoBanners = async () => {
-      try {
-        const promoQ = collection(db, 'promoBanners');
-        const snapshot = await getDocs(promoQ);
-        const promoData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as PromoBanner[];
-        setPromoBanners(promoData.filter(b => b.isActive));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'promoBanners');
-      }
-    };
-
-    // Fetch dashboard settings - one-time fetch to save quota
-    const fetchConfig = async () => {
-      try {
-        const docSnap = await getDoc(doc(db, 'settings', 'dashboard'));
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setDashboardConfig(prev => ({ ...prev, ...data }));
-        }
-      } catch (error) {
-        handleFirestoreError(error, OperationType.GET, 'settings/dashboard');
-      }
-    };
-
-    fetchEvents();
-    fetchProfessionals();
-    fetchPromoBanners();
-    fetchConfig();
-
-    return () => {
-      // No active subscriptions to unsubscribe except maybe auth if handled elsewhere
-    };
+    fetchData();
   }, []);
 
   useEffect(() => {
     if (user && activeMenu === 'bookings') {
-      const fetchRegistrations = async () => {
+      const fetchRegs = async () => {
         setLoadingRegistrations(true);
         try {
-          const q = query(collection(db, 'registrations'), where('userId', '==', user.uid));
-          const snap = await getDocs(q);
+          const { data, error } = await supabase
+            .from('registrations')
+            .select(`
+              id,
+              status,
+              registered_at,
+              event:events(*)
+            `)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
           
-          // Optimization: Collect event IDs and fetch them efficiently or find in existing events list
-          const regDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          
-          const regData = await Promise.all(regDocs.map(async (data: any) => {
-            // First, try to find in the already loaded 'events' array to save a Firestore read
-            let eventData = events.find(e => e.id === data.eventId);
-            
-            if (!eventData) {
-              const eventSnap = await getDoc(doc(db, 'events', data.eventId));
-              eventData = eventSnap.exists() 
-                ? { id: data.eventId, ...eventSnap.data() } as EventData 
-                : { id: data.eventId, title: '삭제된 행사', category: 'unknown', status: 'cancelled' } as any;
-            }
-            
-            return {
-              id: data.id,
-              event: eventData,
-              status: data.status,
-              registeredAt: data.registeredAt
-            };
+          const mappedRegs = data.map((r: any) => ({
+            id: r.id,
+            status: r.status,
+            registeredAt: r.registered_at,
+            event: {
+              id: r.event.id,
+              title: r.event.title,
+              category: r.event.category,
+              imageUrl: r.event.image_url,
+              date: r.event.date,
+              locationName: r.event.location_name
+            } as unknown as EventData
           }));
-          
-          setRegistrations(regData);
-        } catch (error: any) {
-          handleFirestoreError(error, OperationType.LIST, 'registrations');
-          console.error("Error fetching registrations:", error);
+
+          setRegistrations(mappedRegs);
+        } catch (error) {
+          handleSupabaseError(error, OperationType.LIST, 'registrations');
         } finally {
           setLoadingRegistrations(false);
         }
       };
-      fetchRegistrations();
+      fetchRegs();
     }
   }, [user, activeMenu]);
+
+  const getTime = (val: any) => {
+    if (!val) return 0;
+    if (typeof val === 'string') return new Date(val).getTime();
+    if (val.toDate) return val.toDate().getTime();
+    if (val instanceof Date) return val.getTime();
+    if (typeof val === 'number') return val;
+    if (val.seconds) return val.seconds * 1000;
+    return 0;
+  };
 
   const filteredEvents = events.filter(e => {
     // Robust category equality check with null safety
@@ -355,24 +324,14 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     if (priorityA !== priorityB) return priorityB - priorityA;
 
     // 2. Then SortBy logic
-    const getTime = (val: any) => {
-      if (!val) return 0;
-      if (val.toDate) return val.toDate().getTime();
-      if (val instanceof Date) return val.getTime();
-      if (typeof val === 'string') return new Date(val).getTime();
-      if (typeof val === 'number') return val;
-      if (val.seconds) return val.seconds * 1000;
-      return 0;
-    };
-
     if (sortBy === 'upcoming') {
       const timeA = getTime(a.date);
       const timeB = getTime(b.date);
       return timeA - timeB;
     }
     if (sortBy === 'latest') {
-      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (typeof a.id === 'string' ? parseInt(a.id.substring(0, 8), 16) || 0 : 0);
-      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (typeof b.id === 'string' ? parseInt(b.id.substring(0, 8), 16) || 0 : 0);
+      const timeA = getTime(a.createdAt);
+      const timeB = getTime(b.createdAt);
       
       if (timeA === 0 && timeB === 0) return b.id.localeCompare(a.id);
       return timeB - timeA;

@@ -3,14 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, 
-  Image as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, 
+  ImageIcon as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, 
   Plus, BarChart3, CreditCard, PenTool, User, X, BookOpen, MessageSquare, 
   Layout, Headphones, Video, Layers, ListMusic, UserCheck
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { db } from '../firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { supabase } from '../supabase';
 
 type MenuKey = 'activities' | 'events' | 'profile' | 'participants' | 'community' | 'students' | 'curriculum' | 'playlist' | 'bookings' | 'equipment' | 'gallery';
 type TabKey = string;
@@ -52,7 +51,8 @@ export default function ProfessionalDashboard() {
     admin: [
       { key: 'activities', label: '시스템 현황', icon: <BarChart3 className="w-5 h-5" /> },
       { key: 'events', label: '전체 행사 관리', icon: <Star className="w-5 h-5" /> },
-    ]
+    ],
+    participant: [] // Should not really be here but for safety
   };
 
   const currentRoleMenus = [...(roleMenus[profile?.role || 'host'] || roleMenus.host), { key: 'profile', label: '프로필 설정', icon: <Settings className="w-5 h-5" /> }];
@@ -165,18 +165,22 @@ export default function ProfessionalDashboard() {
     setIsSaving(true);
     setSaveMessage('');
     try {
-      const { updateDoc, doc } = await import('firebase/firestore');
-      await updateDoc(doc(db, 'users', user.uid), {
-        displayName: profileForm.displayName,
-        shortBio: profileForm.shortBio,
-        description: profileForm.description,
-        specialties: profileForm.specialties,
-        career: profileForm.career,
-        portfolioUrl: profileForm.portfolioUrl,
-        studioLocation: profileForm.studioLocation,
-        photoURL: profileForm.photoURL,
-        profileUpdated: true
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: profileForm.displayName,
+          short_bio: profileForm.shortBio,
+          description: profileForm.description,
+          specialties: profileForm.specialties,
+          career: profileForm.career,
+          portfolio_url: profileForm.portfolioUrl,
+          studio_location: profileForm.studioLocation,
+          photo_url: profileForm.photoURL,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
       await refreshProfile();
       setSaveMessage('프로필이 성공적으로 저장되었습니다.');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -197,19 +201,27 @@ export default function ProfessionalDashboard() {
       const fetchFollowers = async () => {
         setLoadingFollowers(true);
         try {
-          // 1. Get follower relations
-          const q = query(collection(db, 'userFollowers'), where('followingId', '==', user.uid));
-          const snap = await getDocs(q);
+          const { data, error } = await supabase
+            .from('user_followers')
+            .select(`
+              id,
+              follower:profiles!follower_id (
+                id,
+                display_name,
+                photo_url,
+                role
+              )
+            `)
+            .eq('following_id', user.id);
           
-          const followerData = await Promise.all(snap.docs.map(async (followerDoc) => {
-            const data = followerDoc.data();
-            // 2. Fetch profile for each follower
-            const userSnap = await getDoc(doc(db, 'users', data.followerId));
-            return {
-              id: followerDoc.id,
-              ...(userSnap.exists() ? userSnap.data() : { displayName: 'Unknown User' })
-            };
-          }));
+          if (error) throw error;
+          
+          const followerData = data?.map((item: any) => ({
+            id: item.follower?.id,
+            displayName: item.follower?.display_name || '알 수 없는 사용자',
+            photoURL: item.follower?.photo_url,
+            role: item.follower?.role
+          })) || [];
           
           setFollowers(followerData);
         } catch (error) {

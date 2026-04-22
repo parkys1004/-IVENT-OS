@@ -26,12 +26,11 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage, Language } from '../context/LanguageContext';
 import { languageNames } from '../lib/gemini';
-import { logout } from '../firebase';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'motion/react';
 
 export default function Navbar() {
-  const { user, profile, viewMode, setViewMode } = useAuth();
+  const { user, profile, viewMode, setViewMode, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);

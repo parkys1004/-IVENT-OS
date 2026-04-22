@@ -1,63 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { supabase } from '../supabase';
+import { handleSupabaseError } from '../lib/supabaseError';
 import { Autocomplete } from '@react-google-maps/api';
-
-// Error specs
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const currentUser = auth.currentUser;
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: currentUser?.uid,
-      email: currentUser?.email ?? undefined,
-      emailVerified: currentUser?.emailVerified,
-      isAnonymous: currentUser?.isAnonymous,
-      tenantId: currentUser?.tenantId ?? undefined,
-      providerInfo: currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error Detailed: ', JSON.stringify(errInfo, null, 2));
-  return errInfo;
-}
-
-import { Calendar, Clock, MapPin, Users, FileText, Image as ImageIcon, Upload, X, Star, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, FileText, ImageIcon as ImageIcon, Upload, X, Star, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
@@ -133,40 +79,44 @@ export default function EditEvent() {
     const fetchEvent = async () => {
       if (!id) return;
       try {
-        const docRef = doc(db, 'events', id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setEventData({ id: docSnap.id, ...data });
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setEventData(data);
           
-          const startDateObj = data.date?.toDate() || new Date();
-          const endDateObj = data.endDate?.toDate() || new Date();
+          const startDateObj = data.date ? new Date(data.date) : new Date();
+          // const endDateObj = data.endDate ? new Date(data.endDate) : new Date();
 
           setFormData({
             title: data.title || '',
             description: data.description || '',
-            category: data.category || 'IT',
+            category: data.category || 'party',
             date: format(startDateObj, 'yyyy-MM-dd'),
             time: format(startDateObj, 'HH:mm'),
-            endDate: format(endDateObj, 'yyyy-MM-dd'),
-            endTime: format(endDateObj, 'HH:mm'),
-            locationName: data.locationName || '',
-            formattedAddress: data.formattedAddress || '',
-            country: data.country || '',
-            city: data.city || '',
-            geoPoint: data.geoPoint || null,
-            imageUrl: data.imageUrl || '',
-            maxAttendees: data.maxAttendees || 50,
-            djs: data.djs || [],
-            performances: data.performances || [],
-            media: data.media || [],
-            paymentMethod: data.paymentMethod || '',
-            tickets: data.tickets || (data.price ? [{ name: '참가비', price: data.price }] : [{ name: '일반 예매', price: 0 }]),
+            endDate: format(startDateObj, 'yyyy-MM-dd'),
+            endTime: format(startDateObj, 'HH:mm'),
+            locationName: data.location_name || '',
+            formattedAddress: '', // Not in schema directly
+            country: '',
+            city: '',
+            geoPoint: null,
+            imageUrl: data.image_url || '',
+            maxAttendees: data.max_attendees || 50,
+            djs: [], // data.djs || [],
+            performances: [], // data.performances || [],
+            media: [], // data.media || [],
+            paymentMethod: '', // data.payment_method || '',
+            tickets: [], // data.tickets || [],
           });
 
-          const loadedImages = data.imageUrls && data.imageUrls.length > 0 ? data.imageUrls : (data.imageUrl ? [data.imageUrl] : []);
+          const loadedImages = data.image_url ? [data.image_url] : [];
           setImages(loadedImages);
-          setCoverImageIndex(data.coverImageIndex || 0);
+          setCoverImageIndex(0);
         } else {
           alert('행사를 찾을 수 없습니다.');
           navigate('/');
@@ -279,47 +229,31 @@ export default function EditEvent() {
     setSubmitting(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
-      const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
+      // const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
-      const mainImageUrl = images.length > 0 ? images[coverImageIndex] : '';
+      const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
 
-      const updatedEvent = {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        date: startDate,
-        endDate: endDate,
-        locationName: formData.locationName,
-        formattedAddress: formData.formattedAddress,
-        country: formData.country,
-        city: formData.city,
-        geoPoint: formData.geoPoint,
-        imageUrl: mainImageUrl, 
-        imageUrls: images,
-        coverImageIndex: coverImageIndex,
-        maxAttendees: Number(formData.maxAttendees),
-        likesCount: eventData?.likesCount || 0,
-        currentAttendees: eventData?.currentAttendees || 0,
-        status: eventData?.status || 'draft',
-        updatedAt: serverTimestamp(),
-        hostId: eventData?.hostId || user.uid,
-        hostName: eventData?.hostName || profile.displayName || user.email?.split('@')[0] || 'Unknown',
-        createdAt: eventData?.createdAt || serverTimestamp(),
-        djs: formData.djs.filter(dj => dj.trim() !== ''),
-        performances: formData.performances.filter(p => p.trim() !== ''),
-        media: formData.media.filter(m => m.trim() !== ''),
-        paymentMethod: formData.paymentMethod,
-        tickets: formData.tickets.filter(t => t.name.trim() !== ''),
-      };
+      const { data, error } = await supabase
+        .from('events')
+        .update({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          date: startDate.toISOString(),
+          location_name: formData.locationName,
+          image_url: mainImageUrl, 
+          max_attendees: Number(formData.maxAttendees),
+        })
+        .eq('id', id);
 
-      console.log("Attempting to update event with ID:", id);
-      await updateDoc(doc(db, 'events', id), updatedEvent);
+      if (error) throw error;
+      
       alert('행사가 성공적으로 수정되었습니다.');
       navigate(`/event/${id}`);
     } catch (err) {
-      const errInfo = handleFirestoreError(err, OperationType.UPDATE, `events/${id}`);
-      alert(`행사 수정 중 오류가 발생했습니다: ${errInfo.error}\n권한이 없거나 데이터 형식이 맞지 않을 수 있습니다.`);
+      handleSupabaseError(err, 'update', 'events', user?.id || '');
+      alert(`행사 수정 중 오류가 발생했습니다.`);
     } finally {
       setSubmitting(false);
     }

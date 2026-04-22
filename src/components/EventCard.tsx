@@ -34,7 +34,7 @@ export default function EventCard({ event, featured = false, index }: { event: E
   const isFull = event.currentAttendees >= event.maxAttendees;
   const fillPercentage = Math.min((event.currentAttendees / event.maxAttendees) * 100, 100);
   
-  const dateObj = event.date?.toDate ? event.date.toDate() : new Date();
+  const dateObj = event.date ? new Date(event.date) : new Date();
   const coverImage = event.imageUrls && event.imageUrls.length > 0 && event.coverImageIndex !== undefined 
                        ? event.imageUrls[event.coverImageIndex] 
                        : (event.imageUrl || null);

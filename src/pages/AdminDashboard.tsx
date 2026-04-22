@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, query, orderBy, getDocs, onSnapshot, doc, updateDoc, setDoc, serverTimestamp, limit, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -19,21 +18,15 @@ const resizeAndCompressImage = (file: File): Promise<string> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800; // Side banners don't need to be huge
+        const MAX_WIDTH = 800;
         const MAX_HEIGHT = 400;
         let width = img.width;
         let height = img.height;
 
         if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
         } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
         }
 
         canvas.width = width;
@@ -53,7 +46,7 @@ interface EventData {
   id: string;
   title: string;
   category: string;
-  date: any;
+  date: string;
   currentAttendees: number;
   maxAttendees: number;
   status: string;
@@ -96,17 +89,14 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
   
-  // Promotion Banner Edit State
   const [editBannerId, setEditBannerId] = useState<string | null>(null);
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editLinkUrl, setEditLinkUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Navigation State
   const [activeMenu, setActiveMenu] = useState<MenuKey>('home');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -115,26 +105,41 @@ export default function AdminDashboard() {
     setLoading(true);
     setIsRefreshing(true);
     try {
-      // Use limits to prevent massive read quota consumption
-      const eventsQ = query(collection(db, 'events'), orderBy('date', 'desc'), limit(100));
-      const usersQ = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(100));
-      const promoQ = query(collection(db, 'promoBanners'), orderBy('updatedAt', 'desc'));
-      const configDoc = doc(db, 'settings', 'dashboard');
-
-      const [eventsSnap, usersSnap, promoSnap, configSnap] = await Promise.all([
-        getDocs(eventsQ),
-        getDocs(usersQ),
-        getDocs(promoQ),
-        getDoc(configDoc)
+      const [{ data: eventsData }, { data: usersData }, { data: promoData }, { data: configData }] = await Promise.all([
+        supabase.from('events').select('*').order('date', { ascending: false }).limit(100),
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
+        supabase.from('settings').select('value').eq('key', 'dashboard').single()
       ]);
 
-      setEvents(eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as EventData[]);
-      setUsers(usersSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() })) as UserProfile[]);
-      setPromoBanners(promoSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as PromoBanner[]);
+      if (eventsData) setEvents(eventsData.map(e => ({ 
+        id: e.id, 
+        title: e.title,
+        category: e.category,
+        date: e.date,
+        status: e.status,
+        isBanner: e.is_banner,
+        hostName: e.host_id, // For now, mapping host_id to hostName or fetch joinly
+        isLesson: e.is_lesson
+      })) as any);
+
+      if (usersData) setUsers(usersData.map(u => ({
+        uid: u.id,
+        email: u.email,
+        displayName: u.display_name,
+        photoURL: u.photo_url,
+        role: u.role,
+        createdAt: u.created_at
+      })));
+
+      if (promoData) setPromoBanners(promoData.map(b => ({
+        id: b.id,
+        imageUrl: b.image_url,
+        linkUrl: b.link_url,
+        isActive: b.is_active
+      })));
       
-      if (configSnap.exists()) {
-        setDashboardConfig(configSnap.data() as DashboardConfig);
-      }
+      if (configData) setDashboardConfig(configData.value as DashboardConfig);
     } catch (err) {
       console.error("Admin fetch error", err);
     } finally {
@@ -145,11 +150,9 @@ export default function AdminDashboard() {
 
   const handleRoleChange = async (uid: string, newRole: string) => {
     try {
-      await updateDoc(doc(db, 'users', uid), {
-        role: newRole
-      });
-      // Update local state instead of re-fetching everything
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole } : u));
+      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', uid);
+      if (error) throw error;
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole as any } : u));
     } catch (error) {
       console.error("Failed to update user role:", error);
       alert("회원 유형 변경 중 오류가 발생했습니다.");
@@ -163,9 +166,8 @@ export default function AdminDashboard() {
       return;
     }
     try {
-      await updateDoc(doc(db, 'events', eventId), {
-        isBanner: !currentStatus
-      });
+      const { error } = await supabase.from('events').update({ is_banner: !currentStatus }).eq('id', eventId);
+      if (error) throw error;
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, isBanner: !currentStatus } : e));
     } catch (error) {
       console.error("Failed to update banner status:", error);
@@ -174,9 +176,8 @@ export default function AdminDashboard() {
 
   const handleApproveEvent = async (eventId: string) => {
     try {
-      await updateDoc(doc(db, 'events', eventId), {
-        status: 'published'
-      });
+      const { error } = await supabase.from('events').update({ status: 'published' }).eq('id', eventId);
+      if (error) throw error;
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'published' } : e));
       alert('행사가 승인 및 공개되었습니다.');
     } catch (error) {
@@ -188,20 +189,22 @@ export default function AdminDashboard() {
   const handlePromoBannerSave = async (id: string) => {
     setIsSaving(true);
     try {
-      const bannerData = {
-        imageUrl: editImageUrl,
-        linkUrl: editLinkUrl,
-        isActive: true,
-        updatedAt: serverTimestamp()
-      };
-      await setDoc(doc(db, 'promoBanners', id), bannerData, { merge: true });
+      const { error } = await supabase.from('promo_banners').upsert({
+        id,
+        image_url: editImageUrl,
+        link_url: editLinkUrl,
+        is_active: true,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
       
       setPromoBanners(prev => {
         const existing = prev.find(b => b.id === id);
+        const bannerData = { id, imageUrl: editImageUrl, linkUrl: editLinkUrl, isActive: true };
         if (existing) {
-          return prev.map(b => b.id === id ? { ...b, ...bannerData, updatedAt: new Date() } : b);
+          return prev.map(b => b.id === id ? { ...b, ...bannerData } : b);
         }
-        return [{ id, ...bannerData, updatedAt: new Date() } as any, ...prev];
+        return [bannerData, ...prev];
       });
 
       setEditBannerId(null);
@@ -218,6 +221,33 @@ export default function AdminDashboard() {
     setEditBannerId(banner.id);
     setEditImageUrl(banner.imageUrl);
     setEditLinkUrl(banner.linkUrl);
+  };
+
+  const handlePriorityChange = async (tableName: 'events' | 'profiles', id: string, priority: number) => {
+    try {
+      const { error } = await supabase.from(tableName).update({ priority }).eq('id', id);
+      if (error) throw error;
+    } catch (error) {
+      console.error(`Failed to update ${tableName} priority:`, error);
+    }
+  };
+
+  const handleConfigSave = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        key: 'dashboard',
+        value: dashboardConfig,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+      alert('화면 설정이 저장되었습니다.');
+    } catch (error) {
+      console.error("Failed to save dashboard config:", error);
+      alert('설정 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleImageFile = async (file: File) => {
@@ -255,30 +285,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchAdminData();
   }, []);
-
-  const handlePriorityChange = async (collectionName: 'events' | 'users', id: string, priority: number) => {
-    try {
-      await updateDoc(doc(db, collectionName, id), { priority });
-    } catch (error) {
-      console.error(`Failed to update ${collectionName} priority:`, error);
-    }
-  };
-
-  const handleConfigSave = async () => {
-    setIsSaving(true);
-    try {
-      await setDoc(doc(db, 'settings', 'dashboard'), {
-        ...dashboardConfig,
-        updatedAt: serverTimestamp()
-      });
-      alert('화면 설정이 저장되었습니다.');
-    } catch (error) {
-      console.error("Failed to save dashboard config:", error);
-      alert('설정 저장 중 오류가 발생했습니다.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   if (loading) {
     return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
@@ -381,7 +387,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {users.filter(u => activeTab === 'all' || (activeTab === 'pending' && ['dj','instructor','media'].includes(u.role)) || (activeTab === 'blacklist' && u.role === 'banned')).map(u => {
-                const createdAt = u.createdAt?.toDate ? u.createdAt.toDate() : new Date();
+                const createdAt = u.createdAt ? new Date(u.createdAt) : new Date();
                 return (
                   <tr key={u.uid} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="p-4 flex items-center gap-3">
@@ -410,7 +416,7 @@ export default function AdminDashboard() {
                          <option value="dj">DJ</option>
                          <option value="instructor">강사</option>
                          <option value="media">미디어</option>
-                         <option value="user">참여자</option>
+                         <option value="participant">참여자</option>
                       </select>
                     </td>
                     <td className="p-4 text-slate-500 text-xs">
@@ -466,7 +472,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {events.filter(e => activeTab === 'all' || e.status === activeTab || (activeTab === 'pending' && e.status === 'draft')).map(event => {
-                const dateObj = event.date?.toDate ? event.date.toDate() : new Date();
+                const dateObj = event.date ? new Date(event.date) : new Date();
                 return (
                   <tr key={event.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="p-4 font-bold text-slate-800 dark:text-white text-sm flex items-center">
@@ -977,13 +983,13 @@ export default function AdminDashboard() {
                             </div>
                             <div className="flex items-center gap-2">
                                <button 
-                                 onClick={() => handlePriorityChange('users', user.uid, ((user as any).priority || 0) + 1)}
+                                 onClick={() => handlePriorityChange('profiles', user.uid, ((user as any).priority || 0) + 1)}
                                  className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors"
                                >
                                  <ArrowUp className="w-4 h-4" />
                                </button>
                                <button 
-                                 onClick={() => handlePriorityChange('users', user.uid, Math.max(0, ((user as any).priority || 0) - 1))}
+                                 onClick={() => handlePriorityChange('profiles', user.uid, Math.max(0, ((user as any).priority || 0) - 1))}
                                  className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
                                >
                                  <ArrowDown className="w-4 h-4" />

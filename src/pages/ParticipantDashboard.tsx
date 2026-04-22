@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, getDocs, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, where, getDocs, getDoc, limit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -212,22 +212,29 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   };
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'events')
-    );
+    const fetchEvents = async () => {
+      try {
+        // Optimization: Server-side filtering and limit to save massive amounts of read units
+        const q = query(
+          collection(db, 'events'),
+          where('status', '==', 'published'), // Only fetch what we need
+          orderBy('date', 'asc'),
+          limit(60) // Safety limit to prevent scanning thousands of docs
+        );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const eventsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as EventData[];
-      
-      setEvents(eventsData.filter(e => e.status === 'published'));
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'events');
-      setLoading(false); 
-    });
+        const snapshot = await getDocs(q);
+        const eventsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as EventData[];
+        
+        setEvents(eventsData);
+        setLoading(false);
+      } catch (error: any) {
+        handleFirestoreError(error, OperationType.LIST, 'events');
+        setLoading(false); 
+      }
+    };
 
     // Fetch professionals
     const fetchProfessionals = async () => {
@@ -275,12 +282,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       }
     };
 
+    fetchEvents();
     fetchProfessionals();
     fetchPromoBanners();
     fetchConfig();
 
     return () => {
-      unsubscribe();
+      // No active subscriptions to unsubscribe except maybe auth if handled elsewhere
     };
   }, []);
 

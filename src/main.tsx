@@ -39,21 +39,19 @@ if (!rootElement) throw new Error("Root element not found");
 
 try {
   createRoot(rootElement).render(
-    <StrictMode>
-      <ErrorBoundary>
-        <BrowserRouter>
-          <AuthProvider>
-            <ThemeProvider>
-              <LanguageProvider>
-                <GoogleMapsProvider>
-                  <App />
-                </GoogleMapsProvider>
-              </LanguageProvider>
-            </ThemeProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </StrictMode>,
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ThemeProvider>
+            <LanguageProvider>
+              <GoogleMapsProvider>
+                <App />
+              </GoogleMapsProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>,
   );
   console.log("App mounted successfully");
 } catch (error) {

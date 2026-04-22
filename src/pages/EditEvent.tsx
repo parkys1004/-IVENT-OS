@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { handleSupabaseError } from '../lib/supabaseError';
+import { handleSupabaseError, OperationType } from '../lib/supabaseError';
 import { Autocomplete } from '@react-google-maps/api';
 import { Calendar, Clock, MapPin, Users, FileText, ImageIcon as ImageIcon, Upload, X, Star, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { format } from 'date-fns';
@@ -251,9 +251,9 @@ export default function EditEvent() {
       
       alert('행사가 성공적으로 수정되었습니다.');
       navigate(`/event/${id}`);
-    } catch (err) {
-      handleSupabaseError(err, 'update', 'events', user?.id || '');
-      alert(`행사 수정 중 오류가 발생했습니다.`);
+    } catch (err: any) {
+      handleSupabaseError(err, OperationType.UPDATE, 'events', user?.id || '');
+      alert(`행사 수정 중 오류가 발생했습니다: ${err.message || 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }

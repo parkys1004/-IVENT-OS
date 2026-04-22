@@ -122,25 +122,33 @@ export default function EventDetail() {
     }
     setProcessing(true);
     try {
+      console.log("Attempting registration:", { event_id: id, user_id: user.id });
       // Direct insertion. RLS will handle auth checks.
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('registrations')
         .insert({
           event_id: id,
           user_id: user.id,
           status: 'confirmed'
-        });
+        })
+        .select();
+
+      console.log("Registration response:", { data, error });
 
       if (error) {
         if (error.code === '23505') alert("이미 신청된 행사입니다.");
-        else throw error;
+        else {
+          handleSupabaseError(error, OperationType.CREATE, 'registrations', user.id);
+          throw error;
+        }
       } else {
-        setRegistration({ status: 'confirmed' });
+        setRegistration(data?.[0] || { status: 'confirmed' });
         alert("참여 신청이 완료되었습니다!");
       }
     } catch (err: any) {
-      console.error(err);
-      alert("신청 중 오류가 발생했습니다.");
+      console.error("handleRegister catch:", err);
+      const errInfo = handleSupabaseError(err, OperationType.CREATE, 'registrations', user.id);
+      alert(`신청 중 오류가 발생했습니다: ${err.message || 'Unknown error'}`);
     } finally {
       setProcessing(false);
     }

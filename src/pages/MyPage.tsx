@@ -6,6 +6,7 @@ import { supabase } from '../supabase';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
 
 import TypeBadge from '../components/TypeBadge';
 

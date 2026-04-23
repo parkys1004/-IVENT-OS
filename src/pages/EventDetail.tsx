@@ -17,7 +17,7 @@ interface RegistrationData {
 
 import { format } from 'date-fns';
 import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2, Navigation, Copy, Check, MessageCircle, Star, Send, Trash2, Upload as UploadIcon } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2, Navigation, Copy, Check, MessageCircle, Star, Send, Trash2, Upload as UploadIcon, Coins } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';

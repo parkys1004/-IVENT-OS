@@ -3,7 +3,7 @@ CREATE TABLE profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL,
   display_name TEXT,
-  role TEXT DEFAULT 'participant' CHECK (role IN ('participant', 'instructor', 'dj', 'media', 'admin')),
+  role TEXT DEFAULT 'participant' CHECK (role IN ('participant', 'host', 'admin', 'dj', 'instructor', 'media', 'banned')),
   photo_url TEXT,
   phone TEXT,
   points INTEGER DEFAULT 0,

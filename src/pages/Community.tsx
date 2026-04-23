@@ -14,14 +14,15 @@ import {
   Hash,
   HelpCircle,
   FileText,
-  Filter
+  Filter,
+  Star
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
 
-type PostCategory = 'free' | 'inquiry';
+type PostCategory = 'free' | 'inquiry' | 'review';
 
 interface Post {
   id: string;
@@ -33,6 +34,9 @@ interface Post {
   author_name?: string;
   author_photo?: string;
   comment_count?: number;
+  rating?: number; // For reviews
+  event_title?: string; // For reviews
+  event_id?: string; // For reviews
 }
 
 export default function Community() {
@@ -55,32 +59,62 @@ export default function Community() {
 
   const fetchPosts = async () => {
     setLoading(true);
+    setPosts([]); // Clear previous posts to avoid stale UI
     try {
-      let query = supabase
-        .from('community_posts')
-        .select(`
-          *,
-          author:profiles(display_name, photo_url)
-        `)
-        .eq('category', activeCategory)
-        .order('created_at', { ascending: false });
+      if (activeCategory === 'review') {
+        // Fetch from event_reviews table
+        const { data, error } = await supabase
+          .from('event_reviews')
+          .select(`
+            *,
+            author:profiles(display_name, photo_url),
+            event:events(title)
+          `)
+          .order('created_at', { ascending: false });
 
-      if (searchQuery) {
-        query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+        if (error) throw error;
+
+        const mappedReviews: Post[] = (data || []).map(r => ({
+          id: r.id,
+          title: `[${r.event?.title || '행사'}] 참여 후기`,
+          content: r.content,
+          category: 'review',
+          author_id: r.author_id,
+          created_at: r.created_at,
+          author_name: r.author?.display_name || '알 수 없는 사용자',
+          author_photo: r.author?.photo_url || '',
+          rating: r.rating,
+          event_title: r.event?.title,
+          event_id: r.event_id,
+          comment_count: 0
+        }));
+        setPosts(mappedReviews);
+      } else {
+        // Fetch from community_posts table
+        let query = supabase
+          .from('community_posts')
+          .select(`
+            *,
+            author:profiles(display_name, photo_url)
+          `)
+          .eq('category', activeCategory)
+          .order('created_at', { ascending: false });
+
+        if (searchQuery) {
+          query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const mappedPosts = (data || []).map(post => ({
+          ...post,
+          author_name: post.author?.display_name || '알 수 없는 사용자',
+          author_photo: post.author?.photo_url || '',
+          comment_count: 0
+        }));
+        setPosts(mappedPosts);
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const mappedPosts = (data || []).map(post => ({
-        ...post,
-        author_name: post.author?.display_name || '알 수 없는 사용자',
-        author_photo: post.author?.photo_url || '',
-        comment_count: 0 // In a real app, you'd fetch this count
-      }));
-
-      setPosts(mappedPosts);
     } catch (error) {
       console.error("Error fetching posts:", error);
     } finally {
@@ -115,6 +149,7 @@ export default function Community() {
         throw error;
       }
 
+      alert('게시글이 성공적으로 등록되었습니다!');
       setNewTitle('');
       setNewContent('');
       setIsWriteModalOpen(false);
@@ -142,20 +177,29 @@ export default function Community() {
 
       {/* Tabs & Search */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[20px] border border-slate-200 dark:border-slate-800 self-start">
+        <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[20px] border border-slate-200 dark:border-slate-800 self-start overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveCategory('free')}
             className={clsx(
-              "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2",
+              "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 shrink-0",
               activeCategory === 'free' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md" : "text-slate-500 hover:text-slate-700"
             )}
           >
             <MessageSquare className="w-4 h-4" /> 자유게시판
           </button>
           <button
+            onClick={() => setActiveCategory('review')}
+            className={clsx(
+              "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 shrink-0",
+              activeCategory === 'review' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md" : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <Star className="w-4 h-4" /> 행사리뷰
+          </button>
+          <button
             onClick={() => setActiveCategory('inquiry')}
             className={clsx(
-              "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2",
+              "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 shrink-0",
               activeCategory === 'inquiry' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md" : "text-slate-500 hover:text-slate-700"
             )}
           >
@@ -198,6 +242,12 @@ export default function Community() {
                 key={post.id} 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                onClick={() => {
+                  if (post.category === 'review' && post.event_id) {
+                    navigate(`/event/${post.event_id}`);
+                  }
+                  // For posts, we might add a detail page later
+                }}
                 className="group p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
               >
                 <div className="flex items-start gap-4">
@@ -209,10 +259,20 @@ export default function Community() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[11px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-full">
-                        {post.category}
+                    <div className="flex items-center flex-wrap gap-2 mb-1">
+                      <span className={clsx(
+                        "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full",
+                        post.category === 'review' ? "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" : "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                      )}>
+                        {post.category === 'free' ? '자유게시판' : post.category === 'inquiry' ? '문의게시판' : '행사리뷰'}
                       </span>
+                      {post.rating && (
+                        <div className="flex items-center gap-0.5 ml-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} className={clsx("w-3 h-3", s <= post.rating ? "text-amber-400 fill-current" : "text-slate-200")} />
+                          ))}
+                        </div>
+                      )}
                       <span className="text-xs font-bold text-slate-400">
                         {post.author_name} • {format(new Date(post.created_at), 'yyyy.MM.dd', { locale: ko })}
                       </span>
@@ -225,10 +285,12 @@ export default function Community() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2 text-slate-500">
-                      <MessageCircle className="w-4 h-4" />
-                      <span className="text-xs font-black">{post.comment_count}</span>
-                    </div>
+                    {post.category !== 'review' && (
+                      <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2 text-slate-500">
+                        <MessageCircle className="w-4 h-4" />
+                        <span className="text-xs font-black">{post.comment_count}</span>
+                      </div>
+                    )}
                     <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-slate-400 transition-colors" />
                   </div>
                 </div>

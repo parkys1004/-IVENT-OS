@@ -37,13 +37,46 @@ export default function Login() {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      // AI Studio의 iframe 환경에서는 팝업 방식의 로그인이 필요합니다.
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: window.location.origin,
+          skipBrowserRedirect: true, // 브라우저 리다이렉트를 중단하고 URL만 받아옵니다.
         }
       });
+      
       if (error) throw error;
+
+      if (data?.url) {
+        // 팝업 창 크기 및 중앙 정렬 계산
+        const width = 500;
+        const height = 600;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.url,
+          'google-login',
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,status=no`
+        );
+
+        if (!popup) {
+          setErrorMsg("팝업 차단이 감지되었습니다. 팝업 허용 후 다시 시도해주세요.");
+          return;
+        }
+
+        // 팝업 감시 (창이 닫혔을 때 세션 확인)
+        const checkPopup = setInterval(async () => {
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              navigate('/');
+            }
+          }
+        }, 1000);
+      }
     } catch (error: any) {
       setErrorMsg(`로그인 처리 중 문제가 발생했습니다. (${error.message || '오류'})`);
       window.sessionStorage.removeItem('intendedRole');

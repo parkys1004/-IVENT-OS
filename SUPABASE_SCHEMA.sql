@@ -106,7 +106,9 @@ CREATE POLICY "Users can view own registrations." ON registrations FOR SELECT US
 CREATE POLICY "Users can register for events." ON registrations FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Promo Banners & Settings
-CREATE POLICY "Public can view active banners and settings." ON promo_banners FOR SELECT USING (is_active = true);
+CREATE POLICY "Public can view active banners and settings." ON promo_banners FOR SELECT USING (
+  is_active = true OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
 CREATE POLICY "Public can view settings." ON settings FOR SELECT USING (true);
 CREATE POLICY "Only admins can modify banners and settings." ON promo_banners FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')

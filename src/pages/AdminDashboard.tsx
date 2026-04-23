@@ -183,11 +183,20 @@ export default function AdminDashboard() {
         setDbHealth(prev => ({ ...prev, settings: { status: 'ok' } }));
       }
 
-      const [{ data: promoFullData }, { data: configData }, { data: appData }] = await Promise.all([
+      const [{ data: promoFullData }, { data: configData }, { data: appData }, { data: regData }] = await Promise.all([
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
-        supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle()
+        supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle(),
+        supabase.from('registrations').select('event_id')
       ]);
+
+      // Calculate counts per event
+      const regCounts: Record<string, number> = {};
+      if (regData) {
+        regData.forEach(r => {
+          regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+        });
+      }
 
       // Map profiles for quick lookup
       const profileMap: Record<string, string> = {};
@@ -207,7 +216,9 @@ export default function AdminDashboard() {
         host_id: e.host_id,
         hostName: profileMap[e.host_id] || '알 수 없는 사용자',
         isLesson: e.is_lesson,
-        priority: e.priority || 0
+        priority: e.priority || 0,
+        maxAttendees: e.capacity || 0,
+        currentAttendees: regCounts[e.id] || 0
       })));
 
       if (appData && (appData.value as any).approvalMode) {
@@ -401,7 +412,7 @@ export default function AdminDashboard() {
     dj: users.filter(u => u.role === 'dj').length,
     instructor: users.filter(u => u.role === 'instructor').length,
     media: users.filter(u => u.role === 'media').length,
-    user: users.filter(u => u.role === 'user').length,
+    participant: users.filter(u => u.role === 'participant').length,
   };
   
   // Fake Badges counts

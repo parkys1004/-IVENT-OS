@@ -14,6 +14,7 @@ import MyPage from './pages/MyPage';
 import PublicProfile from './pages/PublicProfile';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import PastEvents from './pages/PastEvents';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import AnimatedBackground from './components/AnimatedBackground';
@@ -110,6 +111,7 @@ function AppContent() {
           <Route path="/create" element={<CreateEvent />} />
           <Route path="/create-lesson" element={<CreateLesson />} />
           <Route path="/edit/:id" element={<EditEvent />} />
+          <Route path="/past-events" element={<PastEvents />} />
           <Route path="/login" element={<Login />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

@@ -21,7 +21,8 @@ import {
   X,
   User,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -40,6 +41,7 @@ export default function Navbar() {
   const location = useLocation();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
 
   const handleModeSwitch = (mode: 'admin' | 'professional' | 'participant') => {
     setViewMode(mode);
@@ -50,7 +52,14 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { to: '/explore/party', icon: <Music className="w-4 h-4" />, label: t('search.category.party') },
+    { 
+      to: '/explore/party', 
+      icon: <Music className="w-4 h-4" />, 
+      label: t('search.category.party'),
+      subLinks: [
+        { to: '/past-events', label: '지난파티' }
+      ]
+    },
     { to: '/explore/lesson', icon: <GraduationCap className="w-4 h-4" />, label: t('search.category.lesson') },
     { to: '/explore/instructor', icon: <Users className="w-4 h-4" />, label: t('search.category.instructor') },
     { to: '/explore/dj', icon: <Disc className="w-4 h-4" />, label: t('search.category.dj') },
@@ -105,17 +114,53 @@ export default function Navbar() {
               {/* Desktop Navigation Links */}
               <div className="hidden lg:flex items-center gap-1">
                 {navLinks.map((link) => (
-                  <Link 
-                    key={link.to}
-                    to={link.to} 
-                    className={clsx(
-                      "px-3 py-2 text-sm font-bold rounded-lg transition-all duration-200 flex items-center gap-2 hover:translate-y-[-1px]",
-                      location.pathname === link.to ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    )}
+                  <div 
+                    key={link.to} 
+                    className="relative group"
+                    onMouseEnter={() => link.subLinks && setPartyDropdownOpen(true)}
+                    onMouseLeave={() => link.subLinks && setPartyDropdownOpen(false)}
                   >
-                    <div className={clsx(location.pathname === link.to ? "text-orange-600 dark:text-amber-400" : "text-slate-400")}>{link.icon}</div>
-                    {link.label}
-                  </Link>
+                    <Link 
+                      to={link.to} 
+                      className={clsx(
+                        "px-3 py-2 text-sm font-bold rounded-lg transition-all duration-200 flex items-center gap-2 hover:translate-y-[-1px]",
+                        (location.pathname === link.to || (link.subLinks && link.subLinks.some(s => s.to === location.pathname))) ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      <div className={clsx(location.pathname === link.to ? "text-orange-600 dark:text-amber-400" : "text-slate-400")}>{link.icon}</div>
+                      {link.label}
+                      {link.subLinks && <ChevronDown className="w-3.5 h-3.5 opacity-50 group-hover:rotate-180 transition-transform" />}
+                    </Link>
+
+                    {link.subLinks && (
+                      <AnimatePresence>
+                        {partyDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.1 }}
+                            className="absolute left-0 mt-0 w-40 bg-white dark:bg-[#1A1612] rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-50 overflow-hidden"
+                          >
+                            {link.subLinks.map((sub) => (
+                              <Link
+                                key={sub.to}
+                                to={sub.to}
+                                className={clsx(
+                                  "block px-4 py-2 text-sm font-bold transition-colors",
+                                  location.pathname === sub.to
+                                    ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10"
+                                    : "text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                )}
+                              >
+                                {sub.label}
+                              </Link>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
+                  </div>
                 ))}
 
                 <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
@@ -422,22 +467,39 @@ export default function Navbar() {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 mb-3">Explore Activity</p>
                   <div className="space-y-1">
                     {navLinks.map((link) => (
-                      <Link
-                        key={link.to}
-                        to={link.to}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={clsx(
-                          "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
-                          location.pathname === link.to 
-                            ? "bg-orange-50 dark:bg-amber-400/10 text-orange-600 dark:text-amber-400 border border-orange-100 dark:border-amber-400/20" 
-                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                        )}
-                      >
-                        <div className={clsx("p-2 rounded-xl transition-colors", location.pathname === link.to ? "bg-white dark:bg-slate-800 text-orange-500 dark:text-amber-400 shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
-                          {link.icon}
-                        </div>
-                        {link.label}
-                      </Link>
+                      <React.Fragment key={link.to}>
+                        <Link
+                          to={link.to}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={clsx(
+                            "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                            location.pathname === link.to 
+                              ? "bg-orange-50 dark:bg-amber-400/10 text-orange-600 dark:text-amber-400 border border-orange-100 dark:border-amber-400/20" 
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <div className={clsx("p-2 rounded-xl transition-colors", location.pathname === link.to ? "bg-white dark:bg-slate-800 text-orange-500 dark:text-amber-400 shadow-sm" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
+                            {link.icon}
+                          </div>
+                          {link.label}
+                        </Link>
+                        {link.subLinks && link.subLinks.map((sub) => (
+                          <Link
+                            key={sub.to}
+                            to={sub.to}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={clsx(
+                              "flex items-center gap-4 ml-8 px-4 py-3 rounded-2xl text-[13px] font-bold transition-all mt-1",
+                              location.pathname === sub.to 
+                                ? "bg-orange-50/50 dark:bg-amber-400/5 text-orange-600 dark:text-amber-400" 
+                                : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            )}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+                            {sub.label}
+                          </Link>
+                        ))}
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>

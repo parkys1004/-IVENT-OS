@@ -147,6 +147,15 @@ CREATE TABLE community_posts (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- 6.1.5 COMMUNITY COMMENTS (게시판 댓글)
+CREATE TABLE community_comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  post_id UUID REFERENCES community_posts(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
 -- 6.2 EVENT COMMENTS (행사 댓글)
 CREATE TABLE event_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -168,6 +177,7 @@ CREATE TABLE event_reviews (
 
 -- RLS for Community Features
 ALTER TABLE community_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE community_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_reviews ENABLE ROW LEVEL SECURITY;
 
@@ -176,6 +186,13 @@ CREATE POLICY "Anyone can view community posts." ON community_posts FOR SELECT U
 CREATE POLICY "Authenticated users can create posts." ON community_posts FOR INSERT WITH CHECK (auth.uid() = author_id);
 CREATE POLICY "Authors can update their own posts." ON community_posts FOR UPDATE USING (auth.uid() = author_id);
 CREATE POLICY "Authors and Admins can delete posts." ON community_posts FOR DELETE USING (
+  auth.uid() = author_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Community Comments Policies
+CREATE POLICY "Anyone can view community comments." ON community_comments FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can post comments." ON community_comments FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Authors and Admins can delete comments." ON community_comments FOR DELETE USING (
   auth.uid() = author_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 

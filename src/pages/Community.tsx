@@ -59,16 +59,20 @@ export default function Community() {
 
   const fetchPosts = async (searchOverride?: string) => {
     setLoading(true);
-    // Use the override if provided, otherwise fall back to the current state
     const currentSearch = searchOverride !== undefined ? searchOverride : searchQuery;
     
     try {
       if (activeCategory === 'review') {
-        const { data, error } = await supabase
+        let query = supabase
           .from('event_reviews')
           .select('*, author:profiles(display_name, photo_url), event:events(title)')
           .order('created_at', { ascending: false });
 
+        if (currentSearch) {
+          query = query.or(`content.ilike.%${currentSearch}%`);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         setPosts((data || []).map(r => ({
           id: r.id,
@@ -97,11 +101,29 @@ export default function Community() {
 
         const { data, error } = await query;
         if (error) throw error;
+
+        // Fetch comment counts for these posts
+        const postIds = (data || []).map(p => p.id);
+        let counts: Record<string, number> = {};
+        
+        if (postIds.length > 0) {
+          const { data: countData } = await supabase
+            .from('community_comments')
+            .select('post_id')
+            .in('post_id', postIds);
+          
+          if (countData) {
+            countData.forEach(c => {
+              counts[c.post_id] = (counts[c.post_id] || 0) + 1;
+            });
+          }
+        }
+
         setPosts((data || []).map(post => ({
           ...post,
           author_name: post.author?.display_name || '알 수 없는 사용자',
           author_photo: post.author?.photo_url || '',
-          comment_count: 0
+          comment_count: counts[post.id] || 0
         })));
       }
     } catch (error) {
@@ -114,15 +136,21 @@ export default function Community() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return navigate('/login');
+
+    if (activeCategory === 'review') {
+      alert('행사 리뷰는 각 행사 상세 페이지에서 작성하실 수 있습니다.');
+      setIsWriteModalOpen(false);
+      return;
+    }
+
     if (!newTitle.trim() || !newContent.trim()) return;
 
     setIsSubmitting(true);
     try {
-      const finalCategory = activeCategory === 'review' ? 'free' : activeCategory;
       const { error } = await supabase.from('community_posts').insert({
         title: newTitle,
         content: newContent,
-        category: finalCategory,
+        category: activeCategory,
         author_id: user.id
       });
 
@@ -134,13 +162,7 @@ export default function Community() {
       setSearchQuery(''); 
       setIsWriteModalOpen(false);
       
-      // If we are already on the target category, fetch manually with empty search
-      // If not, changing category will trigger useEffect
-      if (activeCategory === finalCategory) {
-        fetchPosts('');
-      } else {
-        setActiveCategory(finalCategory);
-      }
+      fetchPosts('');
     } catch (error: any) {
       alert(`오류: ${error.message}`);
     } finally {
@@ -198,19 +220,21 @@ export default function Community() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
             <input 
               type="text" 
-              placeholder="게시글 검색..."
+              placeholder={activeCategory === 'review' ? "리뷰 검색..." : "게시글 검색..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchPosts()}
               className="w-full md:w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium transition-all"
             />
           </div>
-          <button 
-            onClick={() => setIsWriteModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 flex items-center gap-2 shrink-0 transition-all hover:scale-105"
-          >
-            <Plus className="w-4.5 h-4.5" /> 글쓰기
-          </button>
+          {activeCategory !== 'review' && (
+            <button 
+              onClick={() => setIsWriteModalOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-600/20 flex items-center gap-2 shrink-0 transition-all hover:scale-105"
+            >
+              <Plus className="w-4.5 h-4.5" /> 글쓰기
+            </button>
+          )}
         </div>
       </div>
 
@@ -231,8 +255,9 @@ export default function Community() {
                 onClick={() => {
                   if (post.category === 'review' && post.event_id) {
                     navigate(`/event/${post.event_id}`);
+                  } else {
+                    navigate(`/community/${post.id}`);
                   }
-                  // For posts, we might add a detail page later
                 }}
                 className="group p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
               >

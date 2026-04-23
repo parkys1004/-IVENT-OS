@@ -8,6 +8,7 @@ import CreateLesson from './pages/CreateLesson';
 import EditEvent from './pages/EditEvent';
 import CategoryExplore from './pages/CategoryExplore';
 import Community from './pages/Community';
+import PostDetail from './pages/PostDetail';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
 import PublicProfile from './pages/PublicProfile';
@@ -103,6 +104,7 @@ function AppContent() {
           <Route path="/admin" element={<DashboardSwitcher />} />
           <Route path="/explore/:category" element={<CategoryExplore />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/community/:id" element={<PostDetail />} />
           <Route path="/event/:id" element={<EventDetail />} />
           <Route path="/profile/:id" element={<PublicProfile />} />
           <Route path="/create" element={<CreateEvent />} />

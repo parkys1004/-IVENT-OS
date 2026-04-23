@@ -14,12 +14,13 @@ export default function PastEvents() {
     const fetchPastEvents = async () => {
       try {
         setLoading(true);
+        const now = new Date().toISOString();
         const { data, error } = await supabase
           .from('events')
           .select('*')
-          .lt('date', new Date().toISOString())
           .eq('category', 'party')
           .eq('status', 'published')
+          .or(`end_date.lt.${now},and(end_date.is.null,date.lt.${new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()})`)
           .order('date', { ascending: false });
 
         if (error) throw error;

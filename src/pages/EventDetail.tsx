@@ -544,7 +544,10 @@ export default function EventDetail() {
   const isHost = user && event.hostId === user.id;
   const isAdmin = profile?.role === 'admin';
   const canEdit = isHost || isAdmin;
-  const isExpired = dateObj < new Date();
+  // Fix expiration logic: Consider event expired only if current time is past start time + 4 hours (buffer) OR past endDate if provided.
+  const isExpired = event.endDate 
+    ? new Date(event.endDate) < new Date() 
+    : new Date(dateObj.getTime() + 4 * 60 * 60 * 1000) < new Date();
 
   return (
     <motion.div 

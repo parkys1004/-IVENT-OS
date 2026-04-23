@@ -8,7 +8,7 @@ import {
   Search, MapPin, Users, CalendarDays, Clock, Flame, Ticket, Heart, MessageSquare, 
   Settings, ChevronRight, Lock, ArrowUpDown, Camera, User, Plus, BarChart3, 
   Award, Trophy, Zap, LayoutGrid, List, QrCode, TrendingUp, Archive, Gift, Compass,
-  CheckCircle2, AlertCircle, Info, Star, Music
+  CheckCircle2, AlertCircle, Info, Star, Music, Filter, Sparkles
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
@@ -339,29 +339,38 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (e.locationName && e.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    return matchesCategory && matchesSearch;
+    // Filter out past events (expired) from the discovery list
+    const now = new Date().getTime();
+    const eventTime = getTime(e.date);
+    const endTime = (e as any).end_date ? getTime((e as any).end_date) : eventTime + (4 * 60 * 60 * 1000);
+    
+    // An event is relevant if it hasn't ended yet
+    const isUpcomingOrOngoing = endTime > now;
+
+    return matchesCategory && matchesSearch && isUpcomingOrOngoing;
   }).sort((a, b) => {
-    // 1. Priority First (Descending)
+    // 1. Primary Sort logic based on selected sortBy
+    let comparison = 0;
+
+    if (sortBy === 'upcoming') {
+      const timeA = getTime(a.date);
+      const timeB = getTime(b.date);
+      comparison = timeA - timeB;
+    } else if (sortBy === 'latest') {
+      const timeA = getTime(a.createdAt);
+      const timeB = getTime(b.createdAt);
+      comparison = timeB - timeA;
+    } else if (sortBy === 'popular') {
+      comparison = (b.likesCount || 0) - (a.likesCount || 0);
+    }
+
+    if (comparison !== 0) return comparison;
+
+    // 2. Secondary Sort: Priority (Featured/Pinned items higher among ties)
     const priorityA = (a as any).priority || 0;
     const priorityB = (b as any).priority || 0;
     if (priorityA !== priorityB) return priorityB - priorityA;
 
-    // 2. Then SortBy logic
-    if (sortBy === 'upcoming') {
-      const timeA = getTime(a.date);
-      const timeB = getTime(b.date);
-      return timeA - timeB;
-    }
-    if (sortBy === 'latest') {
-      const timeA = getTime(a.createdAt);
-      const timeB = getTime(b.createdAt);
-      
-      if (timeA === 0 && timeB === 0) return b.id.localeCompare(a.id);
-      return timeB - timeA;
-    }
-    if (sortBy === 'popular') {
-      return (b.likesCount || 0) - (a.likesCount || 0);
-    }
     return 0;
   });
   
@@ -429,24 +438,6 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
   const renderFindContent = () => (
     <div className={clsx("space-y-12 flex flex-col pb-20 w-full", (profile && !forceMarketplace) ? "h-full overflow-y-auto pr-2 no-scrollbar" : "")}>
-      {/* Search Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 px-2">
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">행사 탐색</h2>
-          <p className="text-slate-500 font-bold">참여하고 싶은 행사를 찾아보세요.</p>
-        </div>
-        <div className="relative w-full md:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-          <input 
-            type="text" 
-            placeholder="지역, 강사, 행사명 검색..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
-          />
-        </div>
-      </div>
-
       {/* Hero / Banner Area */}
       <section className="grid grid-cols-1 lg:grid-cols-[2.5fr_1fr] 2xl:grid-cols-[3fr_1fr] gap-8 xl:gap-10 shrink-0 lg:h-[400px] xl:h-[460px]">
         <div 
@@ -538,6 +529,60 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           )}
         </div>
       </section>
+
+      {/* Search & Sort Enhanced Bar */}
+      <div className="px-2">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-4 lg:p-6 shadow-sm flex flex-col xl:flex-row items-center gap-6">
+          <div className="relative flex-1 group w-full">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="지역, 참여자, 행사명으로 검색하세요..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-transparent focus:border-indigo-100 dark:focus:border-indigo-900/30 rounded-[1.5rem] pl-16 pr-8 py-5 text-base focus:ring-4 focus:ring-indigo-500/5 transition-all placeholder:text-slate-400 font-bold"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 hover:text-rose-500 underline"
+              >
+                CLEAR
+              </button>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3 shrink-0 w-full xl:w-auto overflow-x-auto no-scrollbar pb-1 xl:pb-0">
+            <div className="flex items-center gap-2 mr-2 text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+              <Filter className="w-3 h-3" />
+              Sort BY:
+            </div>
+            {[
+              { id: 'upcoming', label: '가까운 날짜순', icon: CalendarDays },
+              { id: 'latest', label: '최신 등록순', icon: Sparkles },
+              { id: 'popular', label: '인기순', icon: TrendingUp },
+            ].map((option) => {
+              const Icon = option.icon;
+              const isActive = sortBy === option.id;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => setSortBy(option.id)}
+                  className={clsx(
+                    "flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[14px] font-black tracking-tight whitespace-nowrap transition-all border shrink-0 active:scale-95",
+                    isActive 
+                      ? "bg-slate-900 dark:bg-indigo-600 border-slate-900 dark:border-indigo-600 text-white shadow-xl shadow-indigo-500/10" 
+                      : "bg-white dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-indigo-300 dark:hover:border-indigo-900 hover:text-slate-800 dark:hover:text-white"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* Main Events Grid - Restored Categorized Sections */}
       <div className="space-y-16">

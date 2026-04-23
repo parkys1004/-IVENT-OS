@@ -116,11 +116,23 @@ export default function CategoryExplore() {
         searchQuery === '' || 
         (p.displayName || '').toLowerCase().includes(searchQuery.toLowerCase())
       ).sort((a, b) => ((b as any).priority || 0) - ((a as any).priority || 0))
-    : events.filter(e => 
-        searchQuery === '' || 
-        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (e.locationName && e.locationName.toLowerCase().includes(searchQuery.toLowerCase()))
-      ).sort((a, b) => {
+    : events.filter(e => {
+        const matchesSearch = searchQuery === '' || 
+          e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (e.locationName && e.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        const getTime = (val: any) => {
+          if (!val) return 0;
+          return new Date(val).getTime();
+        };
+
+        const now = new Date().getTime();
+        const eventTime = getTime(e.date);
+        const endTime = (e as any).end_date ? getTime((e as any).end_date) : eventTime + (4 * 60 * 60 * 1000);
+        const isUpcomingOrOngoing = endTime > now;
+
+        return matchesSearch && isUpcomingOrOngoing;
+      }).sort((a, b) => {
         const getTime = (val: any) => {
           if (!val) return 0;
           return new Date(val).getTime();

@@ -229,7 +229,7 @@ export default function EditEvent() {
     setSubmitting(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
-      // const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
+      const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
@@ -241,6 +241,7 @@ export default function EditEvent() {
           description: formData.description,
           category: formData.category,
           date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
           max_attendees: Number(formData.maxAttendees),

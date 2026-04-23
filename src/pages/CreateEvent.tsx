@@ -280,6 +280,7 @@ export default function CreateEvent() {
           description: formData.description,
           category: formData.category,
           date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
           max_attendees: Number(formData.maxAttendees),

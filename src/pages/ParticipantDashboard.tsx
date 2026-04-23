@@ -300,7 +300,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const getTime = (val: any) => {
     if (!val) return 0;
     try {
-      const d = new Date(val);
+      // Defensive check for Firebase Timestamp or similar structures
+      let d: Date;
+      if (val && typeof val.toDate === 'function') {
+        d = val.toDate();
+      } else {
+        d = new Date(val);
+      }
       return isNaN(d.getTime()) ? 0 : d.getTime();
     } catch (e) {
       return 0;

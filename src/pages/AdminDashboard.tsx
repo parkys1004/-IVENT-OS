@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -73,7 +73,7 @@ type MenuKey = 'home' | 'users' | 'events' | 'finance' | 'banners' | 'config' | 
 type TabKey = string;
 
 import TypeBadge from '../components/TypeBadge';
-import { LayoutGrid, ArrowUp, ArrowDown, Hash, GraduationCap, Music } from 'lucide-react';
+import { Hash } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -101,6 +101,18 @@ export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState<MenuKey>('home');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  const safeDate = (val: any) => {
+    if (!val) return new Date();
+    try {
+      if (typeof val.toDate === 'function') return val.toDate();
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? new Date() : d;
+    } catch (e) {
+      return new Date();
+    }
+  };
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -226,8 +238,14 @@ export default function AdminDashboard() {
 
   const handlePriorityChange = async (tableName: 'events' | 'profiles', id: string, priority: number) => {
     try {
-      const { error } = await supabase.from(tableName).update({ priority }).eq('id', id);
+      const { error } = await supabase.from(tableName).update({ priority }).eq(id === 'profiles' ? 'uid' : 'id', id);
       if (error) throw error;
+      
+      if (tableName === 'events') {
+        setEvents(prev => prev.map(e => e.id === id ? { ...e, priority } : e));
+      } else {
+        setUsers(prev => prev.map(u => (u.id === id || u.uid === id) ? { ...u, priority } : u));
+      }
     } catch (error) {
       console.error(`Failed to update ${tableName} priority:`, error);
     }
@@ -240,7 +258,7 @@ export default function AdminDashboard() {
         key: 'dashboard',
         value: dashboardConfig,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: 'key' });
       if (error) throw error;
       alert('화면 설정이 저장되었습니다.');
     } catch (error) {
@@ -249,6 +267,10 @@ export default function AdminDashboard() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handlePayoutApprove = (id: string) => {
+    alert(`정산 요청 ${id}가 승인되었습니다. (실제 기능은 PG사 연동 필요)`);
   };
 
   const handleImageFile = async (file: File) => {
@@ -1084,8 +1106,16 @@ export default function AdminDashboard() {
                       <AlertCircle className="w-5 h-5" /> Danger Zone
                     </h4>
                     <p className="text-rose-600 dark:text-rose-500 text-sm font-bold mb-4">플랫폼 데이터를 초기화하거나 시스템을 즉시 셧다운 할 수 있습니다.</p>
-                    <button className="px-6 py-3 bg-white dark:bg-rose-900/40 text-rose-600 border border-rose-200 dark:border-rose-800 rounded-xl font-black text-sm hover:bg-rose-600 hover:text-white transition-all">
-                      Maintenance Mode Enable
+                    <button 
+                      onClick={() => setMaintenanceMode(!maintenanceMode)}
+                      className={clsx(
+                        "px-6 py-3 rounded-xl font-black text-sm transition-all shadow-md active:scale-95",
+                        maintenanceMode 
+                          ? "bg-rose-600 text-white hover:bg-rose-700" 
+                          : "bg-white dark:bg-rose-900/40 text-rose-600 border border-rose-200 dark:border-rose-800"
+                      )}
+                    >
+                      {maintenanceMode ? 'Maintenance Mode DISABLE' : 'Maintenance Mode ENABLE'}
                     </button>
                  </div>
                </div>

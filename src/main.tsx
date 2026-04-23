@@ -14,7 +14,7 @@ class ErrorBoundary extends Component<any, any> {
     return { hasError: true, error };
   }
   render() {
-    const { children } = this.props;
+    const { children } = this.props as any;
     if (this.state.hasError) {
       return (
         <div style={{ padding: '20px', color: 'red', fontFamily: 'sans-serif' }}>

@@ -57,10 +57,11 @@ export default function Community() {
     fetchPosts();
   }, [activeCategory]);
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (searchOverride?: string) => {
     setLoading(true);
     setPosts([]); // Clear previous posts to avoid stale UI
     try {
+      const currentSearch = searchOverride !== undefined ? searchOverride : searchQuery;
       if (activeCategory === 'review') {
         // Fetch from event_reviews table
         const { data, error } = await supabase
@@ -100,8 +101,8 @@ export default function Community() {
           .eq('category', activeCategory)
           .order('created_at', { ascending: false });
 
-        if (searchQuery) {
-          query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+        if (currentSearch) {
+          query = query.or(`title.ilike.%${currentSearch}%,content.ilike.%${currentSearch}%`);
         }
 
         const { data, error } = await query;
@@ -134,12 +135,15 @@ export default function Community() {
 
     setIsSubmitting(true);
     try {
+      // Ensure category is valid for community_posts table
+      const finalCategory = activeCategory === 'review' ? 'free' : activeCategory;
+
       const { error } = await supabase
         .from('community_posts')
         .insert({
           title: newTitle,
           content: newContent,
-          category: activeCategory,
+          category: finalCategory,
           author_id: user.id
         });
 
@@ -152,8 +156,14 @@ export default function Community() {
       alert('게시글이 성공적으로 등록되었습니다!');
       setNewTitle('');
       setNewContent('');
+      setSearchQuery(''); 
       setIsWriteModalOpen(false);
-      fetchPosts();
+      
+      if (activeCategory === 'review') {
+        setActiveCategory('free'); // Switch to free board if a general post was written from review tab
+      } else {
+        fetchPosts(''); // Pass empty string to override existing searchQuery state
+      }
     } catch (error) {
       console.error("Error creating post:", error);
       alert('게시글 작성 중 오류가 발생했습니다.');
@@ -327,7 +337,8 @@ export default function Community() {
             >
               <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                 <Plus className="w-6 h-6 text-indigo-600" /> 
-                {activeCategory === 'free' ? '게시글 작성' : '문의글 작성'}
+                {activeCategory === 'free' ? '게시글 작성' : 
+                 activeCategory === 'inquiry' ? '문의글 작성' : '자유게시판 글쓰기'}
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-6">

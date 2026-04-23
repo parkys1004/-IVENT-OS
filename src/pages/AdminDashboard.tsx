@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, PlusCircle, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, PlusCircle, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles, Lock } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -689,8 +689,10 @@ export default function AdminDashboard() {
             <tbody>
               {pointStats.history.map((h) => (
                 <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="p-6 text-[12px] font-mono text-slate-400">{format(new Date(h.created_at), 'yyyy-MM-dd HH:mm:ss')}</td>
-                  <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-300">{h.user_id.slice(0, 8)}...</td>
+                  <td className="p-6 text-[12px] font-mono text-slate-400">
+                    {h.created_at ? format(new Date(h.created_at), 'yyyy-MM-dd HH:mm:ss') : '-'}
+                  </td>
+                  <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-300">{h.user_id ? h.user_id.slice(0, 8) : 'unknown'}...</td>
                   <td className={clsx("p-6 text-sm font-black", h.amount > 0 ? "text-emerald-600" : "text-rose-600")}>
                     {h.amount > 0 ? `+${h.amount}` : h.amount} P
                   </td>

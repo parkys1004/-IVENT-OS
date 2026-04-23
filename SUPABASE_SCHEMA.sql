@@ -40,7 +40,7 @@ CREATE TABLE events (
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending', 'published', 'cancelled', 'expired')),
   price INTEGER DEFAULT 0,
   capacity INTEGER,
-  host_id UUID REFERENCES auth.users(id),
+  host_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   image_url TEXT,
   is_banner BOOLEAN DEFAULT false,
   is_lesson BOOLEAN DEFAULT false,

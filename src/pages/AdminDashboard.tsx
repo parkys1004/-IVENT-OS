@@ -54,6 +54,7 @@ interface EventData {
   hostName: string; // Will store profile display_name
   isBanner?: boolean;
   isLesson?: boolean;
+  priority?: number;
 }
 
 interface PromoBanner {
@@ -122,9 +123,21 @@ export default function AdminDashboard() {
     setLoading(true);
     setIsRefreshing(true);
     try {
-      const [{ data: eventsData }, { data: usersData }, { data: promoData }, { data: configData }, { data: appData }] = await Promise.all([
-        supabase.from('events').select('*, profiles!host_id(display_name)').order('date', { ascending: false }).limit(100),
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100),
+      // Fetch data without the strict join first to ensure we get events even if user data is missing
+      const { data: eventsData, error: eErr } = await supabase
+        .from('events')
+        .select(`
+          *,
+          profiles(display_name)
+        `)
+        .order('priority', { ascending: false })
+        .order('date', { ascending: false })
+        .limit(200);
+
+      if (eErr) throw eErr;
+
+      const [{ data: usersData }, { data: promoData }, { data: configData }, { data: appData }] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(200),
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle()
@@ -139,7 +152,8 @@ export default function AdminDashboard() {
         isBanner: e.is_banner,
         host_id: e.host_id,
         hostName: (e as any).profiles?.display_name || '탈퇴한 사용자',
-        isLesson: e.is_lesson
+        isLesson: e.is_lesson,
+        priority: e.priority || 0
       })));
 
       if (appData && (appData.value as any).approvalMode) {
@@ -488,21 +502,44 @@ export default function AdminDashboard() {
 
   const renderEventsContent = () => (
     <div className="space-y-6 flex flex-col h-full min-h-0">
-      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <button onClick={() => setActiveEventTab('all')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          전체
-        </button>
-        <button onClick={() => setActiveEventTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors text-sm flex items-center gap-2", activeEventTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          승인 대기
-          {events.filter(e => e.status === 'pending' || e.status === 'draft').length > 0 && 
-            <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-              {events.filter(e => e.status === 'pending' || e.status === 'draft').length}
-            </span>
-          }
-        </button>
-        <button onClick={() => setActiveEventTab('expired')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'expired' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          기간 만료
-        </button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+        <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800">
+          <button onClick={() => setActiveEventTab('all')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            전체
+          </button>
+          <button onClick={() => setActiveEventTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors text-sm flex items-center gap-2", activeEventTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            승인 대기
+            {events.filter(e => e.status === 'pending' || e.status === 'draft').length > 0 && 
+              <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                {events.filter(e => e.status === 'pending' || e.status === 'draft').length}
+              </span>
+            }
+          </button>
+          <button onClick={() => setActiveEventTab('expired')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'expired' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            기간 만료
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <button 
+            onClick={() => handleApprovalModeToggle('manual')}
+            className={clsx(
+              "px-3 py-1.5 text-[11px] font-black rounded-lg transition-all",
+              approvalMode === 'manual' ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            수동 승인
+          </button>
+          <button 
+            onClick={() => handleApprovalModeToggle('auto')}
+            className={clsx(
+              "px-3 py-1.5 text-[11px] font-black rounded-lg transition-all",
+              approvalMode === 'auto' ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            자동 승인
+          </button>
+        </div>
       </div>
       
       {/* Table */}
@@ -511,6 +548,7 @@ export default function AdminDashboard() {
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 z-10 shadow-sm">
               <tr className="text-slate-500 dark:text-slate-400 text-[12px] uppercase tracking-wider">
+                <th className="p-4 font-bold">노출 순서</th>
                 <th className="p-4 font-bold">행사명</th>
                 <th className="p-4 font-bold">주최자</th>
                 <th className="p-4 font-bold">상태</th>
@@ -533,6 +571,25 @@ export default function AdminDashboard() {
                 
                 return (
                   <tr key={event.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handlePriorityChange('events', event.id, (event.priority || 0) + 1)}
+                          className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-indigo-600"
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </button>
+                        <span className="w-6 text-center font-bold text-indigo-600 text-xs">
+                          {event.priority || 0}
+                        </span>
+                        <button 
+                          onClick={() => handlePriorityChange('events', event.id, Math.max(0, (event.priority || 0) - 1))}
+                          className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-rose-600"
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
                     <td className="p-4 font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
                       <TypeBadge isLesson={event.isLesson} />
                       <span className="truncate max-w-[200px]">{event.title}</span>
@@ -621,12 +678,6 @@ export default function AdminDashboard() {
               className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'config' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
             >
                <LayoutGrid className="w-5 h-5" /> 홈 화면 설정
-            </button>
-            <button 
-              onClick={() => handleMenuClick('finance')}
-              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'finance' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
-            >
-               <CreditCard className="w-5 h-5" /> 정산 관리
             </button>
           </nav>
         </div>
@@ -1057,38 +1108,6 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {activeMenu === 'finance' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Volume (Gross)</p>
-                    <h3 className="text-3xl font-black text-slate-800 dark:text-white">₩ 12,450,000</h3>
-                    <p className="text-xs text-emerald-500 font-bold mt-2">+12.5% from last month</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Platform Fees (Net)</p>
-                    <h3 className="text-3xl font-black text-indigo-600">₩ 1,245,000</h3>
-                    <p className="text-xs text-slate-400 font-bold mt-2">Current fee rate: 10%</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Pending Payouts</p>
-                    <h3 className="text-3xl font-black text-amber-500">₩ 3,120,000</h3>
-                    <p className="text-xs text-slate-400 font-bold mt-2">Next payout: May 1st</p>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                    <h3 className="font-black text-slate-800 dark:text-white">최근 정산 요청 내역</h3>
-                    <button className="text-xs font-black text-indigo-600 hover:underline">전체 보기</button>
-                  </div>
-                  <div className="p-8 text-center text-slate-400 text-sm font-bold">
-                    <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                    현재 처리 중인 정산 요청이 없습니다.
                   </div>
                 </div>
               </div>

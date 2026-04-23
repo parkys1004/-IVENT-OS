@@ -152,6 +152,11 @@ export default function CreateLesson() {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
       // const endDateTime = new Date(`${formData.endDate || formData.date}T${formData.endTime || formData.time}`);
 
+      // Check approval setting
+      const { data: configData } = await supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle();
+      const approvalMode = (configData?.value as any)?.approvalMode || 'manual';
+      const initialStatus = approvalMode === 'auto' ? 'published' : 'pending';
+
       const { data, error } = await supabase
         .from('events')
         .insert({
@@ -163,7 +168,7 @@ export default function CreateLesson() {
           image_url: formData.imageUrl,
           max_attendees: formData.maxAttendees,
           host_id: user.id,
-          status: 'published',
+          status: initialStatus,
           is_lesson: true,
           // level, paymentMethod, tickets etc to be handled
         })

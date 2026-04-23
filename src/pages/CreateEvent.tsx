@@ -302,6 +302,17 @@ export default function CreateEvent() {
           host_id: user.id,
           status: initialStatus,
           is_lesson: formData.isLesson,
+          metadata: {
+            djs: formData.djs,
+            performances: formData.performances,
+            media: formData.media,
+            tickets: formData.tickets,
+            paymentMethod: formData.paymentMethod,
+            formattedAddress: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            geoPoint: formData.geoPoint
+          }
         });
 
       if (error) throw error;

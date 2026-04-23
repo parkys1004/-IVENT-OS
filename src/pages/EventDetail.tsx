@@ -137,7 +137,7 @@ export default function EventDetail() {
       try {
         const { data, error } = await supabase
           .from('events')
-          .select('*')
+          .select('*, host:profiles(display_name)')
           .eq('id', id)
           .single();
         
@@ -152,25 +152,38 @@ export default function EventDetail() {
           .select('*', { count: 'exact', head: true })
           .eq('event_id', id);
 
+        const meta = data.metadata || {};
         const mappedEvent = {
           id: data.id,
           title: data.title,
           description: data.description,
           date: data.date,
+          endDate: data.end_date,
           category: data.category,
           locationName: data.location_name,
+          formattedAddress: meta.formattedAddress || data.location_name,
+          geoPoint: meta.geoPoint || null,
+          city: meta.city || '',
+          country: meta.country || '',
           status: data.status,
           price: data.price,
-          capacity: data.capacity,
+          capacity: data.max_attendees,
           hostId: data.host_id,
+          hostName: (data.host as any)?.display_name || '알 수 없는 호스트',
           imageUrl: data.image_url,
           isBanner: data.is_banner,
           isLesson: data.is_lesson,
           priority: data.priority,
           likesCount: data.likes_count,
           createdAt: data.created_at,
-          maxAttendees: data.capacity || 50,
-          currentAttendees: regCount || 0
+          maxAttendees: data.max_attendees || 50,
+          currentAttendees: regCount || 0,
+          djs: meta.djs || [],
+          performances: meta.performances || [],
+          media: meta.media || [],
+          tickets: meta.tickets || [],
+          paymentMethod: meta.paymentMethod || '',
+          level: meta.level || 'beginner'
         };
         
         setEvent(mappedEvent);

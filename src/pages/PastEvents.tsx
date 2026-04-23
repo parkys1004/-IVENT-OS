@@ -38,7 +38,7 @@ export default function PastEvents() {
 
         const mappedEvents = data.map(e => ({
           ...e,
-          maxAttendees: e.capacity || 0,
+          maxAttendees: e.max_attendees || 0,
           currentAttendees: regCounts[e.id] || 0
         }));
 

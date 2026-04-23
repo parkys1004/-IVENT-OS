@@ -200,7 +200,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           locationName: e.location_name,
           status: e.status,
           price: e.price,
-          maxAttendees: e.capacity || 0,
+          maxAttendees: e.max_attendees || 0,
           currentAttendees: regCounts[e.id] || 0,
           hostId: e.host_id,
           imageUrl: e.image_url,

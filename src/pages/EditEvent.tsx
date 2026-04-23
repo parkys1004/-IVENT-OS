@@ -89,8 +89,9 @@ export default function EditEvent() {
         if (data) {
           setEventData(data);
           
+          const meta = data.metadata || {};
           const startDateObj = data.date ? new Date(data.date) : new Date();
-          // const endDateObj = data.endDate ? new Date(data.endDate) : new Date();
+          const endDateObj = data.end_date ? new Date(data.end_date) : startDateObj;
 
           setFormData({
             title: data.title || '',
@@ -98,20 +99,20 @@ export default function EditEvent() {
             category: data.category || 'party',
             date: format(startDateObj, 'yyyy-MM-dd'),
             time: format(startDateObj, 'HH:mm'),
-            endDate: format(startDateObj, 'yyyy-MM-dd'),
-            endTime: format(startDateObj, 'HH:mm'),
+            endDate: format(endDateObj, 'yyyy-MM-dd'),
+            endTime: format(endDateObj, 'HH:mm'),
             locationName: data.location_name || '',
-            formattedAddress: '', // Not in schema directly
-            country: '',
-            city: '',
-            geoPoint: null,
+            formattedAddress: meta.formattedAddress || '',
+            country: meta.country || '',
+            city: meta.city || '',
+            geoPoint: meta.geoPoint || null,
             imageUrl: data.image_url || '',
             maxAttendees: data.max_attendees || 50,
-            djs: [], // data.djs || [],
-            performances: [], // data.performances || [],
-            media: [], // data.media || [],
-            paymentMethod: '', // data.payment_method || '',
-            tickets: [], // data.tickets || [],
+            djs: meta.djs || [],
+            performances: meta.performances || [],
+            media: meta.media || [],
+            paymentMethod: meta.paymentMethod || '',
+            tickets: meta.tickets || [],
           });
 
           const loadedImages = data.image_url ? [data.image_url] : [];
@@ -245,6 +246,17 @@ export default function EditEvent() {
           location_name: formData.locationName,
           image_url: mainImageUrl, 
           max_attendees: Number(formData.maxAttendees),
+          metadata: {
+            djs: formData.djs,
+            performances: formData.performances,
+            media: formData.media,
+            tickets: formData.tickets,
+            paymentMethod: formData.paymentMethod,
+            formattedAddress: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            geoPoint: formData.geoPoint
+          }
         })
         .eq('id', id);
 

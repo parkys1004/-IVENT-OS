@@ -179,13 +179,22 @@ export default function CreateLesson() {
           description: formData.description,
           category: formData.category,
           date: startDateTime.toISOString(),
+          end_date: formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || '23:59'}`).toISOString() : null,
           location_name: formData.locationName,
           image_url: formData.imageUrl,
           max_attendees: formData.maxAttendees,
           host_id: user.id,
           status: initialStatus,
           is_lesson: true,
-          // level, paymentMethod, tickets etc to be handled
+          metadata: {
+            level: formData.level,
+            tickets: formData.tickets,
+            paymentMethod: formData.paymentMethod,
+            formattedAddress: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            geoPoint: formData.geoPoint
+          }
         })
         .select()
         .single();

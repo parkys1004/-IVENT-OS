@@ -177,11 +177,22 @@ CREATE TABLE event_reviews (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- 6.4 EVENT PHOTOS (행사 후기/스튜디오 갤러리)
+CREATE TABLE event_photos (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  image_url TEXT NOT NULL,
+  caption TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
 -- RLS for Community Features
 ALTER TABLE community_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE community_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_photos ENABLE ROW LEVEL SECURITY;
 
 -- Community Posts Policies
 CREATE POLICY "Anyone can view community posts." ON community_posts FOR SELECT USING (true);
@@ -210,4 +221,11 @@ CREATE POLICY "Anyone can view event reviews." ON event_reviews FOR SELECT USING
 CREATE POLICY "Authenticated users can post reviews." ON event_reviews FOR INSERT WITH CHECK (auth.uid() = author_id);
 CREATE POLICY "Authors and Admins can delete reviews." ON event_reviews FOR DELETE USING (
   auth.uid() = author_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Event Photos Policies
+CREATE POLICY "Anyone can view event photos." ON event_photos FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can upload photos." ON event_photos FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Authors and Admins can delete photos." ON event_photos FOR DELETE USING (
+  auth.uid() = user_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );

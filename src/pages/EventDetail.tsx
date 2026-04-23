@@ -17,7 +17,7 @@ interface RegistrationData {
 
 import { format } from 'date-fns';
 import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2, Navigation, Copy, Check, MessageCircle, Star, Send, Trash2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2, Navigation, Copy, Check, MessageCircle, Star, Send, Trash2, Upload as UploadIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +43,16 @@ interface Comment {
   author_photo: string;
 }
 
+interface EventPhoto {
+  id: string;
+  user_id: string;
+  image_url: string;
+  caption?: string;
+  created_at: string;
+  author_name: string;
+  author_photo: string;
+}
+
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -59,13 +69,51 @@ export default function EventDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Community States
-  const [activeTab, setActiveTab] = useState<'info' | 'comments' | 'reviews'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'comments' | 'reviews' | 'gallery'>('info');
   const [comments, setComments] = useState<Comment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [photos, setPhotos] = useState<EventPhoto[]>([]);
   const [newComment, setNewComment] = useState('');
   const [newReviewText, setNewReviewText] = useState('');
   const [newRating, setNewRating] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const resizeAndCompressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+      };
+    });
+  };
 
   const getLocale = () => {
     switch (language) {
@@ -165,6 +213,25 @@ export default function EventDetail() {
             author_photo: r.author?.photo_url || ''
           })));
         }
+
+        // Fetch Photos
+        const { data: photosData } = await supabase
+          .from('event_photos')
+          .select(`*, author:profiles(display_name, photo_url)`)
+          .eq('event_id', id)
+          .order('created_at', { ascending: false });
+
+        if (photosData) {
+          setPhotos(photosData.map((p: any) => ({
+            id: p.id,
+            user_id: p.user_id,
+            image_url: p.image_url,
+            caption: p.caption,
+            created_at: p.created_at,
+            author_name: p.author?.display_name || '알 수 없는 사용자',
+            author_photo: p.author?.photo_url || ''
+          })));
+        }
       } catch (err) {
         handleSupabaseError(err, OperationType.GET, 'events');
       } finally {
@@ -252,6 +319,63 @@ export default function EventDetail() {
       console.error("Error submitting review:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !id || !e.target.files?.[0]) return;
+    
+    setIsUploading(true);
+    try {
+      const file = e.target.files[0];
+      const compressed = await resizeAndCompressImage(file);
+      
+      const { error } = await supabase
+        .from('event_photos')
+        .insert({
+          event_id: id,
+          user_id: user.id,
+          image_url: compressed
+        });
+
+      if (error) throw error;
+      
+      // Refresh local state
+      const { data } = await supabase
+        .from('event_photos')
+        .select(`*, author:profiles(display_name, photo_url)`)
+        .eq('event_id', id)
+        .order('created_at', { ascending: false });
+      
+      if (data) {
+        setPhotos(data.map((p: any) => ({
+          id: p.id,
+          user_id: p.user_id,
+          image_url: p.image_url,
+          caption: p.caption,
+          created_at: p.created_at,
+          author_name: p.author?.display_name || '알 수 없는 사용자',
+          author_photo: p.author?.photo_url || ''
+        })));
+      }
+      alert("행사 사진이 성공적으로 등록되었습니다!");
+    } catch (error: any) {
+      console.error("Error uploading photo:", error);
+      alert(`사진 업로드 실패: ${error.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    if (!window.confirm("이 사진을 삭제하시겠습니까?")) return;
+    try {
+      const { error } = await supabase.from('event_photos').delete().eq('id', photoId);
+      if (error) throw error;
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+    } catch (error: any) {
+      console.error("Delete failed:", error);
+      alert("삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -388,6 +512,7 @@ export default function EventDetail() {
   const isHost = user && event.hostId === user.id;
   const isAdmin = profile?.role === 'admin';
   const canEdit = isHost || isAdmin;
+  const isExpired = dateObj < new Date();
 
   return (
     <motion.div 
@@ -684,6 +809,15 @@ export default function EventDetail() {
               >
                 리뷰 <span className="text-[10px] opacity-60 font-black">{reviews.length}</span>
               </button>
+              <button
+                onClick={() => setActiveTab('gallery')}
+                className={clsx(
+                  "px-6 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                  activeTab === 'gallery' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
+                )}
+              >
+                스튜디오/갤러리 <span className="text-[10px] opacity-60 font-black">{photos.length}</span>
+              </button>
             </div>
 
             {activeTab === 'comments' && (
@@ -819,6 +953,98 @@ export default function EventDetail() {
                 </div>
               </div>
             )}
+            {activeTab === 'gallery' && (
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+                      <ImageIcon className="w-6 h-6 text-orange-500" /> 행사 스튜디오/갤러리
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 font-bold">참여자들이 직접 담은 행사의 추억들을 확인해보세요.</p>
+                  </div>
+                  
+                  {user && isExpired && (
+                    <div className="relative group">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        disabled={isUploading}
+                        className="hidden" 
+                        id="photo-upload"
+                      />
+                      <label 
+                        htmlFor="photo-upload"
+                        className={clsx(
+                          "cursor-pointer inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-indigo-600/20 hover:scale-105 active:scale-95 transition-all",
+                          isUploading && "opacity-50 cursor-wait"
+                        )}
+                      >
+                        {isUploading ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <UploadIcon className="w-4 h-4" />
+                        )}
+                        나도 사진 올리기
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {photos.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {photos.map((photo) => (
+                      <motion.div 
+                        key={photo.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="group relative aspect-square rounded-2xl overflow-hidden cursor-zoom-in bg-slate-100 dark:bg-slate-800"
+                        onClick={() => {
+                          setFullscreenImage(photo.image_url);
+                          // Since lightbox logic uses 'images' array, we might need to adjust it or handle separate lightbox for gallery
+                        }}
+                      >
+                        <img 
+                          src={photo.image_url} 
+                          alt="Event review" 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-white/20 overflow-hidden shrink-0">
+                               {photo.author_photo && <img src={photo.author_photo} className="w-full h-full object-cover" />}
+                            </div>
+                            <span className="text-[10px] text-white font-bold truncate">{photo.author_name}</span>
+                          </div>
+                        </div>
+                        {(user?.id === photo.user_id || isAdmin) && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePhoto(photo.id);
+                            }}
+                            className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/20 rounded-[32px] border-2 border-dashed border-slate-100 dark:border-slate-800">
+                    <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl mx-auto flex items-center justify-center text-slate-200 dark:text-slate-700 mb-4 shadow-sm">
+                       <ImageIcon className="w-8 h-8" />
+                    </div>
+                    <p className="text-slate-400 font-bold mb-2">아직 등록된 사진이 없습니다.</p>
+                    {isExpired && user && (
+                      <p className="text-[12px] text-slate-500 mb-6 font-medium">행사 당일 찍은 즐거운 사진들을 공유해주세요!</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -900,13 +1126,27 @@ export default function EventDetail() {
                     <Ticket className="w-5 h-5" />
                     참여 확정되었습니다
                   </div>
-                  <button 
-                    onClick={handleCancel}
-                    disabled={processing}
-                    className="w-full py-4 text-red-500 font-bold border border-red-100 dark:border-red-900/30 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
-                  >
-                    참여 취소하기
-                  </button>
+                  {!isExpired && (
+                    <button 
+                      onClick={handleCancel}
+                      disabled={processing}
+                      className="w-full py-4 text-red-500 font-bold border border-red-100 dark:border-red-900/30 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
+                    >
+                      참여 취소하기
+                    </button>
+                  )}
+                </div>
+              ) : isExpired ? (
+                <div className="space-y-4">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-6 rounded-2xl text-center">
+                    <p className="text-slate-500 font-bold mb-4">이미 종료된 행사입니다.</p>
+                    <button 
+                      onClick={() => setActiveTab('gallery')} 
+                      className="w-full py-4 bg-orange-500 text-white rounded-xl font-black shadow-xl shadow-orange-500/20 hover:scale-105 transition-all"
+                    >
+                      현장 사진/스튜디오 보기
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button 

@@ -446,7 +446,7 @@ export default function AdminDashboard() {
              <button onClick={fetchAdminData} className="text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded">Re-check</button>
           </div>
           <div className="space-y-3">
-             {Object.entries(dbHealth).map(([table, health]) => (
+             {Object.entries(dbHealth).map(([table, health]: [string, any]) => (
                <div key={table} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
                     <div className={clsx(
@@ -468,7 +468,7 @@ export default function AdminDashboard() {
                </div>
              ))}
           </div>
-          {Object.values(dbHealth).some(h => h.status === 'error') && (
+          {Object.values(dbHealth).some((h: any) => h.status === 'error') && (
             <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl">
                <p className="text-xs text-orange-800 dark:text-orange-300 leading-relaxed font-medium">
                  일부 테이블에 연결할 수 없습니다. <strong>SUPABASE_SCHEMA.sql</strong> 파일의 내용을 복사하여 Supabase SQL Editor에서 실행해 주세요.

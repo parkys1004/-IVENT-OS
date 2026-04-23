@@ -74,6 +74,17 @@ export default function CategoryExplore() {
 
         if (error) throw error;
         
+        // Fetch registration counts
+        const { data: allRegs } = await supabase
+          .from('registrations')
+          .select('event_id')
+          .in('event_id', data.map(e => e.id));
+
+        const regCounts: Record<string, number> = {};
+        allRegs?.forEach(r => {
+          regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+        });
+
         const eventsData = data.map(e => ({
           id: e.id,
           title: e.title,
@@ -84,7 +95,9 @@ export default function CategoryExplore() {
           imageUrl: e.image_url,
           isLesson: e.is_lesson,
           likesCount: e.likes_count,
-          createdAt: e.created_at
+          createdAt: e.created_at,
+          maxAttendees: e.capacity || 0,
+          currentAttendees: regCounts[e.id] || 0
         })) as any;
         
         setEvents(eventsData);

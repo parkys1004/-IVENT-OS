@@ -179,6 +179,17 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           .limit(60);
 
         if (eventsError) throw eventsError;
+
+        // Fetch registration counts for these events
+        const { data: allRegs } = await supabase
+          .from('registrations')
+          .select('event_id')
+          .in('event_id', eventsData.map(e => e.id));
+
+        const regCounts: Record<string, number> = {};
+        allRegs?.forEach(r => {
+          regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+        });
         
         const mappedEvents = eventsData.map(e => ({
           id: e.id,
@@ -189,7 +200,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           locationName: e.location_name,
           status: e.status,
           price: e.price,
-          capacity: e.capacity,
+          maxAttendees: e.capacity || 0,
+          currentAttendees: regCounts[e.id] || 0,
           hostId: e.host_id,
           imageUrl: e.image_url,
           isBanner: e.is_banner,

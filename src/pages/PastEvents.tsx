@@ -23,7 +23,25 @@ export default function PastEvents() {
           .order('date', { ascending: false });
 
         if (error) throw error;
-        setEvents(data || []);
+        
+        // Fetch registration counts
+        const { data: allRegs } = await supabase
+          .from('registrations')
+          .select('event_id')
+          .in('event_id', data.map(e => e.id));
+
+        const regCounts: Record<string, number> = {};
+        allRegs?.forEach(r => {
+          regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+        });
+
+        const mappedEvents = data.map(e => ({
+          ...e,
+          maxAttendees: e.capacity || 0,
+          currentAttendees: regCounts[e.id] || 0
+        }));
+
+        setEvents(mappedEvents);
       } catch (error) {
         console.error('Error fetching past events:', error);
       } finally {

@@ -146,6 +146,12 @@ export default function EventDetail() {
           return;
         }
 
+        // Fetch actual registration count
+        const { count: regCount, error: countErr } = await supabase
+          .from('registrations')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', id);
+
         const mappedEvent = {
           id: data.id,
           title: data.title,
@@ -163,7 +169,8 @@ export default function EventDetail() {
           priority: data.priority,
           likesCount: data.likes_count,
           createdAt: data.created_at,
-          currentAttendees: data.likes_count // Fallback if no counts table
+          maxAttendees: data.capacity || 50,
+          currentAttendees: regCount || 0
         };
         
         setEvent(mappedEvent);
@@ -403,7 +410,8 @@ export default function EventDetail() {
         .from('registrations')
         .insert({
           event_id: id,
-          user_id: user.id
+          user_id: user.id,
+          status: 'confirmed'
         })
         .select();
 
@@ -421,6 +429,13 @@ export default function EventDetail() {
         await awardPoints(user.id, bookingPoints, `[행사 예매] ${event.title}`, { event_id: id });
 
         setRegistration(data?.[0] || { status: 'confirmed' });
+        
+        // Update local attendee count
+        setEvent((prev: any) => ({
+          ...prev,
+          currentAttendees: (prev?.currentAttendees || 0) + 1
+        }));
+
         alert("참여 신청이 완료되었습니다!");
       }
     } catch (err: any) {
@@ -475,7 +490,10 @@ export default function EventDetail() {
 
   const dateObj = event.date ? new Date(event.date) : new Date();
   const endDateObj = event.endDate ? new Date(event.endDate) : new Date();
-  const isFull = event.currentAttendees >= event.maxAttendees;
+  const currentAttendees = event.currentAttendees || 0;
+  const maxAttendees = event.maxAttendees || event.capacity || 0;
+  // If maxAttendees is 0, it means unlimited
+  const isFull = maxAttendees > 0 && currentAttendees >= maxAttendees;
 
   // Handle images array fallback
   const images = event.imageUrls && event.imageUrls.length > 0 ? event.imageUrls : (event.imageUrl ? [event.imageUrl] : []);
@@ -1124,12 +1142,14 @@ export default function EventDetail() {
               <div className="mb-10">
                 <div className="flex justify-between items-end mb-2.5">
                   <span className="text-[13px] font-bold text-slate-500 uppercase tracking-tight">참여자 현황</span>
-                  <span className="text-[14px] font-[800] text-slate-900 dark:text-white">{event.currentAttendees} / {event.maxAttendees}명</span>
+                  <span className="text-[14px] font-[800] text-slate-900 dark:text-white">
+                    {maxAttendees > 0 ? `${currentAttendees} / ${maxAttendees}명` : `${currentAttendees}명 참여 중`}
+                  </span>
                 </div>
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className={clsx("h-full transition-all duration-1000 bg-indigo-600 rounded-full")}
-                    style={{ width: `${event.maxAttendees > 0 ? Math.min((event.currentAttendees / event.maxAttendees) * 100, 100) : 0}%` }}
+                    style={{ width: `${maxAttendees > 0 ? Math.min((currentAttendees / maxAttendees) * 100, 100) : 100}%` }}
                   />
                 </div>
               </div>

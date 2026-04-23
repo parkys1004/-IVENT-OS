@@ -42,14 +42,13 @@ export default function Login() {
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-          skipBrowserRedirect: true, // 브라우저 리다이렉트를 중단하고 URL만 받아옵니다.
+          skipBrowserRedirect: true,
         }
       });
       
       if (error) throw error;
 
       if (data?.url) {
-        // 팝업 창 크기 및 중앙 정렬 계산
         const width = 500;
         const height = 600;
         const left = window.screenX + (window.outerWidth - width) / 2;
@@ -66,14 +65,41 @@ export default function Login() {
           return;
         }
 
-        // 팝업 감시 (창이 닫혔을 때 세션 확인)
-        const checkPopup = setInterval(async () => {
-          if (popup.closed) {
-            clearInterval(checkPopup);
+        // Listen for the message from the popup
+        const handleAuthMessage = async (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
+          
+          if (event.data?.type === 'SUPABASE_AUTH_SUCCESS') {
+            window.removeEventListener('message', handleAuthMessage);
+            setLoading(true);
+            
+            // Force a session refresh
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
               navigate('/');
+            } else {
+              // Wait a bit more and try again
+              setTimeout(async () => {
+                const { data: { session: retrySession } } = await supabase.auth.getSession();
+                if (retrySession) navigate('/');
+              }, 1000);
             }
+          }
+        };
+
+        window.addEventListener('message', handleAuthMessage);
+
+        // Fallback: Still monitor popup closure
+        const checkPopup = setInterval(async () => {
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            // Give it a moment to sync storage
+            setTimeout(async () => {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session) {
+                navigate('/');
+              }
+            }, 500);
           }
         }, 1000);
       }

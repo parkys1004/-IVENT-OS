@@ -1,3 +1,4 @@
+import React from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import DashboardSwitcher from './pages/DashboardSwitcher';
@@ -54,6 +55,31 @@ function SupabaseConfigWarning() {
 function AppContent() {
   const { profile, viewMode } = useAuth();
   const location = useLocation();
+
+  // Handle OAuth Redirect and Popup Closing
+  React.useEffect(() => {
+    // Check for access_token in hash (standard Supabase OAuth redirect)
+    if (window.location.hash.includes('access_token=') || window.location.hash.includes('id_token=')) {
+      // If this window was opened by our main app, close it after 1.5s
+      // The 1.5s gives the Supabase SDK in this window enough time to store the session
+      // which will then be picked up by the parent window.
+      if (window.opener) {
+        // Tell the parent window that authentication was successful
+        window.opener.postMessage({ type: 'SUPABASE_AUTH_SUCCESS' }, window.location.origin);
+        
+        console.log("OAuth Redirect detected in popup. Closing in 1.5s...");
+        const timer = setTimeout(() => {
+          try {
+            window.close();
+          } catch (e) {
+            console.error("Failed to close popup automatically:", e);
+          }
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
   const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin';
   const isHomePath = location.pathname === '/';
   const isDashboardView = isDashboardPath && profile; // Apply to any logged-in user on dashboard path

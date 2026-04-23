@@ -13,7 +13,7 @@ export interface EventData {
   title: string;
   category: string;
   date: any;
-  endDate: any;
+  endDate?: any;
   locationName: string;
   formattedAddress?: string;
   country?: string;

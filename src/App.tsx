@@ -8,6 +8,7 @@ import EditEvent from './pages/EditEvent';
 import CategoryExplore from './pages/CategoryExplore';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
+import PublicProfile from './pages/PublicProfile';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Footer from './components/Footer';
@@ -75,6 +76,7 @@ function AppContent() {
           <Route path="/admin" element={<DashboardSwitcher />} />
           <Route path="/explore/:category" element={<CategoryExplore />} />
           <Route path="/event/:id" element={<EventDetail />} />
+          <Route path="/profile/:id" element={<PublicProfile />} />
           <Route path="/create" element={<CreateEvent />} />
           <Route path="/create-lesson" element={<CreateLesson />} />
           <Route path="/edit/:id" element={<EditEvent />} />

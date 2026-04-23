@@ -299,12 +299,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
   const getTime = (val: any) => {
     if (!val) return 0;
-    if (typeof val === 'string') return new Date(val).getTime();
-    if (val.toDate) return val.toDate().getTime();
-    if (val instanceof Date) return val.getTime();
-    if (typeof val === 'number') return val;
-    if (val.seconds) return val.seconds * 1000;
-    return 0;
+    try {
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    } catch (e) {
+      return 0;
+    }
   };
 
   const filteredEvents = events.filter(e => {
@@ -832,7 +832,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const renderBookingsContent = () => {
     const nextEvent = registrations
       .filter(r => r.status === 'confirmed' && r.event?.date)
-      .sort((a, b) => (a.event.date.toMillis?.() || 0) - (b.event.date.toMillis?.() || 0))[0];
+      .sort((a, b) => new Date(a.event.date).getTime() - new Date(b.event.date).getTime())[0];
 
     return (
       <div className="space-y-8 flex flex-col h-full pb-20 overflow-y-auto no-scrollbar">
@@ -903,7 +903,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 <h5 className="font-black text-slate-800 dark:text-white text-lg line-clamp-1 mb-1">{nextEvent.event.title}</h5>
                 <p className="text-amber-800/70 dark:text-amber-400/70 text-sm font-bold flex items-center gap-1.5">
                   <CalendarDays className="w-4 h-4" /> 
-                  {format(nextEvent.event.date.toDate(), 'M월 d일 (eee) a h:mm', { locale: ko })}
+                  {format(new Date(nextEvent.event.date), 'M월 d일 (eee) a h:mm', { locale: ko })}
                 </p>
                 <Link to={`/event/${nextEvent.event.id}`} className="mt-4 block w-full py-2.5 bg-amber-900 text-white text-center font-black rounded-xl text-xs hover:bg-black transition-colors">
                   입장권 확인하기
@@ -962,12 +962,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                         )}>
                           {reg.status === 'confirmed' ? '예매 완료' : '취소됨'}
                         </span>
-                        <p className="text-[11px] font-bold text-slate-400">예매일: {reg.registeredAt?.toDate ? format(reg.registeredAt.toDate(), 'MM.dd') : '04.21'}</p>
+                        <p className="text-[11px] font-bold text-slate-400">예매일: {reg.registeredAt ? format(new Date(reg.registeredAt), 'MM.dd') : '04.21'}</p>
                       </div>
                       <h3 className="text-lg font-black text-slate-800 dark:text-white truncate pr-10">{reg.event.title}</h3>
                       <div className="flex items-center gap-3 text-slate-500 text-xs font-bold">
-                        <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" /> {format(reg.event.date.toDate(), 'M월 d일 (eee)', { locale: ko })}</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {reg.event.location}</span>
+                        <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" /> {format(new Date(reg.event.date), 'M월 d일 (eee)', { locale: ko })}</span>
+                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {reg.event.locationName}</span>
                       </div>
                     </div>
 

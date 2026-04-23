@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../supabase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket } from 'lucide-react';
@@ -97,6 +97,7 @@ export default function AdminDashboard() {
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState<MenuKey>('home');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -387,7 +388,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {users.filter(u => activeTab === 'all' || (activeTab === 'pending' && ['dj','instructor','media'].includes(u.role)) || (activeTab === 'blacklist' && u.role === 'banned')).map(u => {
-                const createdAt = u.createdAt ? new Date(u.createdAt) : new Date();
+                const createdAt = safeDate(u.createdAt);
                 return (
                   <tr key={u.uid} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="p-4 flex items-center gap-3">
@@ -423,8 +424,10 @@ export default function AdminDashboard() {
                       {format(createdAt, 'yy.MM.dd', { locale: ko })}
                     </td>
                     <td className="p-4 text-right">
-                      {/* Using a simulation of a Drawer open action */}
-                      <button className="text-orange-500 font-bold hover:text-orange-600 text-sm px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 transition-colors">
+                      <button 
+                        onClick={() => navigate(`/profile/${u.id || u.uid}`)}
+                        className="text-orange-500 font-bold hover:text-orange-600 text-sm px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 transition-colors"
+                      >
                         상세보기
                       </button>
                     </td>
@@ -472,7 +475,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {events.filter(e => activeTab === 'all' || e.status === activeTab || (activeTab === 'pending' && e.status === 'draft')).map(event => {
-                const dateObj = event.date ? new Date(event.date) : new Date();
+                const dateObj = safeDate(event.date);
                 return (
                   <tr key={event.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="p-4 font-bold text-slate-800 dark:text-white text-sm flex items-center">
@@ -1004,17 +1007,87 @@ export default function AdminDashboard() {
               </div>
             )}
             {activeMenu === 'finance' && (
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 flex flex-col items-center justify-center">
-                <CreditCard className="w-12 h-12 mb-4 text-slate-300" />
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">정산 관리 시스템 구성 중</h3>
-                <p>곧 상세 내역 및 매출 통계가 제공됩니다.</p>
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Volume (Gross)</p>
+                    <h3 className="text-3xl font-black text-slate-800 dark:text-white">₩ 12,450,000</h3>
+                    <p className="text-xs text-emerald-500 font-bold mt-2">+12.5% from last month</p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Platform Fees (Net)</p>
+                    <h3 className="text-3xl font-black text-indigo-600">₩ 1,245,000</h3>
+                    <p className="text-xs text-slate-400 font-bold mt-2">Current fee rate: 10%</p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Pending Payouts</p>
+                    <h3 className="text-3xl font-black text-amber-500">₩ 3,120,000</h3>
+                    <p className="text-xs text-slate-400 font-bold mt-2">Next payout: May 1st</p>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    <h3 className="font-black text-slate-800 dark:text-white">최근 정산 요청 내역</h3>
+                    <button className="text-xs font-black text-indigo-600 hover:underline">전체 보기</button>
+                  </div>
+                  <div className="p-8 text-center text-slate-400 text-sm font-bold">
+                    <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                    현재 처리 중인 정산 요청이 없습니다.
+                  </div>
+                </div>
               </div>
             )}
             {activeMenu === 'settings' && (
-               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 flex flex-col items-center justify-center">
-                 <Settings className="w-12 h-12 mb-4 text-slate-300" />
-                 <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">시스템 환경설정</h3>
-                 <p>플랫폼 수수료율, 글로벌 약관 등을 관리할 수 있습니다.</p>
+               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                 <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+                   <h3 className="text-xl font-black text-slate-800 dark:text-white mb-8 border-b border-slate-50 dark:border-slate-800 pb-4">Global Infrastructure Configuration</h3>
+                   
+                   <div className="space-y-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-2">
+                         <label className="text-sm font-black text-slate-600 dark:text-slate-400">Platform Name</label>
+                         <input type="text" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" defaultValue="Dancehive" />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-sm font-black text-slate-600 dark:text-slate-400">Default Currency</label>
+                         <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold outline-none">
+                           <option>KRW (₩)</option>
+                           <option>JPY (¥)</option>
+                           <option>USD ($)</option>
+                           <option>SGD ($)</option>
+                         </select>
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-2">
+                         <label className="text-sm font-black text-slate-600 dark:text-slate-400">Platform Service Fee (%)</label>
+                         <input type="number" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold outline-none" defaultValue="10" />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-sm font-black text-slate-600 dark:text-slate-400">System Notification Email</label>
+                         <input type="email" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold outline-none" defaultValue="admin@dancehive.app" />
+                       </div>
+                     </div>
+
+                     <div className="pt-4 flex justify-end">
+                       <button className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-105 transition-transform">
+                         Save Global Settings
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+
+                 <div className="bg-rose-50 dark:bg-rose-900/10 rounded-[32px] border border-rose-100 dark:border-rose-900/30 p-8">
+                    <h4 className="text-rose-800 dark:text-rose-400 font-black mb-2 flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" /> Danger Zone
+                    </h4>
+                    <p className="text-rose-600 dark:text-rose-500 text-sm font-bold mb-4">플랫폼 데이터를 초기화하거나 시스템을 즉시 셧다운 할 수 있습니다.</p>
+                    <button className="px-6 py-3 bg-white dark:bg-rose-900/40 text-rose-600 border border-rose-200 dark:border-rose-800 rounded-xl font-black text-sm hover:bg-rose-600 hover:text-white transition-all">
+                      Maintenance Mode Enable
+                    </button>
+                 </div>
                </div>
             )}
           </motion.div>

@@ -15,6 +15,13 @@ export interface UserProfile {
   createdAt: string; // created_at maps to createdAt
   points?: number;
   followersCount?: number;
+  shortBio?: string;
+  description?: string;
+  specialties?: string;
+  career?: string;
+  portfolioUrl?: string;
+  studioLocation?: string;
+  phone?: string;
 }
 
 interface AuthContextType {

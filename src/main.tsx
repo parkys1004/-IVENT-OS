@@ -8,15 +8,13 @@ import { LanguageProvider } from './context/LanguageContext';
 import { GoogleMapsProvider } from './context/GoogleMapsContext';
 import './index.css';
 
-class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean, error: any}> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+class ErrorBoundary extends Component<any, any> {
+  state = { hasError: false, error: null };
   static getDerivedStateFromError(error: any) {
     return { hasError: true, error };
   }
   render() {
+    const { children } = this.props;
     if (this.state.hasError) {
       return (
         <div style={{ padding: '20px', color: 'red', fontFamily: 'sans-serif' }}>
@@ -28,7 +26,7 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean,
         </div>
       );
     }
-    return this.props.children;
+    return children;
   }
 }
 

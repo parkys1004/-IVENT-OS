@@ -15,6 +15,8 @@ export const DEFAULT_POINT_POLICIES = {
   event_review: 200,
   event_photo_upload: 300,
   daily_max_comment_reward: 5, // max 5 comments rewarded per day
+  party_registration_cost: 300,
+  lesson_registration_cost: 300,
 };
 
 /**

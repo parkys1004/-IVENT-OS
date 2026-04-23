@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, PlusCircle, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -254,7 +254,9 @@ export default function AdminDashboard() {
 
       // 5. Fetch Point Policies
       const { data: pointConfig } = await supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle();
-      if (pointConfig) setPointPolicies(pointConfig.value);
+      if (pointConfig) {
+        setPointPolicies({ ...DEFAULT_POINT_POLICIES, ...pointConfig.value });
+      }
 
       // 6. Fetch Point History & Stats
       const { data: pHistory } = await supabase.from('point_history').select('*').order('created_at', { ascending: false }).limit(100);
@@ -637,6 +639,32 @@ export default function AdminDashboard() {
                 </div>
               </div>
            </div>
+
+           <div className="space-y-4">
+              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Lock className="w-4 h-4 text-rose-500" /> 등록 차감 정책
+              </h4>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">파티 등록 차감</label>
+                   <input 
+                    type="number" 
+                    value={(pointPolicies as any).party_registration_cost} 
+                    onChange={e => setPointPolicies(prev => ({ ...prev, party_registration_cost: Number(e.target.value) }))}
+                    className="w-20 bg-slate-50 dark:bg-slate-800 border-none rounded-lg p-2 text-right font-black outline-none focus:ring-2 focus:ring-indigo-500/20 text-rose-600" 
+                   />
+                </div>
+                <div className="flex items-center justify-between">
+                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">강습 등록 차감</label>
+                   <input 
+                    type="number" 
+                    value={(pointPolicies as any).lesson_registration_cost} 
+                    onChange={e => setPointPolicies(prev => ({ ...prev, lesson_registration_cost: Number(e.target.value) }))}
+                    className="w-20 bg-slate-50 dark:bg-slate-800 border-none rounded-lg p-2 text-right font-black outline-none focus:ring-2 focus:ring-indigo-500/20 text-rose-600" 
+                   />
+                </div>
+              </div>
+           </div>
         </div>
       </div>
 
@@ -788,7 +816,7 @@ export default function AdminDashboard() {
   );
 
   const renderUsersContent = () => (
-    <div className="space-y-6 flex flex-col h-full min-h-0">
+    <div className="space-y-6 flex flex-col h-full min-h-0 relative">
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
           전체
@@ -899,6 +927,13 @@ export default function AdminDashboard() {
                         {u.role !== 'admin' && (
                           <>
                             <button 
+                              onClick={() => setManagingUserPoints({ userId: u.uid, email: u.email, currentPoints: u.points || 0 })}
+                              className="text-indigo-600 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-[11px] px-3 py-1.5 border border-indigo-100 dark:border-indigo-900/30 rounded-lg transition-colors"
+                              title="포인트 지급"
+                            >
+                              지급
+                            </button>
+                            <button 
                               onClick={() => handleBlacklistUser(u.uid)}
                               className="text-rose-600 font-bold hover:bg-rose-50 dark:hover:bg-rose-900/20 text-[11px] px-3 py-1.5 border border-rose-100 dark:border-rose-900/30 rounded-lg transition-colors"
                               title="블랙리스트 지정"
@@ -923,6 +958,119 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Point Adjustment Modal */}
+      <AnimatePresence>
+        {managingUserPoints && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setManagingUserPoints(null);
+                setAdjustmentAmount(0);
+                setAdjustmentReason('');
+              }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[32px] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-indigo-50/50 dark:bg-indigo-900/20">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                    <Coins className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white">포인트 지급</h3>
+                    <p className="text-xs text-slate-500 font-bold">{managingUserPoints.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-6">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">지급 금액 선택</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[100, 1000, 10000].map(amount => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => {
+                          setAdjustmentAmount(amount);
+                          if (!adjustmentReason) setAdjustmentReason('관리자 특별 지급');
+                        }}
+                        className={clsx(
+                          "py-3 rounded-xl font-black text-sm transition-all border-2",
+                          adjustmentAmount === amount 
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
+                            : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-200"
+                        )}
+                      >
+                        +{amount.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">직접 입력</label>
+                    <div className="relative">
+                      <input 
+                        type="number"
+                        value={adjustmentAmount || ''}
+                        onChange={(e) => setAdjustmentAmount(parseInt(e.target.value) || 0)}
+                        placeholder="금액을 입력하세요"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 font-black text-xl text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-slate-300"
+                      />
+                      <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-400">P</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">지급 사유</label>
+                    <input 
+                      type="text"
+                      value={adjustmentReason}
+                      onChange={(e) => setAdjustmentReason(e.target.value)}
+                      placeholder="사유를 입력하세요 (예: 이벤트 부상)"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-3 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setManagingUserPoints(null);
+                      setAdjustmentAmount(0);
+                      setAdjustmentReason('');
+                    }}
+                    className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black rounded-2xl hover:bg-slate-200 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleAdjustPoints}
+                    disabled={isSaving || adjustmentAmount === 0 || !adjustmentReason}
+                    className="flex-[2] py-4 bg-indigo-600 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <PlusCircle className="w-5 h-5" />}
+                    포인트 지급하기
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 

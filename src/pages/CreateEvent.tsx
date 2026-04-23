@@ -7,6 +7,7 @@ import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, Im
 import { GoogleGenAI, Type } from '@google/genai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
+import { spendPoints, DEFAULT_POINT_POLICIES } from '../lib/points';
 import clsx from 'clsx';
 
 export default function CreateEvent() {
@@ -272,6 +273,20 @@ export default function CreateEvent() {
       const { data: configData } = await supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle();
       const approvalMode = (configData?.value as any)?.approvalMode || 'manual';
       const initialStatus = approvalMode === 'auto' ? 'published' : 'pending';
+
+      // 1. Point check and deduction
+      const { data: pointConfig } = await supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle();
+      const policies = { ...DEFAULT_POINT_POLICIES, ...(pointConfig?.value || {}) };
+      const cost = formData.isLesson ? (policies.lesson_registration_cost || 0) : (policies.party_registration_cost || 0);
+
+      if (cost > 0) {
+        const pointResult = await spendPoints(user.id, cost, formData.isLesson ? '강습 등록 포인트 차감' : '파티 등록 포인트 차감');
+        if (!pointResult.success) {
+          alert('포인트가 부족하거나 처리 중 오류가 발생했습니다.');
+          setLoading(false);
+          return;
+        }
+      }
 
       const { data, error } = await supabase
         .from('events')

@@ -20,6 +20,7 @@ export interface UserProfile {
   specialties?: string;
   career?: string;
   portfolioUrl?: string;
+  portfolioImages?: string[];
   studioLocation?: string;
   phone?: string;
 }
@@ -78,7 +79,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: data.role as UserRole,
           createdAt: data.created_at,
           points: data.points,
-          followersCount: data.followers_count
+          followersCount: data.followers_count,
+          shortBio: data.short_bio,
+          description: data.description,
+          specialties: data.specialties,
+          career: data.career,
+          portfolioUrl: data.portfolio_url,
+          portfolioImages: data.portfolio_images,
+          studioLocation: data.studio_location,
+          phone: data.phone
         };
         setProfile(mappedProfile);
         

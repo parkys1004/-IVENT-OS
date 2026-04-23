@@ -7,7 +7,7 @@ import { motion } from 'motion/react';
 import { 
   CalendarDays, MapPin, Users, Music, Mic2, Star, 
   ArrowLeft, Share2, Globe, GraduationCap, Trophy, 
-  Mail, Phone, Instagram, Send
+  Mail, Phone, Instagram, Send, Camera
 } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import { UserProfile } from '../context/AuthContext';
@@ -202,6 +202,27 @@ export default function PublicProfile() {
               </div>
             </div>
           </section>
+
+          {/* Portfolio Gallery */}
+          {profile.portfolioImages && profile.portfolioImages.length > 0 && (
+            <section>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
+                <Camera className="w-7 h-7 text-indigo-500" /> Portfolio Gallery
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {profile.portfolioImages.map((url: string, idx: number) => (
+                  <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm group">
+                    <img 
+                      src={url} 
+                      alt={`portfolio-${idx}`} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Specialties & Career */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -140,6 +140,7 @@ export default function ProfessionalDashboard() {
         studioLocation: (profile as any).studioLocation || '',
         photoURL: profile.photoURL || '',
       });
+      setPortfolioImages(profile.portfolioImages || []);
       isInitializedRef.current = true;
     }
   }, [profile]);
@@ -174,6 +175,7 @@ export default function ProfessionalDashboard() {
           specialties: profileForm.specialties,
           career: profileForm.career,
           portfolio_url: profileForm.portfolioUrl,
+          portfolio_images: portfolioImages,
           studio_location: profileForm.studioLocation,
           photo_url: profileForm.photoURL,
         })
@@ -527,6 +529,17 @@ export default function ProfessionalDashboard() {
                      onChange={handleFormChange}
                      className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 min-h-[150px] text-slate-800 dark:text-white" 
                      placeholder="회원님들에게 보여질 상세한 프로필 정보를 입력해주세요."
+                   ></textarea>
+                 </div>
+
+                 <div className="mt-4">
+                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">주요 경력 하이라이트 (Highlights)</label>
+                   <textarea 
+                     name="career"
+                     value={profileForm.career}
+                     onChange={handleFormChange}
+                     className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 min-h-[120px] text-slate-800 dark:text-white" 
+                     placeholder="주요 수상 경력, 활동 내역 등을 입력하세요."
                    ></textarea>
                  </div>
 

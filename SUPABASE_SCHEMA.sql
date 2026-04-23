@@ -13,6 +13,7 @@ CREATE TABLE profiles (
   specialties TEXT,
   career TEXT,
   portfolio_url TEXT,
+  portfolio_images TEXT[],
   studio_location TEXT,
   followers_count INTEGER DEFAULT 0,
   priority INTEGER DEFAULT 0,

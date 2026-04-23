@@ -490,12 +490,14 @@ export default function AdminDashboard() {
         setManagingUserPoints(null);
         setAdjustmentAmount(0);
         setAdjustmentReason('');
-        fetchAdminData(); // Refresh
+        await fetchAdminData(); // Refresh
       } else {
-        throw new Error('조정 실패');
+        const errorMsg = (result.error as any)?.message || '조정 실패';
+        alert(`포인트 조정 실패: ${errorMsg}`);
       }
-    } catch (err) {
-      alert('포인트 조정 중 오류가 발생했습니다.');
+    } catch (err: any) {
+      console.error("Point adjustment error:", err);
+      alert(`포인트 조정 중 오류가 발생했습니다: ${err.message || '알 수 없는 오류'}`);
     } finally {
       setIsSaving(false);
     }

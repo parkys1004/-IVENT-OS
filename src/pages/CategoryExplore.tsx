@@ -63,10 +63,9 @@ export default function CategoryExplore() {
         let queryBuilder = supabase.from('events').select('*').eq('status', 'published');
 
         if (category === 'party') {
-          // All published events for party? Or specific? Usually 'party' is a category.
-          queryBuilder = queryBuilder.eq('category', 'party');
+          queryBuilder = queryBuilder.eq('is_lesson', false);
         } else if (category === 'lesson') {
-          queryBuilder = queryBuilder.or('category.eq.lesson,is_lesson.eq.true');
+          queryBuilder = queryBuilder.eq('is_lesson', true);
         } else {
           queryBuilder = queryBuilder.eq('category', category);
         }

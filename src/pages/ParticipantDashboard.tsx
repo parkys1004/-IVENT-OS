@@ -318,7 +318,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     const eventCategory = e.category?.toLowerCase() || '';
     const currentFilter = filter?.toLowerCase() || 'all';
 
-    const matchesCategory = currentFilter === 'all' || eventCategory === currentFilter;
+    const matchesCategory = currentFilter === 'all' || 
+      (currentFilter === 'party' && !e.isLesson) ||
+      (currentFilter === 'lesson' && e.isLesson) ||
+      (eventCategory === currentFilter);
     
     const matchesSearch = searchQuery === '' || 
       e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||

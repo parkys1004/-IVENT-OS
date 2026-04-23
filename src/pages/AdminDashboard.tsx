@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2 } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -92,6 +92,12 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [dbHealth, setDbHealth] = useState<Record<string, { status: 'loading' | 'ok' | 'error', message?: string }>>({
+    profiles: { status: 'loading' },
+    events: { status: 'loading' },
+    promo_banners: { status: 'loading' },
+    settings: { status: 'loading' }
+  });
   
   const [editBannerId, setEditBannerId] = useState<string | null>(null);
   const [editImageUrl, setEditImageUrl] = useState('');
@@ -124,36 +130,74 @@ export default function AdminDashboard() {
     setLoading(true);
     setIsRefreshing(true);
     setFetchError(null);
+    
+    // Reset individual health checks
+    setDbHealth({
+      profiles: { status: 'loading' },
+      events: { status: 'loading' },
+      promo_banners: { status: 'loading' },
+      settings: { status: 'loading' }
+    });
+
     try {
-      // Fetch data separately to handle potential schema inconsistencies
-      const { data: eventsData, error: eErr } = await supabase
+      // 1. Check Events
+      const { data: eventsData, error: eErr } = await supabase.from('events').select('*').limit(1);
+      if (eErr) {
+        setDbHealth(prev => ({ ...prev, events: { status: 'error', message: eErr.message } }));
+      } else {
+        setDbHealth(prev => ({ ...prev, events: { status: 'ok' } }));
+      }
+
+      // Re-fetch full events data for the UI
+      const { data: fullEventsData } = await supabase
         .from('events')
         .select('*')
         .order('priority', { ascending: false })
         .order('date', { ascending: false })
         .limit(200);
 
-      if (eErr) throw eErr;
+      // 2. Check Profiles
+      const { data: usersData, error: uErr } = await supabase.from('profiles').select('*').limit(1);
+      if (uErr) {
+        setDbHealth(prev => ({ ...prev, profiles: { status: 'error', message: uErr.message } }));
+      } else {
+        setDbHealth(prev => ({ ...prev, profiles: { status: 'ok' } }));
+      }
 
-      const [{ data: usersData, error: uErr }, { data: promoData, error: pErr }, { data: configData }, { data: appData }] = await Promise.all([
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(500),
+      // Re-fetch full users data for UI
+      const { data: fullUsersData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(500);
+
+      // 3. Check Banners
+      const { data: promoData, error: pErr } = await supabase.from('promo_banners').select('*').limit(1);
+      if (pErr) {
+        setDbHealth(prev => ({ ...prev, promo_banners: { status: 'error', message: pErr.message } }));
+      } else {
+        setDbHealth(prev => ({ ...prev, promo_banners: { status: 'ok' } }));
+      }
+
+      // 4. Check Settings
+      const { data: configCheck, error: cErr } = await supabase.from('settings').select('*').limit(1);
+      if (cErr) {
+        setDbHealth(prev => ({ ...prev, settings: { status: 'error', message: cErr.message } }));
+      } else {
+        setDbHealth(prev => ({ ...prev, settings: { status: 'ok' } }));
+      }
+
+      const [{ data: promoFullData }, { data: configData }, { data: appData }] = await Promise.all([
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle()
       ]);
 
-      if (uErr) console.warn("Failed to fetch users", uErr);
-      if (pErr) console.warn("Failed to fetch promo banners", pErr);
-
       // Map profiles for quick lookup
       const profileMap: Record<string, string> = {};
-      if (usersData) {
-        usersData.forEach(u => {
+      if (fullUsersData) {
+        fullUsersData.forEach(u => {
           profileMap[u.id] = u.display_name || '이름 없음';
         });
       }
 
-      if (eventsData) setEvents(eventsData.map(e => ({ 
+      if (fullEventsData) setEvents(fullEventsData.map(e => ({ 
         id: e.id, 
         title: e.title,
         category: e.category,
@@ -170,7 +214,7 @@ export default function AdminDashboard() {
         setApprovalMode((appData.value as any).approvalMode);
       }
 
-      if (usersData) setUsers(usersData.map(u => ({
+      if (fullUsersData) setUsers(fullUsersData.map(u => ({
         uid: u.id,
         email: u.email,
         displayName: u.display_name,
@@ -180,7 +224,7 @@ export default function AdminDashboard() {
         priority: u.priority || 0
       })));
 
-      if (promoData) setPromoBanners(promoData.map(b => ({
+      if (promoFullData) setPromoBanners(promoFullData.map(b => ({
         id: b.id,
         imageUrl: b.image_url,
         linkUrl: b.link_url,
@@ -375,10 +419,86 @@ export default function AdminDashboard() {
   // -----------------------------------------------------
 
   const renderHomeContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto no-scrollbar">
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-px">
         <button className="px-4 py-3 font-bold text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white">종합 현황</button>
-        <button className="px-4 py-3 font-bold text-slate-400 hover:text-slate-600 transition-colors">투데이 이슈</button>
+        <button className="px-4 py-3 font-bold text-slate-400 hover:text-slate-600 transition-colors">데이터베이스 자가진단</button>
+      </div>
+
+      {/* Database Health Check Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+             <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2">
+               <ShieldAlert className="w-5 h-5 text-indigo-500" /> DB 자가진단 (Database Health)
+             </h3>
+             <button onClick={fetchAdminData} className="text-[10px] font-black uppercase text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded">Re-check</button>
+          </div>
+          <div className="space-y-3">
+             {Object.entries(dbHealth).map(([table, health]) => (
+               <div key={table} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className={clsx(
+                      "w-2 h-2 rounded-full animate-pulse",
+                      health.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-none' : 
+                      health.status === 'error' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-amber-500'
+                    )}></div>
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{table === 'promo_banners' ? 'banners' : table} table</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {health.status === 'ok' ? (
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">정상 연결됨</span>
+                    ) : health.status === 'error' ? (
+                      <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded" title={health.message}>연결 실패 (SQL 필요)</span>
+                    ) : (
+                      <span className="text-[10px] font-black text-slate-400 italic">Cheking...</span>
+                    )}
+                  </div>
+               </div>
+             ))}
+          </div>
+          {Object.values(dbHealth).some(h => h.status === 'error') && (
+            <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl">
+               <p className="text-xs text-orange-800 dark:text-orange-300 leading-relaxed font-medium">
+                 일부 테이블에 연결할 수 없습니다. <strong>SUPABASE_SCHEMA.sql</strong> 파일의 내용을 복사하여 Supabase SQL Editor에서 실행해 주세요.
+               </p>
+            </div>
+          )}
+        </div>
+
+        {/* User Auth Info Diagnostics */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+           <h3 className="font-black text-slate-800 dark:text-white flex items-center gap-2 mb-4">
+             <Key className="w-5 h-5 text-amber-500" /> 현재 계정 권한 정보
+           </h3>
+           <div className="space-y-4">
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                 <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400">내 역할 (Role)</span>
+                    <span className="px-2 py-0.5 bg-amber-600 text-white text-[10px] font-black rounded uppercase">{profile?.role || 'Guest'}</span>
+                 </div>
+                 <p className="text-[11px] text-amber-800/80 dark:text-amber-400/80">
+                   {profile?.role === 'admin' 
+                     ? '현재 관리자 권한으로 로그인되어 모든 시스템 데이터를 볼 수 있습니다.' 
+                     : '현재 계정은 관리자 권한이 아닙니다. profiles 테이블에서 role을 admin으로 변경해야 합니다.'}
+                 </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                    <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-tighter">Profile Sync</div>
+                    <div className={clsx("text-xs font-black", profile ? "text-emerald-500" : "text-rose-500")}>
+                       {profile ? 'Synced' : 'None'}
+                    </div>
+                 </div>
+                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                    <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-tighter">View Mode</div>
+                    <div className="text-xs font-black text-indigo-500 uppercase tracking-tighter">
+                       {(useAuth() as any).viewMode}
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

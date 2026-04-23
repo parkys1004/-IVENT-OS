@@ -1129,7 +1129,7 @@ export default function EventDetail() {
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
                     className={clsx("h-full transition-all duration-1000 bg-indigo-600 rounded-full")}
-                    style={{ width: `${Math.min((event.currentAttendees / event.maxAttendees) * 100, 100)}%` }}
+                    style={{ width: `${event.maxAttendees > 0 ? Math.min((event.currentAttendees / event.maxAttendees) * 100, 100) : 0}%` }}
                   />
                 </div>
               </div>

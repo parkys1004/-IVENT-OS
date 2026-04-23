@@ -135,7 +135,7 @@ export default function HostDashboard() {
               <tbody>
                 {myEvents.map(event => {
                   const dateObj = event.date ? new Date(event.date) : new Date();
-                  const fillPercentage = Math.round((event.currentAttendees / event.maxAttendees) * 100) || 0;
+                  const fillPercentage = event.maxAttendees > 0 ? Math.min(Math.round((event.currentAttendees / event.maxAttendees) * 100), 100) : 0;
                   
                   return (
                     <tr key={event.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">

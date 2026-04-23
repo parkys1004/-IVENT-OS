@@ -32,7 +32,9 @@ export interface EventData {
 
 export default function EventCard({ event, featured = false, index }: { event: EventData, featured?: boolean, index: number, key?: string | number }) {
   const isFull = event.currentAttendees >= event.maxAttendees;
-  const fillPercentage = Math.min((event.currentAttendees / event.maxAttendees) * 100, 100);
+  const fillPercentage = event.maxAttendees > 0 
+    ? Math.min(Math.round((event.currentAttendees / event.maxAttendees) * 100), 100) 
+    : 0;
   
   const dateObj = event.date ? new Date(event.date) : new Date();
   const coverImage = event.imageUrls && event.imageUrls.length > 0 && event.coverImageIndex !== undefined 

@@ -109,7 +109,11 @@ export default function Community() {
           author_id: user.id
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        alert(`저장 실패: ${error.message}`);
+        throw error;
+      }
 
       setNewTitle('');
       setNewContent('');

@@ -189,7 +189,10 @@ export default function EventDetail() {
           content: newComment
         });
 
-      if (error) throw error;
+      if (error) {
+        alert(`댓글 저장 실패: ${error.message}`);
+        throw error;
+      }
       setNewComment('');
       // Refresh local state (simplified)
       const { data } = await supabase
@@ -226,7 +229,10 @@ export default function EventDetail() {
           content: newReviewText
         });
 
-      if (error) throw error;
+      if (error) {
+        alert(`리뷰 저장 실패: ${error.message}`);
+        throw error;
+      }
       setNewReviewText('');
       setNewRating(5);
       // Refresh local state

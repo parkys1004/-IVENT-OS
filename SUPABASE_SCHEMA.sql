@@ -132,3 +132,63 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ==========================================
+-- 6. COMMUNITY FEATURES
+-- ==========================================
+
+-- 6.1 COMMUNITY POSTS (자유/문의 게시판)
+CREATE TABLE community_posts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('free', 'inquiry')),
+  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- 6.2 EVENT COMMENTS (행사 댓글)
+CREATE TABLE event_comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- 6.3 EVENT REVIEWS (행사 리뷰)
+CREATE TABLE event_reviews (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- RLS for Community Features
+ALTER TABLE community_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Community Posts Policies
+CREATE POLICY "Anyone can view community posts." ON community_posts FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can create posts." ON community_posts FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Authors can update their own posts." ON community_posts FOR UPDATE USING (auth.uid() = author_id);
+CREATE POLICY "Authors and Admins can delete posts." ON community_posts FOR DELETE USING (
+  auth.uid() = author_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Event Comments Policies
+CREATE POLICY "Anyone can view event comments." ON event_comments FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can post comments." ON event_comments FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Authors and Admins can delete comments." ON event_comments FOR DELETE USING (
+  auth.uid() = author_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Event Reviews Policies
+CREATE POLICY "Anyone can view event reviews." ON event_reviews FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can post reviews." ON event_reviews FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Authors and Admins can delete reviews." ON event_reviews FOR DELETE USING (
+  auth.uid() = author_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);

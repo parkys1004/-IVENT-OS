@@ -110,6 +110,44 @@
         "djMediaLimit": { "type": "number" },
         "sectionOrder": { "type": "array" }
       }
+    },
+    "CommunityPost": {
+      "title": "Community Post",
+      "description": "A post in the community board",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string", "enum": ["free", "inquiry"] },
+        "authorId": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["title", "content", "category", "authorId", "createdAt"]
+    },
+    "EventComment": {
+      "title": "Event Comment",
+      "description": "A comment on a specific event",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["eventId", "authorId", "content", "createdAt"]
+    },
+    "EventReview": {
+      "title": "Event Review",
+      "description": "A rating and review for a specific event",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "rating": { "type": "number", "description": "1 to 5" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["eventId", "authorId", "rating", "content", "createdAt"]
     }
   },
   "firestore": {
@@ -140,6 +178,18 @@
     "/settings/dashboard": {
       "schema": { "$ref": "#/entities/DashboardConfig" },
       "description": "Stores dashboard layout configuration"
+    },
+    "/communityPosts/{postId}": {
+      "schema": { "$ref": "#/entities/CommunityPost" },
+      "description": "Stores community board posts"
+    },
+    "/eventComments/{commentId}": {
+      "schema": { "$ref": "#/entities/EventComment" },
+      "description": "Stores comments on events"
+    },
+    "/eventReviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/EventReview" },
+      "description": "Stores event reviews and ratings"
     }
   }
 }

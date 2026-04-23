@@ -59,23 +59,18 @@ export default function Community() {
 
   const fetchPosts = async (searchOverride?: string) => {
     setLoading(true);
-    setPosts([]); // Clear previous posts to avoid stale UI
+    // Use the override if provided, otherwise fall back to the current state
+    const currentSearch = searchOverride !== undefined ? searchOverride : searchQuery;
+    
     try {
-      const currentSearch = searchOverride !== undefined ? searchOverride : searchQuery;
       if (activeCategory === 'review') {
-        // Fetch from event_reviews table
         const { data, error } = await supabase
           .from('event_reviews')
-          .select(`
-            *,
-            author:profiles(display_name, photo_url),
-            event:events(title)
-          `)
+          .select('*, author:profiles(display_name, photo_url), event:events(title)')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-
-        const mappedReviews: Post[] = (data || []).map(r => ({
+        setPosts((data || []).map(r => ({
           id: r.id,
           title: `[${r.event?.title || '행사'}] 참여 후기`,
           content: r.content,
@@ -88,16 +83,11 @@ export default function Community() {
           event_title: r.event?.title,
           event_id: r.event_id,
           comment_count: 0
-        }));
-        setPosts(mappedReviews);
+        })));
       } else {
-        // Fetch from community_posts table
         let query = supabase
           .from('community_posts')
-          .select(`
-            *,
-            author:profiles(display_name, photo_url)
-          `)
+          .select('*, author:profiles(display_name, photo_url)')
           .eq('category', activeCategory)
           .order('created_at', { ascending: false });
 
@@ -107,17 +97,15 @@ export default function Community() {
 
         const { data, error } = await query;
         if (error) throw error;
-
-        const mappedPosts = (data || []).map(post => ({
+        setPosts((data || []).map(post => ({
           ...post,
           author_name: post.author?.display_name || '알 수 없는 사용자',
           author_photo: post.author?.photo_url || '',
           comment_count: 0
-        }));
-        setPosts(mappedPosts);
+        })));
       }
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      console.error("Fetch error:", error);
     } finally {
       setLoading(false);
     }
@@ -125,48 +113,36 @@ export default function Community() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      alert('로그인이 필요합니다.');
-      navigate('/login');
-      return;
-    }
-
+    if (!user) return navigate('/login');
     if (!newTitle.trim() || !newContent.trim()) return;
 
     setIsSubmitting(true);
     try {
-      // Ensure category is valid for community_posts table
       const finalCategory = activeCategory === 'review' ? 'free' : activeCategory;
+      const { error } = await supabase.from('community_posts').insert({
+        title: newTitle,
+        content: newContent,
+        category: finalCategory,
+        author_id: user.id
+      });
 
-      const { error } = await supabase
-        .from('community_posts')
-        .insert({
-          title: newTitle,
-          content: newContent,
-          category: finalCategory,
-          author_id: user.id
-        });
+      if (error) throw error;
 
-      if (error) {
-        console.error("Supabase error:", error);
-        alert(`저장 실패: ${error.message}`);
-        throw error;
-      }
-
-      alert('게시글이 성공적으로 등록되었습니다!');
+      alert('성공적으로 등록되었습니다!');
       setNewTitle('');
       setNewContent('');
       setSearchQuery(''); 
       setIsWriteModalOpen(false);
       
-      if (activeCategory === 'review') {
-        setActiveCategory('free'); // Switch to free board if a general post was written from review tab
+      // If we are already on the target category, fetch manually with empty search
+      // If not, changing category will trigger useEffect
+      if (activeCategory === finalCategory) {
+        fetchPosts('');
       } else {
-        fetchPosts(''); // Pass empty string to override existing searchQuery state
+        setActiveCategory(finalCategory);
       }
-    } catch (error) {
-      console.error("Error creating post:", error);
-      alert('게시글 작성 중 오류가 발생했습니다.');
+    } catch (error: any) {
+      alert(`오류: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -387,18 +363,6 @@ export default function Community() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* Temporary Supabase Helper */}
-      <div className="mt-20 p-8 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-[32px] flex items-start gap-4">
-        <AlertCircle className="w-6 h-6 text-amber-500 shrink-0 mt-1" />
-        <div className="space-y-2">
-          <h4 className="text-sm font-black text-amber-900 dark:text-amber-100 uppercase tracking-widest">게시판이 동작하려면 DB 설정이 필요합니다.</h4>
-          <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed font-medium">
-            Supabase SQL Editor에서 하단의 테이블을 생성해 주세요.<br/>
-            <strong>`community_posts`</strong> (id, title, content, category, author_id, created_at)
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

@@ -48,18 +48,27 @@ export async function awardPoints(userId: string, amount: number, reason: string
     if (uErr) throw uErr;
 
     // 3. Record in history
-    const { error: hErr } = await supabase
-      .from('point_history')
-      .insert({
-        user_id: userId,
-        amount,
-        reason,
-        metadata
-      });
-    
-    if (hErr) throw hErr;
+    try {
+      const { error: hErr } = await supabase
+        .from('point_history')
+        .insert({
+          user_id: userId,
+          amount,
+          reason,
+          metadata
+        });
+      
+      // We don't throw hErr immediately because the balance update already succeeded
+      if (hErr) {
+        console.warn('Point balance updated, but failed to record history:', hErr);
+        return { success: true, newPoints, historyError: hErr };
+      }
 
-    return { success: true, newPoints };
+      return { success: true, newPoints };
+    } catch (hCatch) {
+      console.warn('Point balance updated, but history record caught error:', hCatch);
+      return { success: true, newPoints, historyError: hCatch };
+    }
   } catch (error) {
     console.error('Error awarding points:', error);
     return { success: false, error };
@@ -95,18 +104,26 @@ export async function spendPoints(userId: string, amount: number, reason: string
     if (uErr) throw uErr;
 
     // 3. Record in history
-    const { error: hErr } = await supabase
-      .from('point_history')
-      .insert({
-        user_id: userId,
-        amount: -amount,
-        reason,
-        metadata
-      });
-    
-    if (hErr) throw hErr;
+    try {
+      const { error: hErr } = await supabase
+        .from('point_history')
+        .insert({
+          user_id: userId,
+          amount: -amount,
+          reason,
+          metadata
+        });
+      
+      if (hErr) {
+        console.warn('Points deducted, but failed to record history:', hErr);
+        return { success: true, newPoints, historyError: hErr };
+      }
 
-    return { success: true, newPoints };
+      return { success: true, newPoints };
+    } catch (hCatch) {
+      console.warn('Points deducted, but history record caught error:', hCatch);
+      return { success: true, newPoints, historyError: hCatch };
+    }
   } catch (error) {
     console.error('Error spending points:', error);
     return { success: false, error };

@@ -485,12 +485,27 @@ export default function AdminDashboard() {
     setIsSaving(true);
     try {
       const result = await awardPoints(managingUserPoints.userId, adjustmentAmount, `[관리자 조정] ${adjustmentReason}`);
+      
       if (result.success) {
-        alert('포인트가 성공적으로 조정되었습니다.');
+        // Real-time update of local users state for immediate feel
+        setUsers(prev => prev.map(u => 
+          (u.uid === managingUserPoints.userId) 
+            ? { ...u, points: (u.points || 0) + adjustmentAmount } 
+            : u
+        ));
+
+        if ((result as any).historyError) {
+          alert('포인트 잔액은 성공적으로 업데이트되었으나, 내역 기록 중 오류가 발생했습니다. (데이터베이스 캐시 지연일 수 있습니다.)');
+        } else {
+          alert('포인트가 성공적으로 조정되었습니다.');
+        }
+
         setManagingUserPoints(null);
         setAdjustmentAmount(0);
         setAdjustmentReason('');
-        await fetchAdminData(); // Refresh
+        
+        // Background refresh to sync with server
+        fetchAdminData(); 
       } else {
         const errorMsg = (result.error as any)?.message || '조정 실패';
         alert(`포인트 조정 실패: ${errorMsg}`);

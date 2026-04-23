@@ -91,6 +91,7 @@ export default function AdminDashboard() {
     sectionOrder: ['parties', 'lessons', 'instructors', 'djMedia']
   });
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   const [editBannerId, setEditBannerId] = useState<string | null>(null);
   const [editImageUrl, setEditImageUrl] = useState('');
@@ -122,26 +123,35 @@ export default function AdminDashboard() {
   const fetchAdminData = async () => {
     setLoading(true);
     setIsRefreshing(true);
+    setFetchError(null);
     try {
-      // Fetch data without the strict join first to ensure we get events even if user data is missing
+      // Fetch data separately to handle potential schema inconsistencies
       const { data: eventsData, error: eErr } = await supabase
         .from('events')
-        .select(`
-          *,
-          profiles(display_name)
-        `)
+        .select('*')
         .order('priority', { ascending: false })
         .order('date', { ascending: false })
         .limit(200);
 
       if (eErr) throw eErr;
 
-      const [{ data: usersData }, { data: promoData }, { data: configData }, { data: appData }] = await Promise.all([
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(200),
+      const [{ data: usersData, error: uErr }, { data: promoData, error: pErr }, { data: configData }, { data: appData }] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(500),
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle()
       ]);
+
+      if (uErr) console.warn("Failed to fetch users", uErr);
+      if (pErr) console.warn("Failed to fetch promo banners", pErr);
+
+      // Map profiles for quick lookup
+      const profileMap: Record<string, string> = {};
+      if (usersData) {
+        usersData.forEach(u => {
+          profileMap[u.id] = u.display_name || '이름 없음';
+        });
+      }
 
       if (eventsData) setEvents(eventsData.map(e => ({ 
         id: e.id, 
@@ -151,7 +161,7 @@ export default function AdminDashboard() {
         status: e.status,
         isBanner: e.is_banner,
         host_id: e.host_id,
-        hostName: (e as any).profiles?.display_name || '탈퇴한 사용자',
+        hostName: profileMap[e.host_id] || '알 수 없는 사용자',
         isLesson: e.is_lesson,
         priority: e.priority || 0
       })));
@@ -166,7 +176,8 @@ export default function AdminDashboard() {
         displayName: u.display_name,
         photoURL: u.photo_url,
         role: u.role,
-        createdAt: u.created_at
+        createdAt: u.created_at,
+        priority: u.priority || 0
       })));
 
       if (promoData) setPromoBanners(promoData.map(b => ({
@@ -177,8 +188,9 @@ export default function AdminDashboard() {
       })));
       
       if (configData) setDashboardConfig(configData.value as DashboardConfig);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Admin fetch error", err);
+      setFetchError(err.message || '데이터를 불러오는 중 알 수 없는 오류가 발생했습니다.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -262,16 +274,17 @@ export default function AdminDashboard() {
 
   const handlePriorityChange = async (tableName: 'events' | 'profiles', id: string, priority: number) => {
     try {
-      const { error } = await supabase.from(tableName).update({ priority }).eq(id === 'profiles' ? 'uid' : 'id', id);
+      const { error } = await supabase.from(tableName).update({ priority }).eq('id', id);
       if (error) throw error;
       
       if (tableName === 'events') {
         setEvents(prev => prev.map(e => e.id === id ? { ...e, priority } : e));
       } else {
-        setUsers(prev => prev.map(u => (u.id === id || u.uid === id) ? { ...u, priority } : u));
+        setUsers(prev => prev.map(u => u.uid === id ? { ...u, priority } : u));
       }
     } catch (error) {
       console.error(`Failed to update ${tableName} priority:`, error);
+      alert('우선순위 변경 중 오류가 발생했습니다.');
     }
   };
 
@@ -718,6 +731,16 @@ export default function AdminDashboard() {
             {isRefreshing ? '새로고침 중...' : '데이터 새로고침'}
           </button>
         </div>
+
+        {fetchError && (
+          <div className="mt-4 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center gap-3 text-rose-600 dark:text-rose-400 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <div className="flex-1 text-sm font-bold">
+              {fetchError}
+            </div>
+            <button onClick={fetchAdminData} className="px-3 py-1 bg-white dark:bg-slate-800 border border-rose-200 rounded-lg text-[10px] font-black uppercase">Retry</button>
+          </div>
+        )}
 
         {/* Render body by activeMenu */}
         <AnimatePresence mode="wait">

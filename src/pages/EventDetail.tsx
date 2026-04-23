@@ -17,12 +17,31 @@ interface RegistrationData {
 
 import { format } from 'date-fns';
 import { ko, enUS, ja, zhCN, th, vi } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2, Navigation, Copy, Check } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Ticket, ArrowLeft, ExternalLink, Share2, X, ChevronLeft, ChevronRight, Image as ImageIcon, Heart, Sparkles, Languages, CreditCard, Music, Mic2, Navigation, Copy, Check, MessageCircle, Star, Send, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { GoogleMap, Marker } from '@react-google-maps/api';
+
+interface Review {
+  id: string;
+  author_id: string;
+  rating: number;
+  content: string;
+  created_at: string;
+  author_name: string;
+  author_photo: string;
+}
+
+interface Comment {
+  id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  author_name: string;
+  author_photo: string;
+}
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -38,6 +57,15 @@ export default function EventDetail() {
   const [copied, setCopied] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Community States
+  const [activeTab, setActiveTab] = useState<'info' | 'comments' | 'reviews'>('info');
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [newReviewText, setNewReviewText] = useState('');
+  const [newRating, setNewRating] = useState(5);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getLocale = () => {
     switch (language) {
@@ -108,6 +136,35 @@ export default function EventDetail() {
           // In simpler setup, we can use a separate table or just skip if not critical
           // For now, let's assume no high-level like tracking for now to simplify
         }
+
+        // Fetch Community Data (Comments & Reviews)
+        const { data: commentsData } = await supabase
+          .from('event_comments')
+          .select(`*, author:profiles(display_name, photo_url)`)
+          .eq('event_id', id)
+          .order('created_at', { ascending: false });
+
+        if (commentsData) {
+          setComments(commentsData.map((c: any) => ({
+            ...c,
+            author_name: c.author?.display_name || '알 수 없는 사용자',
+            author_photo: c.author?.photo_url || ''
+          })));
+        }
+
+        const { data: reviewsData } = await supabase
+          .from('event_reviews')
+          .select(`*, author:profiles(display_name, photo_url)`)
+          .eq('event_id', id)
+          .order('created_at', { ascending: false });
+
+        if (reviewsData) {
+          setReviews(reviewsData.map((r: any) => ({
+            ...r,
+            author_name: r.author?.display_name || '알 수 없는 사용자',
+            author_photo: r.author?.photo_url || ''
+          })));
+        }
       } catch (err) {
         handleSupabaseError(err, OperationType.GET, 'events');
       } finally {
@@ -117,6 +174,80 @@ export default function EventDetail() {
 
     fetchEventAndReg();
   }, [id, user, navigate]);
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !id || !newComment.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('event_comments')
+        .insert({
+          event_id: id,
+          author_id: user.id,
+          content: newComment
+        });
+
+      if (error) throw error;
+      setNewComment('');
+      // Refresh local state (simplified)
+      const { data } = await supabase
+        .from('event_comments')
+        .select(`*, author:profiles(display_name, photo_url)`)
+        .eq('event_id', id)
+        .order('created_at', { ascending: false });
+      if (data) {
+        setComments(data.map((c: any) => ({
+          ...c,
+          author_name: c.author?.display_name || '알 수 없는 사용자',
+          author_photo: c.author?.photo_url || ''
+        })));
+      }
+    } catch (error) {
+      console.error("Error submitting comment:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !id || !newReviewText.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('event_reviews')
+        .insert({
+          event_id: id,
+          author_id: user.id,
+          rating: newRating,
+          content: newReviewText
+        });
+
+      if (error) throw error;
+      setNewReviewText('');
+      setNewRating(5);
+      // Refresh local state
+      const { data } = await supabase
+        .from('event_reviews')
+        .select(`*, author:profiles(display_name, photo_url)`)
+        .eq('event_id', id)
+        .order('created_at', { ascending: false });
+      if (data) {
+        setReviews(data.map((r: any) => ({
+          ...r,
+          author_name: r.author?.display_name || '알 수 없는 사용자',
+          author_photo: r.author?.photo_url || ''
+        })));
+      }
+    } catch (error) {
+      console.error("Error submitting review:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleRegister = async () => {
     if (!user || !event || !id) {
@@ -515,6 +646,173 @@ export default function EventDetail() {
             <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-relaxed text-[16px]">
               {event.description}
             </div>
+          </div>
+
+          {/* Community Section */}
+          <div className="space-y-6">
+            <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 self-start">
+              <button
+                onClick={() => setActiveTab('info')}
+                className={clsx(
+                  "px-6 py-2 rounded-xl text-sm font-black transition-all",
+                  activeTab === 'info' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
+                )}
+              >
+                상세정보
+              </button>
+              <button
+                onClick={() => setActiveTab('comments')}
+                className={clsx(
+                  "px-6 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                  activeTab === 'comments' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
+                )}
+              >
+                댓글 <span className="text-[10px] opacity-60 font-black">{comments.length}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className={clsx(
+                  "px-6 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                  activeTab === 'reviews' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
+                )}
+              >
+                리뷰 <span className="text-[10px] opacity-60 font-black">{reviews.length}</span>
+              </button>
+            </div>
+
+            {activeTab === 'comments' && (
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+                  <MessageCircle className="w-6 h-6 text-indigo-500" /> 행사 댓글
+                </h3>
+                
+                {user ? (
+                  <form onSubmit={handleCommentSubmit} className="relative">
+                    <textarea 
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="함께 참여하는 분들에게 궁금한 점을 물어보세요!"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-5 pr-16 font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none min-h-[100px]"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={isSubmitting || !newComment.trim()}
+                      className="absolute right-4 bottom-4 p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-600/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
+                  </form>
+                ) : (
+                  <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-6 text-center border-2 border-dashed border-slate-100 dark:border-slate-800">
+                    <p className="text-slate-400 font-bold mb-4">로그인 후 댓글을 작성할 수 있습니다.</p>
+                    <button onClick={() => navigate('/login')} className="px-6 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black hover:bg-slate-50 transition-colors">로그인하기</button>
+                  </div>
+                )}
+
+                <div className="space-y-6">
+                  {comments.length > 0 ? comments.map((comment) => (
+                    <div key={comment.id} className="flex gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden">
+                        {comment.author_photo && <img src={comment.author_photo} alt="" className="w-full h-full object-cover" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-black text-slate-800 dark:text-white">{comment.author_name}</span>
+                          <span className="text-[10px] font-bold text-slate-400 capitalize">{format(new Date(comment.created_at), 'yyyy.MM.dd')}</span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-400 text-[15px] leading-relaxed">{comment.content}</p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center py-12 text-slate-300 italic font-medium">첫 댓글을 남겨보세요!</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+                    <Star className="w-6 h-6 text-amber-500" /> 행사 리뷰
+                  </h3>
+                  <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                    <Star className="w-4 h-4 text-amber-500 fill-current" />
+                    <span className="text-sm font-black text-amber-700 dark:text-amber-400">
+                      {reviews.length > 0 
+                        ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                        : '0.0'}
+                    </span>
+                  </div>
+                </div>
+
+                {user ? (
+                  <form onSubmit={handleReviewSubmit} className="bg-slate-50 dark:bg-slate-800/40 p-6 rounded-2xl space-y-4">
+                    <div className="flex items-center gap-4">
+                      <p className="text-sm font-black text-slate-600 dark:text-slate-400">당신의 점수는?</p>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button 
+                            key={star}
+                            type="button"
+                            onClick={() => setNewRating(star)}
+                            className={clsx(
+                              "p-1 transition-all",
+                              newRating >= star ? "text-amber-500 scale-110" : "text-slate-300 hover:text-amber-300"
+                            )}
+                          >
+                            <Star className={clsx("w-6 h-6", newRating >= star && "fill-current")} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <textarea 
+                        value={newReviewText}
+                        onChange={(e) => setNewReviewText(e.target.value)}
+                        placeholder="행사 참여 경험은 어떠셨나요? 솔직한 후기를 남겨주세요."
+                        className="w-full bg-white dark:bg-slate-900 border-none rounded-xl p-5 pr-16 font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 resize-none min-h-[100px]"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={isSubmitting || !newReviewText.trim()}
+                        className="absolute right-4 bottom-4 p-3 bg-indigo-600 text-white rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="text-center py-6 text-slate-400 font-bold italic">로그인 후 리뷰를 작성할 수 있습니다.</div>
+                )}
+
+                <div className="space-y-6">
+                  {reviews.length > 0 ? reviews.map((review) => (
+                    <div key={review.id} className="p-6 bg-white dark:bg-slate-800/40 border border-slate-50 dark:border-slate-800 rounded-3xl">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden">
+                            {review.author_photo && <img src={review.author_photo} alt="" className="w-full h-full object-cover" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-800 dark:text-white">{review.author_name}</p>
+                            <p className="text-[10px] font-bold text-slate-400">{format(new Date(review.created_at), 'yyyy.MM.dd')}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className={clsx("w-3.5 h-3.5", star <= review.rating ? "text-amber-400 fill-current" : "text-slate-200")} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-400 text-[15px] leading-relaxed">{review.content}</p>
+                    </div>
+                  )) : (
+                    <div className="text-center py-12 text-slate-300 italic font-medium">아직 리뷰가 없습니다. 첫 리뷰의 주인공이 되어보세요!</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

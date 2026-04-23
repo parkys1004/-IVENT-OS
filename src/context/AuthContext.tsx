@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 
-export type UserRole = 'participant' | 'host' | 'admin' | 'dj' | 'instructor' | 'media';
+export type UserRole = 'participant' | 'host' | 'admin' | 'dj' | 'instructor' | 'media' | 'banned';
 
 export type ViewMode = 'admin' | 'professional' | 'participant';
 

@@ -118,6 +118,7 @@ export default function AdminDashboard() {
   const [pointPolicies, setPointPolicies] = useState(DEFAULT_POINT_POLICIES);
   const [pointStats, setPointStats] = useState({ totalIssued: 0, totalUsed: 0, history: [] as any[] });
   const [managingUserPoints, setManagingUserPoints] = useState<{ userId: string, email: string, currentPoints: number } | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
   const [adjustmentAmount, setAdjustmentAmount] = useState(0);
   const [adjustmentReason, setAdjustmentReason] = useState('');
 
@@ -238,7 +239,8 @@ export default function AdminDashboard() {
         photoURL: u.photo_url,
         role: u.role,
         createdAt: u.created_at,
-        priority: u.priority || 0
+        priority: u.priority || 0,
+        points: u.points || 0
       })));
 
       if (promoFullData) setPromoBanners(promoFullData.map(b => ({
@@ -272,13 +274,38 @@ export default function AdminDashboard() {
 
   const handleRoleChange = async (uid: string, newRole: string) => {
     try {
+      setIsSaving(true);
       const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', uid);
       if (error) throw error;
       setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole as any } : u));
-    } catch (error) {
+      alert("회원 유형이 성공적으로 변경되었습니다.");
+    } catch (error: any) {
       console.error("Failed to update user role:", error);
-      alert("회원 유형 변경 중 오류가 발생했습니다.");
+      alert(`회원 유형 변경 중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  const handleKickUser = async (uid: string) => {
+    if (!window.confirm('정말 이 회원을 강퇴하시겠습니까? 회원의 프로필 정보가 영구 삭제됩니다.')) return;
+    try {
+      setIsSaving(true);
+      const { error } = await supabase.from('profiles').delete().eq('id', uid);
+      if (error) throw error;
+      setUsers(prev => prev.filter(u => u.uid !== uid));
+      alert("회원이 강퇴(삭제) 처리되었습니다.");
+    } catch (error: any) {
+      console.error("Failed to kick user:", error);
+      alert(`회원 강퇴 중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBlacklistUser = async (uid: string) => {
+    if (!window.confirm('이 회원을 블랙리스트로 지정하시겠습니까? 로그인 후 주요 기능을 사용할 수 없게 됩니다.')) return;
+    await handleRoleChange(uid, 'banned');
   };
 
   const handleBannerToggle = async (eventId: string, currentStatus: boolean) => {
@@ -779,7 +806,13 @@ export default function AdminDashboard() {
       <div className="flex justify-between items-center shrink-0">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="이름, 이메일 검색..." className="pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 focus:ring-2 focus:ring-orange-500 outline-none" />
+          <input 
+            type="text" 
+            placeholder="이름, 이메일 검색..." 
+            value={userSearchQuery}
+            onChange={(e) => setUserSearchQuery(e.target.value)}
+            className="pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm w-64 focus:ring-2 focus:ring-orange-500 outline-none" 
+          />
         </div>
         <button className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors">
           <Filter className="w-4 h-4" /> 필터
@@ -794,13 +827,24 @@ export default function AdminDashboard() {
               <tr className="text-slate-500 dark:text-slate-400 text-[12px] uppercase tracking-wider">
                 <th className="p-4 font-bold">사용자</th>
                 <th className="p-4 font-bold">이메일</th>
+                <th className="p-4 font-bold text-center">포인트</th>
                 <th className="p-4 font-bold">유형</th>
                 <th className="p-4 font-bold">가입일</th>
                 <th className="p-4 font-bold text-right">관리</th>
               </tr>
             </thead>
             <tbody>
-              {users.filter(u => activeTab === 'all' || (activeTab === 'pending' && ['dj','instructor','media'].includes(u.role)) || (activeTab === 'blacklist' && u.role === 'banned')).map(u => {
+              {users.filter(u => {
+                const matchesTab = activeTab === 'all' || 
+                  (activeTab === 'pending' && ['dj','instructor','media'].includes(u.role)) || 
+                  (activeTab === 'blacklist' && u.role === 'banned');
+                
+                const matchesSearch = userSearchQuery === '' || 
+                  u.displayName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                  u.email?.toLowerCase().includes(userSearchQuery.toLowerCase());
+                
+                return matchesTab && matchesSearch;
+              }).map(u => {
                 const createdAt = safeDate(u.createdAt);
                 return (
                   <tr key={u.uid} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -813,6 +857,12 @@ export default function AdminDashboard() {
                       <span className="font-bold text-slate-800 dark:text-white text-sm">{u.displayName || '이름 없음'}</span>
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400 text-sm">{u.email}</td>
+                    <td className="p-4 text-center">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-black">
+                        <Coins className="w-3 h-3" />
+                        {(u.points || 0).toLocaleString()}
+                      </div>
+                    </td>
                     <td className="p-4">
                       <select 
                         value={u.role}
@@ -821,6 +871,7 @@ export default function AdminDashboard() {
                           "px-2 py-1 rounded-md text-[11px] font-bold outline-none cursor-pointer appearance-none text-center",
                           u.role === 'admin' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
                           u.role === 'host' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                          u.role === 'banned' ? 'bg-slate-900 text-white dark:bg-black dark:text-slate-500' :
                           ['dj','instructor','media'].includes(u.role) ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
                           'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                         )}
@@ -831,18 +882,39 @@ export default function AdminDashboard() {
                          <option value="instructor">강사</option>
                          <option value="media">미디어</option>
                          <option value="participant">참여자</option>
+                         <option value="banned">블랙리스트</option>
                       </select>
                     </td>
                     <td className="p-4 text-slate-500 text-xs">
                       {format(createdAt, 'yy.MM.dd', { locale: ko })}
                     </td>
                     <td className="p-4 text-right">
-                      <button 
-                        onClick={() => navigate(`/profile/${u.id || u.uid}`)}
-                        className="text-orange-500 font-bold hover:text-orange-600 text-sm px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 transition-colors"
-                      >
-                        상세보기
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => navigate(`/profile/${u.id || u.uid}`)}
+                          className="text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
+                        >
+                          상세
+                        </button>
+                        {u.role !== 'admin' && (
+                          <>
+                            <button 
+                              onClick={() => handleBlacklistUser(u.uid)}
+                              className="text-rose-600 font-bold hover:bg-rose-50 dark:hover:bg-rose-900/20 text-[11px] px-3 py-1.5 border border-rose-100 dark:border-rose-900/30 rounded-lg transition-colors"
+                              title="블랙리스트 지정"
+                            >
+                              블랙
+                            </button>
+                            <button 
+                              onClick={() => handleKickUser(u.uid)}
+                              className="bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-lg transition-colors"
+                              title="회원 강퇴 (데이터 삭제)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )

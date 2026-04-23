@@ -268,6 +268,11 @@ export default function CreateEvent() {
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
 
+      // Check approval setting
+      const { data: configData } = await supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle();
+      const approvalMode = (configData?.value as any)?.approvalMode || 'manual';
+      const initialStatus = approvalMode === 'auto' ? 'published' : 'pending';
+
       const { data, error } = await supabase
         .from('events')
         .insert({
@@ -275,21 +280,12 @@ export default function CreateEvent() {
           description: formData.description,
           category: formData.category,
           date: startDate.toISOString(),
-          // endDate: endDate.toISOString(), // Not in SQL schema yet, using as date
           location_name: formData.locationName,
-          // formattedAddress: formData.formattedAddress,
-          // country: formData.country,
-          // city: formData.city,
-          // geoPoint: formData.geoPoint,
           image_url: mainImageUrl, 
-          // imageUrls: images,
-          // coverImageIndex: coverImageIndex,
           max_attendees: Number(formData.maxAttendees),
           host_id: user.id,
-          status: 'draft',
+          status: initialStatus,
           is_lesson: formData.isLesson,
-          // djs, performances, media, paymentMethod, tickets usually go to JSONB or related tables
-          // Setting point for now
         });
 
       if (error) throw error;

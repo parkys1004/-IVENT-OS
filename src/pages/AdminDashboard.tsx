@@ -50,8 +50,10 @@ interface EventData {
   currentAttendees: number;
   maxAttendees: number;
   status: string;
-  hostName: string;
+  host_id: string;
+  hostName: string; // Will store profile display_name
   isBanner?: boolean;
+  isLesson?: boolean;
 }
 
 interface PromoBanner {
@@ -100,8 +102,10 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState<MenuKey>('home');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [activeEventTab, setActiveEventTab] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [approvalMode, setApprovalMode] = useState<'auto' | 'manual'>('manual');
 
   const safeDate = (val: any) => {
     if (!val) return new Date();
@@ -118,11 +122,12 @@ export default function AdminDashboard() {
     setLoading(true);
     setIsRefreshing(true);
     try {
-      const [{ data: eventsData }, { data: usersData }, { data: promoData }, { data: configData }] = await Promise.all([
-        supabase.from('events').select('*').order('date', { ascending: false }).limit(100),
+      const [{ data: eventsData }, { data: usersData }, { data: promoData }, { data: configData }, { data: appData }] = await Promise.all([
+        supabase.from('events').select('*, profiles!host_id(display_name)').order('date', { ascending: false }).limit(100),
         supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(100),
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
-        supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle()
+        supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
+        supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle()
       ]);
 
       if (eventsData) setEvents(eventsData.map(e => ({ 
@@ -132,9 +137,14 @@ export default function AdminDashboard() {
         date: e.date,
         status: e.status,
         isBanner: e.is_banner,
-        hostName: e.host_id, // For now, mapping host_id to hostName or fetch joinly
+        host_id: e.host_id,
+        hostName: (e as any).profiles?.display_name || '탈퇴한 사용자',
         isLesson: e.is_lesson
-      })) as any);
+      })));
+
+      if (appData && (appData.value as any).approvalMode) {
+        setApprovalMode((appData.value as any).approvalMode);
+      }
 
       if (usersData) setUsers(usersData.map(u => ({
         uid: u.id,
@@ -463,21 +473,35 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const handleApprovalModeToggle = async (mode: 'auto' | 'manual') => {
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        key: 'app_config',
+        value: { approvalMode: mode }
+      });
+      if (error) throw error;
+      setApprovalMode(mode);
+    } catch (err) {
+      console.error('Update approval mode failed:', err);
+    }
+  };
+
   const renderEventsContent = () => (
     <div className="space-y-6 flex flex-col h-full min-h-0">
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+        <button onClick={() => setActiveEventTab('all')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
           전체
         </button>
-        <button onClick={() => setActiveTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors flex items-center gap-2", activeTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+        <button onClick={() => setActiveEventTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors text-sm flex items-center gap-2", activeEventTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
           승인 대기
-          {pendingEvents > 0 && <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{pendingEvents}</span>}
+          {events.filter(e => e.status === 'pending' || e.status === 'draft').length > 0 && 
+            <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+              {events.filter(e => e.status === 'pending' || e.status === 'draft').length}
+            </span>
+          }
         </button>
-        <button onClick={() => setActiveTab('active')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'active' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          진행 중
-        </button>
-        <button onClick={() => setActiveTab('ended')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'ended' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          종료/정산
+        <button onClick={() => setActiveEventTab('expired')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'expired' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+          기간 만료
         </button>
       </div>
       
@@ -496,48 +520,57 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {events.filter(e => activeTab === 'all' || e.status === activeTab || (activeTab === 'pending' && e.status === 'draft')).map(event => {
+              {events.filter(e => {
+                const isExpired = new Date(e.date) < new Date();
+                if (activeEventTab === 'all') return true;
+                if (activeEventTab === 'pending') return e.status === 'pending' || e.status === 'draft';
+                if (activeEventTab === 'expired') return isExpired || e.status === 'expired';
+                return true;
+              }).map(event => {
                 const dateObj = safeDate(event.date);
+                const isPendingApproval = event.status === 'pending' || event.status === 'draft';
+                const isExpired = new Date(event.date) < new Date();
+                
                 return (
                   <tr key={event.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="p-4 font-bold text-slate-800 dark:text-white text-sm flex items-center">
+                    <td className="p-4 font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
                       <TypeBadge isLesson={event.isLesson} />
-                      {event.title}
+                      <span className="truncate max-w-[200px]">{event.title}</span>
                     </td>
-                    <td className="p-4 text-slate-600 dark:text-slate-400 text-sm">{event.hostName}</td>
+                    <td className="p-4 text-slate-600 dark:text-slate-400 text-sm font-medium">{event.hostName}</td>
                     <td className="p-4">
-                      <span className={clsx("px-2 py-1 rounded-md text-[11px] font-bold",
-                        event.status === 'published' ? 'bg-emerald-100 text-emerald-700' :
-                        event.status === 'draft' ? 'bg-amber-100 text-amber-700' :
-                        'bg-slate-100 text-slate-700'
+                      <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold",
+                        event.status === 'published' && !isExpired ? 'bg-emerald-100 text-emerald-700' :
+                        isPendingApproval ? 'bg-amber-100 text-amber-700' :
+                        'bg-slate-100 text-slate-600'
                       )}>
-                        {event.status === 'published' ? '진행 중' : event.status === 'draft' ? '승인 대기' : '종료됨'}
+                        {isPendingApproval ? '승인 대기' : isExpired ? '기간 만료' : '진행 중'}
                       </span>
                     </td>
                     <td className="p-4">
                       <button 
                         onClick={() => handleBannerToggle(event.id, !!event.isBanner)}
                         className={clsx(
-                          "px-2 py-1 rounded-md text-[11px] font-bold transition-colors",
+                          "px-2 py-1 rounded-md text-[10px] font-bold transition-colors",
                           event.isBanner 
                             ? "bg-indigo-600 text-white" 
-                            : "bg-slate-100 text-slate-400 dark:bg-slate-800 hover:bg-slate-200"
+                            : "bg-slate-100 text-slate-400 dark:bg-slate-800 hover:bg-slate-200 shadow-sm"
                         )}
                       >
                         {event.isBanner ? "ON" : "OFF"}
                       </button>
                     </td>
-                    <td className="p-4 text-slate-500 text-xs">{format(dateObj, 'yyyy.MM.dd', { locale: ko })}</td>
+                    <td className="p-4 text-slate-500 text-[11px] font-mono">{format(dateObj, 'yy.MM.dd', { locale: ko })}</td>
                     <td className="p-4 text-right flex items-center justify-end gap-2">
-                      {event.status === 'draft' && (
+                      {isPendingApproval && (
                         <button 
                           onClick={() => handleApproveEvent(event.id)}
-                          className="text-white font-bold text-xs px-3 py-1.5 bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                          className="text-white font-black text-[11px] px-3 py-1.5 bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
                         >
                           승인하기
                         </button>
                       )}
-                      <Link to={`/event/${event.id}`} className="text-indigo-600 font-bold hover:text-indigo-800 text-sm px-3 py-1.5 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors">
+                      <Link to={`/event/${event.id}`} className="text-indigo-600 font-bold hover:text-white text-xs px-3 py-1.5 border border-indigo-200 hover:bg-indigo-600 rounded-lg transition-all">
                         보기
                       </Link>
                     </td>
@@ -1095,7 +1128,7 @@ export default function AdminDashboard() {
 
                      <div className="pt-4 flex justify-end">
                        <button className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-105 transition-transform">
-                         Save Global Settings
+                         Save Settings
                        </button>
                      </div>
                    </div>

@@ -37,7 +37,7 @@ CREATE TABLE events (
   date TIMESTAMPTZ NOT NULL,
   category TEXT NOT NULL,
   location_name TEXT,
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'cancelled')),
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending', 'published', 'cancelled', 'expired')),
   price INTEGER DEFAULT 0,
   capacity INTEGER,
   host_id UUID REFERENCES auth.users(id),

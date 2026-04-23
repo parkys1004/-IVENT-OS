@@ -187,12 +187,31 @@ CREATE TABLE event_photos (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+-- 7. POINT SYSTEM
+CREATE TABLE point_history (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  amount INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
 -- RLS for Community Features
 ALTER TABLE community_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE community_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE point_history ENABLE ROW LEVEL SECURITY;
+
+-- ... (previous policies)
+
+-- Point History Policies
+CREATE POLICY "Users can view own point history." ON point_history FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Only admins can insert/update point history." ON point_history FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
 -- Community Posts Policies
 CREATE POLICY "Anyone can view community posts." ON community_posts FOR SELECT USING (true);

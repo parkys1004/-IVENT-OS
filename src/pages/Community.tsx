@@ -39,6 +39,8 @@ interface Post {
   event_id?: string; // For reviews
 }
 
+import { awardPoints } from '../lib/points';
+
 export default function Community() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
@@ -155,6 +157,9 @@ export default function Community() {
       });
 
       if (error) throw error;
+
+      // Award points for post
+      await awardPoints(user.id, 100, '커뮤니티 게시글 작성 보너스', { category: activeCategory });
 
       alert('성공적으로 등록되었습니다!');
       setNewTitle('');

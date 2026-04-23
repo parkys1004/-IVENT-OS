@@ -326,7 +326,13 @@ export default function Navbar() {
                             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 flex items-center gap-3">
                               <div className="w-12 h-12 rounded-full border border-slate-100 dark:border-slate-800 shadow-inner bg-center bg-cover" style={user.photoURL ? {backgroundImage: `url(${user.photoURL})`} : {}}></div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-base font-black text-slate-800 dark:text-white truncate">{profile?.displayName || user.email?.split('@')[0]}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-base font-black text-slate-800 dark:text-white truncate">{profile?.displayName || user.email?.split('@')[0]}</p>
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[11px] font-black border border-amber-100 dark:border-amber-900/30 shrink-0">
+                                    <Coins className="w-3.5 h-3.5" />
+                                    {profile?.points?.toLocaleString() || '0'} P
+                                  </div>
+                                </div>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-medium">{user.email}</p>
                               </div>
                             </div>

@@ -39,6 +39,8 @@ interface Post {
   };
 }
 
+import { awardPoints } from '../lib/points';
+
 export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -108,6 +110,10 @@ export default function PostDetail() {
         });
 
       if (error) throw error;
+      
+      // Award points for comment
+      await awardPoints(user.id, 20, '커뮤니티 댓글 작성 보너스', { post_id: id });
+
       setNewComment('');
       fetchPostAndComments();
     } catch (error) {

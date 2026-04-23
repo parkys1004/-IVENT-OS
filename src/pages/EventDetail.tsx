@@ -53,6 +53,8 @@ interface EventPhoto {
   author_photo: string;
 }
 
+import { awardPoints } from '../lib/points';
+
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -300,6 +302,11 @@ export default function EventDetail() {
         alert(`리뷰 저장 실패: ${error.message}`);
         throw error;
       }
+      
+      // Award points for review
+      await awardPoints(user.id, 200, `[리뷰 작성] ${event.title}`, { event_id: id });
+      alert("리뷰가 등록되었습니다! 200포인트가 지급되었습니다.");
+
       setNewReviewText('');
       setNewRating(5);
       // Refresh local state
@@ -340,6 +347,9 @@ export default function EventDetail() {
 
       if (error) throw error;
       
+      // Award points
+      await awardPoints(user.id, 300, `[갤러리 업로드] ${event.title}`, { event_id: id });
+
       // Refresh local state
       const { data } = await supabase
         .from('event_photos')
@@ -406,6 +416,10 @@ export default function EventDetail() {
           throw error;
         }
       } else {
+        // Award points for registration
+        const bookingPoints = Math.floor((event.price || 0) * 0.05) || 500;
+        await awardPoints(user.id, bookingPoints, `[행사 예매] ${event.title}`, { event_id: id });
+
         setRegistration(data?.[0] || { status: 'confirmed' });
         alert("참여 신청이 완료되었습니다!");
       }
@@ -1117,6 +1131,24 @@ export default function EventDetail() {
                     className={clsx("h-full transition-all duration-1000 bg-indigo-600 rounded-full")}
                     style={{ width: `${Math.min((event.currentAttendees / event.maxAttendees) * 100, 100)}%` }}
                   />
+                </div>
+              </div>
+
+              <div className="mb-8 p-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-800/30 flex justify-between items-center group hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Potential</p>
+                    <p className="text-[13px] font-black text-indigo-600 dark:text-indigo-400 leading-none">예상 적립 포인트</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">
+                    {(Math.floor((event.price || 0) * 0.05) || 500).toLocaleString()}
+                  </span>
+                  <span className="text-xs font-black text-indigo-400 ml-1">P</span>
                 </div>
               </div>
 

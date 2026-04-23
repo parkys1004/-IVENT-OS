@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Settings, Save, AtSign, ShieldCheck, Ticket } from 'lucide-react';
+import { User, Settings, Save, AtSign, ShieldCheck, Ticket, Coins, Clock, TrendingUp, History, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { format } from 'date-fns';
@@ -16,6 +16,8 @@ export default function MyPage() {
   const [saveMessage, setSaveMessage] = useState('');
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loadingRegs, setLoadingRegs] = useState(false);
+  const [pointHistory, setPointHistory] = useState<any[]>([]);
+  const [loadingPoints, setLoadingPoints] = useState(false);
 
   useEffect(() => {
     if (profile?.displayName) {
@@ -24,6 +26,24 @@ export default function MyPage() {
   }, [profile?.displayName]);
 
   useEffect(() => {
+    async function fetchPoints() {
+      if (!user) return;
+      setLoadingPoints(true);
+      try {
+        const { data, error } = await supabase
+          .from('point_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setPointHistory(data || []);
+      } catch (err) {
+        console.error("Error fetching points:", err);
+      } finally {
+        setLoadingPoints(false);
+      }
+    }
+
     async function fetchRegistrations() {
       if (!user) return;
       setLoadingRegs(true);
@@ -66,6 +86,7 @@ export default function MyPage() {
     
     if (user?.id) {
        fetchRegistrations();
+       fetchPoints();
     }
   }, [user?.id]);
 
@@ -174,9 +195,96 @@ export default function MyPage() {
           </div>
         </div>
 
-        {/* Activity / Registrations */}
-        <div className="lg:col-span-2">
-          <div className="glass-panel rounded-[20px] overflow-hidden h-full">
+        {/* Points & Activity / Registrations */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Points Summary Card */}
+          <div className="bg-gradient-to-br from-indigo-600 to-violet-800 rounded-[32px] p-8 text-white shadow-xl shadow-indigo-500/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-x-32 -translate-y-32 pointer-events-none"></div>
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-10">
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10">
+                  <Coins className="w-5 h-5 text-amber-300" />
+                  <span className="text-sm font-black tracking-tight">MY POINTS</span>
+                </div>
+                <Link to="/community" className="text-[11px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 transition-colors">
+                  Get More Points
+                </Link>
+              </div>
+
+              <div className="flex items-end gap-3 mb-2">
+                <span className="text-6xl font-black tracking-tighter leading-none">
+                  {profile.points?.toLocaleString() || '0'}
+                </span>
+                <span className="text-xl font-bold opacity-60 mb-1">P</span>
+              </div>
+              <p className="text-indigo-100/60 font-medium text-sm">현재 사용 가능한 전체 포인트입니다.</p>
+              
+              <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase text-indigo-200/50">Total Earned</p>
+                  <p className="text-lg font-black">+{pointHistory.filter(h => h.amount > 0).reduce((acc, c) => acc + c.amount, 0).toLocaleString()} P</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase text-indigo-200/50">Total Spent</p>
+                  <p className="text-lg font-black">-{Math.abs(pointHistory.filter(h => h.amount < 0).reduce((acc, c) => acc + c.amount, 0)).toLocaleString()} P</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Point History */}
+          <div className="glass-panel rounded-[32px] overflow-hidden">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/20">
+              <h2 className="font-black text-xl text-slate-800 dark:text-white flex items-center gap-3">
+                <History className="w-6 h-6 text-indigo-600" />
+                적립/사용 내역
+              </h2>
+            </div>
+            <div className="p-4 sm:p-8">
+              {loadingPoints ? (
+                <div className="py-12 flex justify-center">
+                  <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : pointHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {pointHistory.slice(0, 5).map((history) => (
+                    <div key={history.id} className="flex items-center justify-between p-5 bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl hover:border-indigo-200 dark:hover:border-indigo-900/30 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className={clsx(
+                          "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shrink-0",
+                          history.amount > 0 
+                            ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-100" 
+                            : "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 group-hover:bg-rose-100"
+                        )}>
+                          {history.amount > 0 ? <TrendingUp className="w-5 h-5" /> : <ChevronRight className="w-5 h-5 rotate-90" />}
+                        </div>
+                        <div>
+                          <p className="text-[15px] font-black text-slate-800 dark:text-white leading-tight mb-1">{history.reason}</p>
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <Clock className="w-3 h-3" />
+                            {format(new Date(history.created_at), 'yyyy.MM.dd HH:mm')}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={clsx(
+                        "text-lg font-[950] tracking-tighter shrink-0",
+                        history.amount > 0 ? "text-emerald-600" : "text-rose-600"
+                      )}>
+                        {history.amount > 0 ? `+${history.amount}` : history.amount}
+                      </div>
+                    </div>
+                  ))}
+                  {pointHistory.length > 5 && (
+                    <p className="text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest pt-2">Showing last 5 records</p>
+                  )}
+                </div>
+              ) : (
+                <div className="py-20 text-center text-slate-300 italic font-bold">포인트 내역이 없습니다. 활동을 시작해보세요!</div>
+              )}
+            </div>
+          </div>
+
+          <div className="glass-panel rounded-[20px] overflow-hidden">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                <h2 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                  <Ticket className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />

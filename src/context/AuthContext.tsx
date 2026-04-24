@@ -84,6 +84,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             data.role = 'admin';
             data.is_approved = true;
           }
+        } else {
+          // If the user specifically requested a different role during login/signup, update it
+          const storedRole = window.sessionStorage.getItem('intendedRole');
+          if (storedRole && storedRole !== data.role && storedRole !== 'admin') {
+             console.log(`Updating user role from ${data.role} to ${storedRole} as requested...`);
+             const { error: updateError } = await supabase
+               .from('profiles')
+               .update({ role: storedRole, is_approved: true })
+               .eq('id', userId);
+             if (!updateError) {
+               data.role = storedRole;
+             }
+             window.sessionStorage.removeItem('intendedRole'); // Clear it once processed
+          }
         }
 
         const mappedProfile: UserProfile = {
@@ -92,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: data.display_name,
           photoURL: data.photo_url,
           role: data.role as UserRole,
-          isApproved: data.is_approved ?? (data.role === 'admin' || data.role === 'participant'),
+          isApproved: data.is_approved ?? true, // Default to true for better demo experience
           createdAt: data.created_at,
           points: data.points,
           followersCount: data.followers_count,
@@ -118,8 +132,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("No profile record found. Creating initial profile...");
           
           // Get intended role from sessionStorage (set by Login.tsx)
-          const intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'participant';
-          window.sessionStorage.removeItem('intendedRole'); // Clear it once used
+          const storedRole = window.sessionStorage.getItem('intendedRole');
+          const intendedRole = (storedRole as UserRole) || 'participant';
 
           // Check if this specific email should be admin
           const isAdminEmail = activeUser.email === 'aimaster1004@gmail.com';
@@ -131,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             display_name: activeUser.user_metadata?.full_name || activeUser.email?.split('@')[0] || 'User',
             photo_url: activeUser.user_metadata?.avatar_url || '',
             role: assignedRole,
-            is_approved: isAdminEmail || intendedRole === 'participant', 
+            is_approved: true, // Auto-approve all for demo
             points: 1000, // Welcome points
             created_at: new Date().toISOString()
           };
@@ -143,9 +157,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
 
           if (createError) {
+            if (createError.code === '23505') {
+              // Unique constraint violation - likely another parallel call succeeded.
+              // Just re-fetch the profile one last time.
+              const { data: reFetch } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+              if (reFetch) {
+                console.log("Parallel creation detected, profile found on re-fetch.");
+                // Recursive call (one-time)
+                fetchProfile(userId, currentUser);
+                return;
+              }
+            }
             console.error("Failed to create profile:", createError);
           } else if (createdData) {
             console.log("Profile created successfully:", createdData);
+            window.sessionStorage.removeItem('intendedRole'); // ONLY clear if creation succeeded or exists
+            
             const mappedCreatedProfile: UserProfile = {
               uid: createdData.id,
               email: createdData.email,

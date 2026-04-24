@@ -71,23 +71,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data) {
-        console.log("Profile found:", data.display_name);
+        console.log("Profile found:", data.display_name, "Role:", data.role);
 
-        // Auto-promote admin email
-        if (data.email === 'aimaster1004@gmail.com' && data.role !== 'admin') {
-          console.log("Auto-promoting aimaster1004@gmail.com to admin role...");
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ role: 'admin', is_approved: true })
-            .eq('id', userId);
-          if (!updateError) {
-            data.role = 'admin';
-            data.is_approved = true;
+        // Source of truth for email check should be the auth user if available
+        const activeUser = currentUser || user;
+        const userEmail = activeUser?.email?.toLowerCase() || data.email?.toLowerCase();
+        
+        // Auto-promote admin email (case-insensitive)
+        if (userEmail === 'aimaster1004@gmail.com') {
+          if (data.role !== 'admin') {
+            console.log("CRITICAL: Auto-promoting aimaster1004@gmail.com to admin role...");
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ role: 'admin', is_approved: true })
+              .eq('id', userId);
+            
+            if (!updateError) {
+              console.log("Promotion successful!");
+              data.role = 'admin';
+              data.is_approved = true;
+              setViewMode('admin');
+            } else {
+              console.error("Promotion failed:", updateError);
+            }
+          } else {
+             // Already admin in DB, ensure viewMode is correct if not already set
+             // This helps if they were already admin but viewMode defaulted to participant
+             if (viewMode !== 'admin') {
+               console.log("User is admin in DB but viewMode is not admin. Fixing...");
+               setViewMode('admin');
+             }
           }
         } else {
           // If the user specifically requested a different role during login/signup, update it
           const storedRole = window.sessionStorage.getItem('intendedRole');
-          if (storedRole && storedRole !== data.role && storedRole !== 'admin') {
+          if (storedRole && storedRole !== data.role && data.role !== 'admin') {
              console.log(`Updating user role from ${data.role} to ${storedRole} as requested...`);
              const { error: updateError } = await supabase
                .from('profiles')
@@ -96,9 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
              if (!updateError) {
                data.role = storedRole;
              }
-             window.sessionStorage.removeItem('intendedRole'); // Clear it once processed
           }
         }
+        
+        // ALWAYS clear intendedRole once we have a profile (either found or updated)
+        window.sessionStorage.removeItem('intendedRole'); 
 
         const mappedProfile: UserProfile = {
           uid: data.id,
@@ -135,8 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const storedRole = window.sessionStorage.getItem('intendedRole');
           const intendedRole = (storedRole as UserRole) || 'participant';
 
-          // Check if this specific email should be admin
-          const isAdminEmail = activeUser.email === 'aimaster1004@gmail.com';
+          // Check if this specific email should be admin (case-insensitive)
+          const isAdminEmail = activeUser.email?.toLowerCase() === 'aimaster1004@gmail.com';
           const assignedRole = isAdminEmail ? 'admin' : intendedRole;
 
           const newProfile = {

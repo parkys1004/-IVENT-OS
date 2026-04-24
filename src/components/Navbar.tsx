@@ -169,13 +169,13 @@ export default function Navbar() {
 
                 {user && (
                   <Link 
-                    to="/dashboard" 
+                    to={viewMode === 'admin' ? "/admin" : "/dashboard"} 
                     className={clsx(
                       "px-4 py-2 text-sm font-bold rounded-lg transition-all duration-200 hover:translate-y-[-1px]",
-                      location.pathname === '/dashboard' ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      (location.pathname === '/dashboard' || location.pathname === '/admin') ? "text-orange-600 dark:text-amber-400 bg-orange-50 dark:bg-amber-400/10" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     )}
                   >
-                    {viewMode === 'professional' ? '전문가 대시보드' : t('nav.tickets')}
+                    {viewMode === 'admin' ? '시스템 관리' : viewMode === 'professional' ? '전문가 대시보드' : t('nav.tickets')}
                   </Link>
                 )}
               </div>

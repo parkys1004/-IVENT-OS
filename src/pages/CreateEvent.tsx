@@ -260,23 +260,22 @@ export default function CreateEvent() {
         setLoading(false);
         return;
       }
-      // Note: We skip the endDate <= startDate check if someone is just filling it out
       
-      // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
 
-      // Check approval setting
       const { data: configData } = await supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle();
       const approvalMode = (configData?.value as any)?.approvalMode || 'manual';
       const initialStatus = approvalMode === 'auto' ? 'published' : 'pending';
 
-      // 1. Point check and deduction
       const { data: pointConfig } = await supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle();
       const policies = { ...DEFAULT_POINT_POLICIES, ...(pointConfig?.value || {}) };
-      const cost = formData.isLesson ? (policies.lesson_registration_cost || 0) : (policies.party_registration_cost || 0);
+      
+      // Determine if it's a lesson based on category if the flag isn't set
+      const isActuallyLesson = formData.isLesson || formData.category === 'lesson' || ['salsa_lesson', 'bachata_lesson'].includes(formData.category);
+      const cost = isActuallyLesson ? (policies.lesson_registration_cost || 0) : (policies.party_registration_cost || 0);
 
       if (cost > 0) {
-        const pointResult = await spendPoints(user.id, cost, formData.isLesson ? '강습 등록 포인트 차감' : '파티 등록 포인트 차감');
+        const pointResult = await spendPoints(user.id, cost, isActuallyLesson ? '강습 등록 포인트 차감' : '파티 등록 포인트 차감');
         if (!pointResult.success) {
           alert('포인트가 부족하거나 처리 중 오류가 발생했습니다.');
           setLoading(false);
@@ -284,7 +283,7 @@ export default function CreateEvent() {
         }
       }
 
-      const { data, error } = await supabase
+      const { data: eventData, error } = await supabase
         .from('events')
         .insert({
           title: formData.title,
@@ -296,8 +295,9 @@ export default function CreateEvent() {
           image_url: mainImageUrl, 
           host_id: user.id,
           status: initialStatus,
-          is_lesson: formData.isLesson,
+          is_lesson: isActuallyLesson,
           max_attendees: Number(formData.maxAttendees),
+          price: formData.tickets[0]?.price || 0,
           metadata: {
             endDate: endDate.toISOString(),
             formattedAddress: formData.formattedAddress,
@@ -311,21 +311,50 @@ export default function CreateEvent() {
             paymentMethod: formData.paymentMethod,
             maxAttendees: Number(formData.maxAttendees)
           }
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // If it's a lesson, also create the classes record for discoverability
+      if (isActuallyLesson && eventData) {
+        await supabase.from('classes').insert({
+          id: eventData.id,
+          title: formData.title,
+          instructor_id: user.id,
+          level: 'all',
+          category: formData.category,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          class_time: formData.time,
+          price: formData.tickets[0]?.price || 0,
+          location_name: formData.locationName,
+          address: formData.formattedAddress,
+          lat: formData.geoPoint?.lat,
+          lng: formData.geoPoint?.lng
+        });
+      }
       
       navigate('/');
     } catch (err) {
       handleSupabaseError(err, 'create', 'events', user?.id || '');
-      alert(`행사 생성 중 오류가 발생했습니다.`);
+      alert(`등록 중 오류가 발생했습니다.`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      if (name === 'category') {
+        const isLessonCategory = value === 'lesson' || value.includes('lesson');
+        newData.isLesson = isLessonCategory;
+      }
+      return newData;
+    });
   };
 
   const addDj = () => setFormData(prev => ({ ...prev, djs: [...prev.djs, ''] }));

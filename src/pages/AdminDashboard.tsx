@@ -111,18 +111,20 @@ export default function AdminDashboard() {
       }
 
       const mappedEvents = (evts || []).map(e => ({
-        id: e.id, title: e.title, category: e.category, date: e.date, status: e.status,
-        isBanner: e.is_banner, host_id: e.host_id, hostName: profileMap[e.host_id] || '알 수 없는 사용자',
-        isLesson: e.is_lesson, priority: e.priority || 0
+        id: e.id, 
+        title: e.title, 
+        category: e.category, 
+        date: e.date, 
+        status: e.status,
+        isBanner: e.is_banner, 
+        host_id: e.host_id, 
+        hostName: profileMap[e.host_id] || '알 수 없는 사용자',
+        isLesson: e.is_lesson, 
+        priority: e.priority || 0,
+        endDate: e.end_date // Added this for date range display
       }));
 
-      const mappedClasses = (classes || []).map(c => ({
-        id: c.id, title: c.title, category: c.category || 'lesson', date: c.start_date,
-        status: 'published', isBanner: false, host_id: c.instructor_id,
-        hostName: profileMap[c.instructor_id] || '알 수 없는 강사', isLesson: true, priority: 0
-      }));
-
-      setEvents([...mappedEvents, ...mappedClasses]);
+      setEvents(mappedEvents);
       if (banners) setPromoBanners(banners.map(b => ({ id: b.id, imageUrl: b.image_url, linkUrl: b.link_url, isActive: b.is_active })));
       if (dashConfig) setDashboardConfig(dashConfig.value as DashboardConfig);
       if (pConfig) setPointPolicies({ ...DEFAULT_POINT_POLICIES, ...pConfig.value });

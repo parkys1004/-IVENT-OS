@@ -178,21 +178,26 @@ export default function CreateLesson() {
           title: formData.title,
           description: formData.description,
           category: formData.category,
-          date: formData.date,
-          time: formData.time,
-          end_date: formData.endDate || formData.date,
-          end_time: formData.endTime || formData.time,
+          date: startDateTime.toISOString(),
+          end_date: endDateTime.toISOString(),
           location_name: formData.locationName,
-          address: formData.formattedAddress,
-          lat: formData.geoPoint?.lat,
-          lng: formData.geoPoint?.lng,
           image_url: formData.imageUrl,
           host_id: user.id,
-          max_attendees: formData.maxAttendees,
+          max_attendees: Number(formData.maxAttendees),
           is_lesson: true,
           status: initialStatus,
           price: formData.tickets[0]?.price || 0,
-          ticket_info: formData.tickets // Store all tickets in JSONB
+          metadata: {
+            endDate: endDateTime.toISOString(),
+            formattedAddress: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            geoPoint: formData.geoPoint,
+            tickets: formData.tickets,
+            paymentMethod: formData.paymentMethod,
+            level: formData.level,
+            maxAttendees: Number(formData.maxAttendees)
+          }
         })
         .select()
         .single();
@@ -203,13 +208,13 @@ export default function CreateLesson() {
       const { error: classError } = await supabase
         .from('classes')
         .insert({
-          id: eventData.id, // Use the same ID!
+          id: eventData.id, 
           title: formData.title,
           instructor_id: user.id,
           level: formData.level,
           category: formData.category,
-          start_date: formData.date,
-          end_date: formData.endDate || formData.date,
+          start_date: startDateTime.toISOString(),
+          end_date: endDateTime.toISOString(),
           class_time: formData.time,
           price: formData.tickets[0]?.price || 0,
           location_name: formData.locationName,

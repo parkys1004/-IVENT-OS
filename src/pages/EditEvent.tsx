@@ -273,7 +273,61 @@ export default function EditEvent() {
 
       let updateError;
 
-      if (sourceTable === 'events') {
+      if (formData.category === 'lesson' || eventData.is_lesson) {
+        // Update Events (Master)
+        const { error: eventError } = await supabase
+          .from('events')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            category: formData.category,
+            date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            location_name: formData.locationName,
+            image_url: mainImageUrl, 
+            max_attendees: Number(formData.maxAttendees),
+            status: newStatus,
+            is_lesson: true,
+            metadata: {
+              endDate: endDate.toISOString(),
+              formattedAddress: formData.formattedAddress,
+              city: formData.city,
+              country: formData.country,
+              geoPoint: formData.geoPoint,
+              djs: formData.djs.filter(d => d.trim()),
+              performances: formData.performances.filter(p => p.trim()),
+              media: formData.media.filter(m => m.trim()),
+              tickets: formData.tickets.filter(t => t.name.trim()),
+              paymentMethod: formData.paymentMethod,
+              maxAttendees: Number(formData.maxAttendees),
+              additionalImages: images.filter((_, i) => i !== coverImageIndex),
+              level: (eventData.metadata as any)?.level || 'all'
+            }
+          })
+          .eq('id', id);
+        
+        // Update Classes (Specialized)
+        const { error: classError } = await supabase
+          .from('classes')
+          .upsert({
+            id: id,
+            title: formData.title,
+            instructor_id: eventData.host_id,
+            level: (eventData.metadata as any)?.level || 'all',
+            category: formData.category,
+            start_date: formData.date,
+            end_date: formData.endDate || formData.date,
+            class_time: formData.time,
+            price: formData.tickets[0]?.price || 0,
+            location_name: formData.locationName,
+            address: formData.formattedAddress,
+            lat: formData.geoPoint?.lat,
+            lng: formData.geoPoint?.lng
+          });
+        
+        updateError = eventError || classError;
+      } else {
+        // Regular Event
         const { error } = await supabase
           .from('events')
           .update({
@@ -300,26 +354,6 @@ export default function EditEvent() {
               maxAttendees: Number(formData.maxAttendees),
               additionalImages: images.filter((_, i) => i !== coverImageIndex)
             }
-          })
-          .eq('id', id);
-        updateError = error;
-      } else {
-        // Classes table
-        const { error } = await supabase
-          .from('classes')
-          .update({
-            title: formData.title,
-            instructor_id: user.id,
-            level: (eventData.metadata as any)?.level || 'all',
-            category: formData.category,
-            start_date: formData.date,
-            end_date: formData.endDate || formData.date,
-            class_time: formData.time,
-            price: formData.tickets[0]?.price || 0,
-            location_name: formData.locationName,
-            address: formData.formattedAddress,
-            lat: formData.geoPoint?.lat,
-            lng: formData.geoPoint?.lng
           })
           .eq('id', id);
         updateError = error;
@@ -371,6 +405,29 @@ export default function EditEvent() {
     const newTickets = [...formData.tickets];
     newTickets[index] = { ...newTickets[index], [field]: value };
     setFormData(prev => ({ ...prev, tickets: newTickets }));
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('정말 이 행사를 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.')) return;
+    
+    setSubmitting(true);
+    try {
+      // Deleting from events will cascade delete classes if it's a lesson
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      alert('성공적으로 삭제되었습니다.');
+      navigate('/');
+    } catch (err: any) {
+      handleSupabaseError(err, OperationType.DELETE, 'events', user?.id || '');
+      alert(`삭제 중 오류가 발생했습니다: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -835,6 +892,14 @@ export default function EditEvent() {
         </div>
 
         <div className="pt-6 border-t border-slate-200 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={submitting}
+            className="px-6 py-3 rounded-[10px] text-rose-600 font-bold hover:bg-rose-50 transition-colors mr-auto"
+          >
+            행사 삭제
+          </button>
           <button
             type="button"
             onClick={() => navigate(-1)}

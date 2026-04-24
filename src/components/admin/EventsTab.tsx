@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
+import { ArrowUp, ArrowDown, RefreshCw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -40,8 +40,8 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     }
   };
 
-  const handlePriorityChange = async (tableName: any, id: string, priority: number) => {
-    const { error } = await supabase.from(tableName).update({ priority }).eq('id', id);
+  const handlePriorityChange = async (id: string, priority: number) => {
+    const { error } = await supabase.from('events').update({ priority }).eq('id', id);
     if (!error) fetchAdminData();
   };
 
@@ -66,16 +66,30 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   const handleApproveEvent = async (eventId: string) => {
     setIsSaving(true);
     try {
-      const event = events.find(e => e.id === eventId);
-      const tableName = event?.isLesson ? 'classes' : 'events';
-
-      const { error } = await supabase.from(tableName).update({ status: 'published' }).eq('id', eventId);
+      const { error } = await supabase.from('events').update({ status: 'published' }).eq('id', eventId);
       if (error) throw error;
 
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'published' } : e));
-      alert(`${event?.isLesson ? '강습' : '행사'}가 승인되었습니다.`);
+      alert(`성공적으로 승인되었습니다.`);
     } catch (error: any) {
       alert(`승인 중 오류 발생: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!window.confirm("정말로 이 항목을 영구적으로 삭제하시겠습니까? 관련 데이터(강습 정보, 신청 내역 등)가 모두 삭제됩니다.")) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      if (error) throw error;
+
+      setEvents(prev => prev.filter(e => e.id !== eventId));
+      alert(`성공적으로 삭제되었습니다.`);
+    } catch (error: any) {
+      alert(`삭제 중 오류 발생: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -158,7 +172,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     <td className="p-4">
                       <div className="flex items-center gap-1">
                         <button 
-                          onClick={() => handlePriorityChange('events', event.id, (event.priority || 0) + 1)}
+                          onClick={() => handlePriorityChange(event.id, (event.priority || 0) + 1)}
                           className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-indigo-600"
                         >
                           <ArrowUp className="w-3 h-3" />
@@ -167,7 +181,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                           {event.priority || 0}
                         </span>
                         <button 
-                          onClick={() => handlePriorityChange('events', event.id, Math.max(0, (event.priority || 0) - 1))}
+                          onClick={() => handlePriorityChange(event.id, Math.max(0, (event.priority || 0) - 1))}
                           className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-rose-600"
                         >
                           <ArrowDown className="w-3 h-3" />
@@ -222,6 +236,13 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       <Link to={`/event/${event.id}`} className="text-indigo-600 font-bold hover:text-white text-xs px-3 py-1.5 border border-indigo-200 hover:bg-indigo-600 rounded-lg transition-all">
                         보기
                       </Link>
+                      <button 
+                        onClick={() => handleDeleteEvent(event.id)}
+                        className="text-rose-600 hover:text-white p-1.5 border border-rose-200 hover:bg-rose-600 rounded-lg transition-all"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 )

@@ -12,12 +12,14 @@ interface PointsTabProps {
   };
   pointPolicies: any;
   setPointPolicies: React.Dispatch<React.SetStateAction<any>>;
+  users: Array<any>;
 }
 
 export const PointsTab: React.FC<PointsTabProps> = ({
   pointStats,
   pointPolicies,
-  setPointPolicies
+  setPointPolicies,
+  users
 }) => {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -208,24 +210,27 @@ export const PointsTab: React.FC<PointsTabProps> = ({
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 <th className="p-6">일시</th>
-                <th className="p-6">회원 ID</th>
+                <th className="p-6">회원 이메일</th>
                 <th className="p-6">변동량</th>
                 <th className="p-6">사유</th>
               </tr>
             </thead>
             <tbody>
-              {pointStats.history.map((h) => (
-                <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="p-6 text-[12px] font-mono text-slate-400">
-                    {h.created_at ? format(new Date(h.created_at), 'yyyy-MM-dd HH:mm:ss') : '-'}
-                  </td>
-                  <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-300">{h.user_id ? h.user_id.slice(0, 8) : 'unknown'}...</td>
-                  <td className={clsx("p-6 text-sm font-black", h.amount > 0 ? "text-emerald-600" : "text-rose-600")}>
-                    {h.amount > 0 ? `+${h.amount}` : h.amount} P
-                  </td>
-                  <td className="p-6 text-sm text-slate-600 dark:text-slate-400">{h.reason}</td>
-                </tr>
-              ))}
+              {pointStats.history.map((h) => {
+                const userEmail = users.find(u => u.uid === h.user_id)?.email || '알 수 없음';
+                return (
+                  <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="p-6 text-[12px] font-mono text-slate-400">
+                      {h.created_at ? format(new Date(h.created_at), 'yyyy-MM-dd HH:mm:ss') : '-'}
+                    </td>
+                    <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-300">{userEmail}</td>
+                    <td className={clsx("p-6 text-sm font-black", h.amount > 0 ? "text-emerald-600" : "text-rose-600")}>
+                      {h.amount > 0 ? `+${h.amount}` : h.amount} P
+                    </td>
+                    <td className="p-6 text-sm text-slate-600 dark:text-slate-400">{h.reason}</td>
+                  </tr>
+                );
+              })}
               {pointStats.history.length === 0 && (
                 <tr>
                   <td colSpan={4} className="p-20 text-center text-slate-400 font-bold italic">내역이 없습니다.</td>

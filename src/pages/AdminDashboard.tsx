@@ -294,7 +294,8 @@ export default function AdminDashboard() {
                 <PointsTab 
                   pointStats={pointStats} 
                   pointPolicies={pointPolicies} 
-                  setPointPolicies={setPointPolicies} 
+                  setPointPolicies={setPointPolicies}
+                  users={users}
                 />
               )}
               {activeMenu === 'banners' && (

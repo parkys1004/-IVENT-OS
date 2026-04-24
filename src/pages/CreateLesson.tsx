@@ -148,6 +148,11 @@ export default function CreateLesson() {
     
     setLoading(true);
     try {
+      if (!profile?.isApproved && profile?.role !== 'admin') {
+        alert('전문가 승인이 완료된 후 강습을 등록하실 수 있습니다.');
+        setLoading(false);
+        return;
+      }
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
       const fallbackEnd = new Date(startDateTime.getTime() + 4 * 60 * 60 * 1000);
       const endDateTime = formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || formData.time}`) : fallbackEnd;

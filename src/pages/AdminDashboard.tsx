@@ -157,7 +157,7 @@ export default function AdminDashboard() {
 
   if (loading) return <div className="flex justify-center py-20"><RefreshCw className="animate-spin" /></div>;
 
-  const pendingUsers = users.filter(u => ['dj', 'instructor', 'media'].includes(u.role || '')).length;
+  const pendingUsers = users.filter(u => ['dj', 'instructor', 'media'].includes(u.role || '') && !u.isApproved).length;
   const pendingRegularEvents = events.filter(e => !e.isLesson && (e.status === 'pending' || e.status === 'draft')).length;
   const pendingLessons = events.filter(e => e.isLesson && (e.status === 'pending' || e.status === 'draft')).length;
 

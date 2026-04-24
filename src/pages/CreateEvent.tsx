@@ -250,6 +250,11 @@ export default function CreateEvent() {
     
     setLoading(true);
     try {
+      if (!profile?.isApproved && profile?.role !== 'admin' && profile?.role !== 'host') {
+        alert('전문가 승인이 완료된 후 행사를 등록하실 수 있습니다.');
+        setLoading(false);
+        return;
+      }
       const startDate = new Date(`${formData.date}T${formData.time}`);
       const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 

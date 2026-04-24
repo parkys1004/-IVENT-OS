@@ -12,6 +12,7 @@ export interface UserProfile {
   displayName?: string; // display_name maps to displayName
   photoURL?: string; // photo_url maps to photoURL
   role: UserRole;
+  isApproved: boolean;
   createdAt: string; // created_at maps to createdAt
   points?: number;
   followersCount?: number;
@@ -77,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: data.display_name,
           photoURL: data.photo_url,
           role: data.role as UserRole,
+          isApproved: data.is_approved ?? (data.role === 'admin' || data.role === 'participant'),
           createdAt: data.created_at,
           points: data.points,
           followersCount: data.followers_count,
@@ -111,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             display_name: activeUser.user_metadata?.full_name || activeUser.email?.split('@')[0] || 'User',
             photo_url: activeUser.user_metadata?.avatar_url || '',
             role: intendedRole,
+            is_approved: intendedRole === 'participant', // Only participants approved by default
             points: 1000, // Welcome points
             created_at: new Date().toISOString()
           };
@@ -131,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               displayName: createdData.display_name,
               photoURL: createdData.photo_url,
               role: createdData.role as UserRole,
+              isApproved: createdData.is_approved,
               createdAt: createdData.created_at,
               points: createdData.points
             };

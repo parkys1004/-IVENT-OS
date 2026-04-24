@@ -41,6 +41,7 @@ export default function PublicProfile() {
           displayName: profileData.display_name || '사용자',
           photoURL: profileData.photo_url || '',
           role: profileData.role || 'participant',
+          isApproved: profileData.is_approved ?? true,
           createdAt: profileData.created_at || new Date().toISOString(),
           followersCount: profileData.followers_count || 0,
           shortBio: profileData.short_bio || '',

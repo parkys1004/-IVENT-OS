@@ -49,10 +49,12 @@ export const UsersTab: React.FC<UsersTabProps> = ({
   const handleRoleChange = async (uid: string, newRole: string) => {
     try {
       setIsSaving(true);
-      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', uid);
+      // Auto approve if changing to admin or participant
+      const isApproved = ['admin', 'participant', 'host'].includes(newRole);
+      const { error } = await supabase.from('profiles').update({ role: newRole, is_approved: isApproved }).eq('id', uid);
       if (error) throw error;
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole as any } : u));
-      alert("회원 유형이 성공적으로 변경되었습니다.");
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole as any, isApproved: isApproved } : u));
+      alert("회원 유형 및 승인 상태가 변경되었습니다.");
     } catch (error: any) {
       alert(`오류: ${error.message}`);
     } finally {
@@ -102,6 +104,19 @@ export const UsersTab: React.FC<UsersTabProps> = ({
       alert("회원 삭제 완료");
     } catch (error: any) {
       alert("삭제 실패");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  const handleApproveUser = async (uid: string) => {
+    try {
+      setIsSaving(true);
+      const { error } = await supabase.from('profiles').update({ is_approved: true }).eq('id', uid);
+      if (error) throw error;
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, isApproved: true } : u));
+      alert("전문가 승인이 완료되었습니다.");
+    } catch (error: any) {
+      alert(`승인 오류: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -156,7 +171,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
             <tbody>
               {users.filter(u => {
                 const matchesTab = activeTab === 'all' || 
-                  (activeTab === 'pending' && ['dj','instructor','media'].includes(u.role || '')) || 
+                  (activeTab === 'pending' && ['dj','instructor','media'].includes(u.role || '') && !u.isApproved) || 
                   (activeTab === 'blacklist' && u.role === 'banned');
                 
                 const matchesSearch = userSearchQuery === '' || 
@@ -210,6 +225,14 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {activeTab === 'pending' && !u.isApproved && (
+                          <button 
+                            onClick={() => handleApproveUser(u.uid)}
+                            className="bg-orange-600 text-white font-black hover:bg-orange-700 text-[11px] px-3 py-1.5 rounded-lg shadow-sm shadow-orange-600/20 transition-all"
+                          >
+                            승인하기
+                          </button>
+                        )}
                         <button 
                           onClick={() => navigate(`/profile/${u.id || u.uid}`)}
                           className="text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"

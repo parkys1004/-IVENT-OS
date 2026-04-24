@@ -339,6 +339,20 @@ export default function ProfessionalDashboard() {
 
   const renderActivitiesContent = () => (
     <div className="space-y-6 flex flex-col h-full overflow-y-auto no-scrollbar pb-20">
+      {!profile?.isApproved && profile?.role !== 'admin' && profile?.role !== 'participant' && (
+        <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-4 transition-all">
+          <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+            <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h4 className="font-black text-orange-900 dark:text-orange-300">전문가 승인 대기 중</h4>
+            <p className="text-xs text-orange-700 dark:text-orange-400/80 font-bold leading-relaxed">
+              현재 관리자가 귀하의 프로필을 검토하고 있습니다. 승인이 완료되면 강습 및 행사를 등록하실 수 있습니다. 
+              프로필 정보를 상세히 입력할수록 승인이 빨라집니다!
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
           예정된 스케줄
@@ -409,9 +423,23 @@ export default function ProfessionalDashboard() {
                  ? '커리큘럼부터 수강공지까지 쉽고 편하게 새로운 강습을 모집하세요.'
                  : '기본 정보부터 포스터 등록까지 쉽고 편하게 새로운 댄스 행사를 개설하세요.'}
              </p>
-             <button onClick={() => navigate(profile?.role === 'instructor' ? '/create-lesson' : '/create')} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 text-lg">
-               <Plus className="w-5 h-5" /> {profile?.role === 'instructor' ? '강습 등록 시작하기' : '행사 등록 시작하기'}
-             </button>
+            <button 
+              onClick={() => {
+                if (!profile?.isApproved && profile?.role !== 'admin') {
+                  alert('전문가 승인이 완료된 후 이용 가능합니다.');
+                  return;
+                }
+                navigate(profile?.role === 'instructor' ? '/create-lesson' : '/create');
+              }} 
+              className={clsx(
+                "px-8 py-4 text-white font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 text-lg",
+                (!profile?.isApproved && profile?.role !== 'admin') 
+                  ? "bg-slate-400 cursor-not-allowed shadow-none" 
+                  : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"
+              )}
+            >
+              <Plus className="w-5 h-5" /> {profile?.role === 'instructor' ? '강습 등록 시작하기' : '행사 등록 시작하기'}
+            </button>
           </div>
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center py-20">

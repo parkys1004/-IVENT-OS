@@ -21,6 +21,33 @@ CREATE TABLE profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 1.2 SPECIALIZED TABLES
+CREATE TABLE instructors (
+  id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  specialty_genres TEXT[],
+  experience_years INTEGER,
+  curriculum_link TEXT,
+  bio TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE djs (
+  id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  music_style TEXT[],
+  main_equipment TEXT,
+  soundcloud_url TEXT,
+  mixcloud_url TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE creators (
+  id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  category TEXT CHECK (category IN ('photo', 'video', 'both')),
+  equipment_list TEXT,
+  instagram_url TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 1.5 USER_FOLLOWERS
 CREATE TABLE user_followers (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -30,7 +57,7 @@ CREATE TABLE user_followers (
   UNIQUE(follower_id, following_id)
 );
 
--- 2. EVENTS
+-- 2. EVENTS (Party / Party Data)
 CREATE TABLE events (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -42,7 +69,7 @@ CREATE TABLE events (
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending', 'published', 'cancelled', 'expired')),
   price INTEGER DEFAULT 0,
   max_attendees INTEGER DEFAULT 0,
-  host_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  host_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Preserve event if host deleted
   image_url TEXT,
   is_banner BOOLEAN DEFAULT false,
   is_lesson BOOLEAN DEFAULT false,
@@ -51,6 +78,25 @@ CREATE TABLE events (
   likes_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2.5 CLASSES (Specialized Lesson Data)
+-- This table matches events(id) but adds specific lesson info
+CREATE TABLE classes (
+  id UUID REFERENCES events(id) ON DELETE CASCADE PRIMARY KEY,
+  title TEXT NOT NULL,
+  instructor_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Preserve class if instructor deleted
+  level TEXT DEFAULT 'all',
+  category TEXT,
+  start_date TIMESTAMPTZ,
+  end_date TIMESTAMPTZ,
+  class_time TEXT,
+  price INTEGER DEFAULT 0,
+  location_name TEXT,
+  address TEXT,
+  lat FLOAT8,
+  lng FLOAT8,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 3. REGISTRATIONS
@@ -91,6 +137,7 @@ ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 -- Profiles Policies
 CREATE POLICY "Public profiles are viewable by everyone." ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile." ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can delete own profile." ON profiles FOR DELETE USING (auth.uid() = id);
 
 -- Events Policies
 CREATE POLICY "Published events are viewable by everyone." ON events FOR SELECT USING (status = 'published');

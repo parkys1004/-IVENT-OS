@@ -123,8 +123,36 @@ export default function MyPage() {
     }
   };
 
+  const handleWithdrawal = async () => {
+    const confirm1 = window.confirm('정말 탈퇴하시겠습니까? 등록하신 파티와 강습 구인글은 유지되지만, 그 외 모든 활동 내역(포인트, 댓글, 게시글 등)은 영구 삭제됩니다.');
+    if (!confirm1) return;
+    
+    const confirm2 = window.confirm('마지막 확인입니다. 정말로 계정을 삭제하고 모든 데이터를 정리하시겠습니까?');
+    if (!confirm2) return;
+
+    setIsSaving(true);
+    try {
+      // 1. Delete profile record (triggers cascades)
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+      
+      if (error) throw error;
+
+      // 2. Sign out
+      await supabase.auth.signOut();
+      window.location.href = '/';
+    } catch (error) {
+      console.error("Withdrawal failed:", error);
+      alert('탈퇴 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto w-full space-y-8">
+    <div className="max-w-4xl mx-auto w-full space-y-8 pb-20">
       <div className="flex items-center gap-3 mb-8">
         <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center">
           <Settings className="w-6 h-6" />
@@ -197,6 +225,21 @@ export default function MyPage() {
                    </motion.div>
                  )}
                </AnimatePresence>
+
+               <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+                 <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-3 text-center">
+                   계정을 삭제하고 모든 활동 데이터를 정리하시겠습니까?<br/>
+                   (등록하신 파티/강습은 유지됩니다)
+                 </p>
+                 <button 
+                   type="button" 
+                   onClick={handleWithdrawal}
+                   disabled={isSaving}
+                   className="w-full flex items-center justify-center gap-2 text-rose-500 dark:text-rose-400 text-[13px] font-bold hover:bg-rose-50 dark:hover:bg-rose-900/20 py-2.5 rounded-xl transition-all border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50"
+                 >
+                   탈퇴하기 (계정 삭제)
+                 </button>
+               </div>
              </form>
           </div>
         </div>

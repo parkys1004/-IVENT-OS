@@ -291,6 +291,7 @@ export default function CreateEvent() {
           description: formData.description,
           category: formData.category,
           date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
           host_id: user.id,
@@ -474,7 +475,7 @@ export default function CreateEvent() {
         {/* Date and Time */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center"><Calendar className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 날짜</label>
+            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center"><Calendar className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 시작 날짜</label>
             <input
               required
               type="date"
@@ -491,6 +492,28 @@ export default function CreateEvent() {
               type="time"
               name="time"
               value={formData.time}
+              onChange={handleChange}
+              className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+            />
+          </div>
+          <div>
+            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center"><Calendar className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 종료 날짜</label>
+            <input
+              required
+              type="date"
+              name="endDate"
+              value={formData.endDate}
+              onChange={handleChange}
+              className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+            />
+          </div>
+          <div>
+            <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center"><Clock className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 종료 시간</label>
+            <input
+              required
+              type="time"
+              name="endTime"
+              value={formData.endTime}
               onChange={handleChange}
               className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
             />

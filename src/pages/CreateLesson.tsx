@@ -178,6 +178,7 @@ export default function CreateLesson() {
           description: formData.description,
           category: formData.category,
           date: startDateTime.toISOString(),
+          end_date: endDateTime.toISOString(),
           location_name: formData.locationName,
           image_url: formData.imageUrl,
           host_id: user.id,

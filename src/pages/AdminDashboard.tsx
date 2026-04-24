@@ -224,6 +224,7 @@ export default function AdminDashboard() {
         hostName: profileMap[e.host_id] || '알 수 없는 사용자',
         isLesson: e.is_lesson,
         priority: e.priority || 0,
+        endDate: e.end_date || (e.metadata as any)?.endDate,
         maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
         currentAttendees: regCounts[e.id] || 0
       })));
@@ -331,9 +332,9 @@ export default function AdminDashboard() {
       if (error) throw error;
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'published' } : e));
       alert('행사가 승인 및 공개되었습니다.');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to approve event:", error);
-      alert('행사 승인 중 오류가 발생했습니다.');
+      alert(`행사 승인 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
     }
   };
 
@@ -1227,7 +1228,15 @@ export default function AdminDashboard() {
                         {event.isBanner ? "ON" : "OFF"}
                       </button>
                     </td>
-                    <td className="p-4 text-slate-500 text-[11px] font-mono">{format(dateObj, 'yy.MM.dd', { locale: ko })}</td>
+                    <td className="p-4 text-slate-500 text-[11px] font-mono whitespace-nowrap">
+                      {format(dateObj, 'yy.MM.dd', { locale: ko })}
+                      {event.endDate && (
+                        <>
+                          <br />
+                          ~ {format(new Date(event.endDate), 'yy.MM.dd', { locale: ko })}
+                        </>
+                      )}
+                    </td>
                     <td className="p-4 text-right flex items-center justify-end gap-2">
                       {isPendingApproval && (
                         <button 

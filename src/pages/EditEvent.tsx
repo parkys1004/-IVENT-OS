@@ -89,7 +89,7 @@ export default function EditEvent() {
           
           const meta = data.metadata || {};
           const startDateObj = data.date ? new Date(data.date) : new Date();
-          const endDateObj = data.end_date ? new Date(data.end_date) : startDateObj;
+          const endDateObj = meta.endDate ? new Date(meta.endDate) : (data.end_date ? new Date(data.end_date) : startDateObj);
 
           setFormData({
             title: data.title || '',
@@ -228,7 +228,7 @@ export default function EditEvent() {
     setSubmitting(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
-      const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
+      const endDateStr = `${formData.endDate || formData.date}T${formData.endTime || '23:59'}`;
 
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
@@ -240,11 +240,11 @@ export default function EditEvent() {
           description: formData.description,
           category: formData.category,
           date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
           max_attendees: Number(formData.maxAttendees),
           metadata: {
+            endDate: endDateStr,
             djs: formData.djs,
             performances: formData.performances,
             media: formData.media,
@@ -629,7 +629,9 @@ export default function EditEvent() {
           ) : isLoaded ? (
             <PlaceSearch 
               onPlaceSelect={handlePlaceSelect}
+              onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
               placeholder="예: 강남역 쌍용플래티넘"
+              defaultValue={formData.locationName}
             />
           ) : (
             <div className="w-full h-11 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-[10px]"></div>

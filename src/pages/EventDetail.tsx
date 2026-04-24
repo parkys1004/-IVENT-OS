@@ -180,7 +180,7 @@ export default function EventDetail() {
           title: data.title,
           description: data.description,
           date: data.date,
-          endDate: data.end_date,
+          endDate: meta.endDate || data.end_date,
           category: data.category,
           locationName: data.location_name,
           formattedAddress: meta.formattedAddress || data.location_name,

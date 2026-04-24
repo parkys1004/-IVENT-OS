@@ -177,7 +177,6 @@ export default function CreateLesson() {
           description: formData.description,
           category: formData.category,
           date: startDateTime.toISOString(),
-          end_date: formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || '23:59'}`).toISOString() : null,
           location_name: formData.locationName,
           image_url: formData.imageUrl,
           max_attendees: formData.maxAttendees,
@@ -191,7 +190,8 @@ export default function CreateLesson() {
             formattedAddress: formData.formattedAddress,
             city: formData.city,
             country: formData.country,
-            geoPoint: formData.geoPoint
+            geoPoint: formData.geoPoint,
+            endDate: formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || '23:59'}`).toISOString() : null
           }
         })
         .select()
@@ -364,6 +364,7 @@ export default function CreateLesson() {
                 {isLoaded ? (
                   <PlaceSearch 
                     onPlaceSelect={handlePlaceSelect}
+                    onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
                     placeholder="주소를 검색하거나 직접 입력하세요"
                   />
                 ) : (

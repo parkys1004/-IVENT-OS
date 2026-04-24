@@ -251,7 +251,7 @@ export default function CreateEvent() {
     setLoading(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
-      const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
+      const endDateStr = `${formData.endDate || formData.date}T${formData.endTime || '23:59'}`;
 
       // Basic Date Validations
       const now = new Date();
@@ -260,12 +260,8 @@ export default function CreateEvent() {
         setLoading(false);
         return;
       }
-      if (endDate <= startDate) {
-        alert("종료 시간은 시작 시간 이후여야 합니다.");
-        setLoading(false);
-        return;
-      }
-
+      // Note: We skip the endDate <= startDate check if someone is just filling it out
+      
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
 
@@ -295,7 +291,6 @@ export default function CreateEvent() {
           description: formData.description,
           category: formData.category,
           date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
           max_attendees: Number(formData.maxAttendees),
@@ -303,6 +298,7 @@ export default function CreateEvent() {
           status: initialStatus,
           is_lesson: formData.isLesson,
           metadata: {
+            endDate: endDateStr,
             djs: formData.djs,
             performances: formData.performances,
             media: formData.media,
@@ -710,6 +706,7 @@ export default function CreateEvent() {
           ) : isLoaded ? (
             <PlaceSearch 
               onPlaceSelect={handlePlaceSelect}
+              onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
               placeholder="예: 강남역 쌍용플래티넘"
             />
           ) : (

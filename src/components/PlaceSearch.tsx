@@ -1,24 +1,33 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const GMPLPlaceAutocomplete = 'gmpl-place-autocomplete' as any;
 
 interface PlaceSearchProps {
   onPlaceSelect?: (place: any) => void;
+  onInputChange?: (value: string) => void;
   placeholder?: string;
+  defaultValue?: string;
 }
 
-const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPlaceSelect, placeholder }) => {
+const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPlaceSelect, onInputChange, placeholder, defaultValue = '' }) => {
   const autocompleteRef = useRef<any>(null);
+  const [inputValue, setInputValue] = useState(defaultValue);
 
   useEffect(() => {
     const placeAutocomplete = autocompleteRef.current;
 
     const handlePlaceSelect = (event: any) => {
-      // The event.target.value contains the place details in the new Google Places library
-      const place = event.target.value; 
-      console.log("선택된 장소:", place);
-      if (onPlaceSelect) {
-        onPlaceSelect(place);
+      // For @googlemaps/extended-component-library, the selected place is in event.target.selectedPlace
+      const place = event.target.selectedPlace || event.detail?.place || event.target.value; 
+      console.log("Selected Place Details:", place);
+      
+      if (place) {
+        const name = place.displayName || place.name || (typeof place === 'string' ? place : '');
+        if (name) setInputValue(name);
+        
+        if (onPlaceSelect) {
+          onPlaceSelect(place);
+        }
       }
     };
 
@@ -33,6 +42,14 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPlaceSelect, placeholder })
     };
   }, [onPlaceSelect]);
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+    if (onInputChange) {
+      onInputChange(val);
+    }
+  };
+
   return (
     <div className="relative">
       <GMPLPlaceAutocomplete 
@@ -43,6 +60,8 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPlaceSelect, placeholder })
           slot="input" 
           className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 pl-10 text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all outline-none" 
           placeholder={placeholder || "장소 검색"} 
+          value={inputValue}
+          onChange={handleTextChange}
         />
       </GMPLPlaceAutocomplete>
     </div>

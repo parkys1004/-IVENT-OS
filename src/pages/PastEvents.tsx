@@ -15,28 +15,43 @@ export default function PastEvents() {
       try {
         setLoading(true);
         const now = new Date().toISOString();
+        const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(); // 12 hours ago safety margin
+
+        // Fetch events that likely passed
+        // We use a broader date search and filter in JS to handle metadata-based end dates safely
         const { data, error } = await supabase
           .from('events')
           .select('*')
-          .eq('category', 'party')
           .eq('status', 'published')
-          .or(`end_date.lt.${now},and(end_date.is.null,date.lt.${new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()})`)
+          .lt('date', now)
           .order('date', { ascending: false });
 
         if (error) throw error;
         
+        // Filter in memory to be 100% sure the event has ended
+        const reallyPassed = data.filter(e => {
+          const meta = e.metadata || {};
+          const endDateStr = meta.endDate || e.end_date;
+          if (endDateStr) {
+            return new Date(endDateStr) < new Date();
+          }
+          // Fallback if no end date: check if start date was more than 4 hours ago
+          const startDate = new Date(e.date);
+          return startDate < new Date(Date.now() - 4 * 60 * 60 * 1000);
+        });
+
         // Fetch registration counts
         const { data: allRegs } = await supabase
           .from('registrations')
           .select('event_id')
-          .in('event_id', data.map(e => e.id));
+          .in('event_id', reallyPassed.map(e => e.id));
 
         const regCounts: Record<string, number> = {};
         allRegs?.forEach(r => {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
 
-        const mappedEvents = data.map(e => ({
+        const mappedEvents = reallyPassed.map(e => ({
           ...e,
           maxAttendees: e.max_attendees || 0,
           currentAttendees: regCounts[e.id] || 0

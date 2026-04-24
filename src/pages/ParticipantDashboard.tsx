@@ -342,7 +342,9 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     // Filter out past events (expired) from the discovery list
     const now = new Date().getTime();
     const eventTime = getTime(e.date);
-    const endTime = (e as any).end_date ? getTime((e as any).end_date) : eventTime + (4 * 60 * 60 * 1000);
+    const meta = (e as any).metadata || {};
+    const endDateStr = meta.endDate || (e as any).end_date;
+    const endTime = endDateStr ? getTime(endDateStr) : eventTime + (4 * 60 * 60 * 1000);
     
     // An event is relevant if it hasn't ended yet
     const isUpcomingOrOngoing = endTime > now;

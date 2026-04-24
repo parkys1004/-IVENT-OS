@@ -128,7 +128,9 @@ export default function CategoryExplore() {
 
         const now = new Date().getTime();
         const eventTime = getTime(e.date);
-        const endTime = (e as any).end_date ? getTime((e as any).end_date) : eventTime + (4 * 60 * 60 * 1000);
+        const meta = (e as any).metadata || {};
+        const endDateStr = meta.endDate || (e as any).end_date;
+        const endTime = endDateStr ? getTime(endDateStr) : eventTime + (4 * 60 * 60 * 1000);
         const isUpcomingOrOngoing = endTime > now;
 
         return matchesSearch && isUpcomingOrOngoing;

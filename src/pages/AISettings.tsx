@@ -34,7 +34,7 @@ interface AISetting {
 
 const PROVIDERS = [
   { id: 'openai', name: 'OpenAI (ChatGPT)', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
-  { id: 'google', name: 'Google (Gemini)', icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d473530465113d0b27b2d.svg', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'] }
+  { id: 'google', name: 'Google (Gemini)', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'] }
 ];
 
 export default function AISettings() {

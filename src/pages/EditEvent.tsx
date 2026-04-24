@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError, OperationType } from '../lib/supabaseError';
-import { Autocomplete } from '@react-google-maps/api';
+import PlaceSearch from '../components/PlaceSearch';
 import { Calendar, Clock, MapPin, Users, FileText, ImageIcon as ImageIcon, Upload, X, Star, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
@@ -42,33 +42,31 @@ export default function EditEvent() {
 
   const { isLoaded, loadError } = useGoogleMaps();
 
-  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-
-  const onPlaceChanged = () => {
-    if (autocomplete !== null) {
-      const place = autocomplete.getPlace();
-      
-      let city = '';
-      let country = '';
-      
-      place.address_components?.forEach(component => {
-        if (component.types.includes('country')) country = component.short_name;
-        if (component.types.includes('locality')) city = component.long_name;
-        else if (component.types.includes('administrative_area_level_1') && !city) city = component.long_name;
+  const handlePlaceSelect = (place: any) => {
+    if (!place) return;
+    
+    let city = '';
+    let country = '';
+    
+    if (place.addressComponents) {
+      place.addressComponents.forEach((component: any) => {
+        if (component.types.includes('country')) country = component.shortText || component.short_name;
+        if (component.types.includes('locality')) city = component.longText || component.long_name;
+        else if (component.types.includes('administrative_area_level_1') && !city) city = component.longText || component.long_name;
       });
-
-      setFormData(prev => ({
-        ...prev,
-        locationName: place.name || place.formatted_address || prev.locationName,
-        formattedAddress: place.formatted_address || '',
-        country: country,
-        city: city,
-        geoPoint: place.geometry?.location ? {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        } : prev.geoPoint
-      }));
     }
+
+    setFormData(prev => ({
+      ...prev,
+      locationName: place.displayName || place.name || place.formattedAddress || place.formatted_address || prev.locationName,
+      formattedAddress: place.formattedAddress || place.formatted_address || '',
+      country: country,
+      city: city,
+      geoPoint: place.location ? {
+        lat: typeof place.location.lat === 'function' ? place.location.lat() : place.location.lat,
+        lng: typeof place.location.lng === 'function' ? place.location.lng() : place.location.lng
+      } : prev.geoPoint
+    }));
   };
 
   const [images, setImages] = useState<string[]>([]);
@@ -629,21 +627,10 @@ export default function EditEvent() {
               </div>
             </div>
           ) : isLoaded ? (
-            <Autocomplete
-              onLoad={setAutocomplete}
-              onPlaceChanged={onPlaceChanged}
-              options={{ componentRestrictions: { country: ["kr", "jp", "sg"] } }}
-            >
-              <input
-                required
-                type="text"
-                name="locationName"
-                value={formData.locationName}
-                onChange={handleChange}
-                className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
-                placeholder="예: 강남역 쌍용플래티넘"
-              />
-            </Autocomplete>
+            <PlaceSearch 
+              onPlaceSelect={handlePlaceSelect}
+              placeholder="예: 강남역 쌍용플래티넘"
+            />
           ) : (
             <div className="w-full h-11 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-[10px]"></div>
           )}

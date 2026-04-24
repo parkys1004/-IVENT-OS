@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
-import { Autocomplete } from '@react-google-maps/api';
+import PlaceSearch from '../components/PlaceSearch';
 import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { useAuth } from '../context/AuthContext';
@@ -43,38 +43,38 @@ export default function CreateEvent() {
 
   const { isLoaded, loadError } = useGoogleMaps();
 
-  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
-
-  const onPlaceChanged = () => {
-    if (autocomplete !== null) {
-      const place = autocomplete.getPlace();
-      
-      let city = '';
-      let country = '';
-      
-      place.address_components?.forEach(component => {
-        if (component.types.includes('country')) country = component.short_name;
-        if (component.types.includes('locality')) city = component.long_name;
-        else if (component.types.includes('administrative_area_level_1') && !city) city = component.long_name;
-      });
-
-      setFormData(prev => ({
-        ...prev,
-        locationName: place.name || place.formatted_address || prev.locationName,
-        formattedAddress: place.formatted_address || '',
-        country: country,
-        city: city,
-        geoPoint: place.geometry?.location ? {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        } : prev.geoPoint
-      }));
-    }
-  };
-
   const [images, setImages] = useState<string[]>([]);
   const [coverImageIndex, setCoverImageIndex] = useState<number>(0);
   const [dragActive, setDragActive] = useState(false);
+
+  const handlePlaceSelect = (place: any) => {
+    if (!place) return;
+    
+    let city = '';
+    let country = '';
+    
+    // Address components mapping for new Places library might be different or similar
+    // The web component might return a Place instance or a plain object
+    if (place.addressComponents) {
+      place.addressComponents.forEach((component: any) => {
+        if (component.types.includes('country')) country = component.shortText || component.short_name;
+        if (component.types.includes('locality')) city = component.longText || component.long_name;
+        else if (component.types.includes('administrative_area_level_1') && !city) city = component.longText || component.long_name;
+      });
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      locationName: place.displayName || place.name || place.formattedAddress || place.formatted_address || prev.locationName,
+      formattedAddress: place.formattedAddress || place.formatted_address || '',
+      country: country,
+      city: city,
+      geoPoint: place.location ? {
+        lat: typeof place.location.lat === 'function' ? place.location.lat() : place.location.lat,
+        lng: typeof place.location.lng === 'function' ? place.location.lng() : place.location.lng
+      } : prev.geoPoint
+    }));
+  };
 
   const resizeAndCompressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -708,21 +708,10 @@ export default function CreateEvent() {
               </div>
             </div>
           ) : isLoaded ? (
-            <Autocomplete
-              onLoad={setAutocomplete}
-              onPlaceChanged={onPlaceChanged}
-              options={{ componentRestrictions: { country: ["kr", "jp", "sg"] } }}
-            >
-              <input
-                required
-                type="text"
-                name="locationName"
-                value={formData.locationName}
-                onChange={handleChange}
-                className="w-full rounded-[10px] border-slate-200 dark:border-slate-700 border bg-slate-50 dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
-                placeholder="예: 강남역 쌍용플래티넘"
-              />
-            </Autocomplete>
+            <PlaceSearch 
+              onPlaceSelect={handlePlaceSelect}
+              placeholder="예: 강남역 쌍용플래티넘"
+            />
           ) : (
             <div className="w-full h-11 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-[10px]"></div>
           )}

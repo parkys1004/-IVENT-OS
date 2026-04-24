@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
-import { Autocomplete } from '@react-google-maps/api';
+import PlaceSearch from '../components/PlaceSearch';
 import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
@@ -36,34 +36,32 @@ export default function CreateLesson() {
   });
 
   const { isLoaded, loadError } = useGoogleMaps();
-  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
-  const onPlaceChanged = () => {
-    if (autocomplete !== null) {
-      const place = autocomplete.getPlace();
-      if (place.geometry && place.geometry.location) {
-        const address = place.formatted_address || '';
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        
-        let city = '';
-        let country = '';
-        
-        place.address_components?.forEach(component => {
-          if (component.types.includes('locality')) city = component.long_name;
-          if (component.types.includes('country')) country = component.short_name;
-        });
-
-        setFormData(prev => ({
-          ...prev,
-          locationName: place.name || '',
-          formattedAddress: address,
-          city,
-          country,
-          geoPoint: { lat, lng }
-        }));
-      }
+  const handlePlaceSelect = (place: any) => {
+    if (!place) return;
+    
+    let city = '';
+    let country = '';
+    
+    if (place.addressComponents) {
+      place.addressComponents.forEach((component: any) => {
+        if (component.types.includes('country')) country = component.shortText || component.short_name;
+        if (component.types.includes('locality')) city = component.longText || component.long_name;
+        else if (component.types.includes('administrative_area_level_1') && !city) city = component.longText || component.long_name;
+      });
     }
+
+    setFormData(prev => ({
+      ...prev,
+      locationName: place.displayName || place.name || prev.locationName,
+      formattedAddress: place.formattedAddress || place.formatted_address || '',
+      country: country,
+      city: city,
+      geoPoint: place.location ? {
+        lat: typeof place.location.lat === 'function' ? place.location.lat() : place.location.lat,
+        lng: typeof place.location.lng === 'function' ? place.location.lng() : place.location.lng
+      } : prev.geoPoint
+    }));
   };
 
   const resizeAndCompressImage = (file: File): Promise<string> => {
@@ -364,19 +362,10 @@ export default function CreateLesson() {
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">상세 주소 검색</label>
                 {isLoaded ? (
-                  <Autocomplete
-                    onLoad={setAutocomplete}
-                    onPlaceChanged={onPlaceChanged}
-                  >
-                    <input
-                      type="text"
-                      required
-                      placeholder="주소를 검색하거나 직접 입력하세요"
-                      value={formData.formattedAddress}
-                      onChange={e => setFormData(prev => ({ ...prev, formattedAddress: e.target.value }))}
-                      className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-blue-500 outline-none transition-all font-medium"
-                    />
-                  </Autocomplete>
+                  <PlaceSearch 
+                    onPlaceSelect={handlePlaceSelect}
+                    placeholder="주소를 검색하거나 직접 입력하세요"
+                  />
                 ) : (
                   <input
                     type="text"

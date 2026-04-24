@@ -1,414 +1,344 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   Bot, 
-  Settings2, 
-  Activity, 
   Key, 
-  Terminal, 
   Eye, 
   EyeOff, 
+  Save, 
+  Trash2, 
+  RefreshCw, 
+  AlertTriangle, 
   CheckCircle2, 
-  X, 
-  RefreshCcw,
-  Plus,
-  PlayCircle,
-  Database,
-  Search,
-  ChevronDown,
-  Trash2,
-  Copy,
-  LayoutDashboard,
-  ShieldAlert,
-  Cpu
+  XCircle,
+  ChevronRight,
+  ShieldCheck,
+  Zap,
+  Globe
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
-import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface AISetting {
-  provider: string;
-  api_key: string;
-  default_model: string;
-  is_active: boolean;
-  settings: {
-    usage_limit?: number;
-    safety_level?: string;
-  };
-}
-
-interface AILog {
   id: string;
-  provider: string;
+  user_id: string;
+  provider: 'openai' | 'google';
+  api_key: string;
   model: string;
-  prompt_summary: string;
-  tokens_used: number;
-  cost: number;
+  status: 'active' | 'error';
+  last_checked?: string;
   created_at: string;
 }
 
+const PROVIDERS = [
+  { id: 'openai', name: 'OpenAI (ChatGPT)', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
+  { id: 'google', name: 'Google (Gemini)', icon: 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d473530465113d0b27b2d.svg', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'] }
+];
+
 export default function AISettings() {
-  const { profile } = useAuth();
-  const [settings, setSettings] = useState<AISetting[]>([]);
-  const [logs, setLogs] = useState<AILog[]>([]);
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [testResult, setTestResult] = useState<Record<string, 'success' | 'error' | 'pending' | null>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedKeys, setSavedKeys] = useState<AISetting[]>([]);
+  
+  // Form State
+  const [provider, setProvider] = useState<'openai' | 'google'>('openai');
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-4o');
 
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const { data: sData, error: sErr } = await supabase.from('ai_settings').select('*');
-        if (sErr) throw sErr;
-        
-        // Default entries if empty
-        if (!sData || sData.length === 0) {
-          const defaults = [
-            { provider: 'openai', api_key: '', default_model: 'gpt-4o', is_active: true, settings: { usage_limit: 50, safety_level: 'standard' } },
-            { provider: 'gemini', api_key: '', default_model: 'gemini-1.5-pro', is_active: true, settings: { safety_level: 'high' } }
-          ];
-          setSettings(defaults);
-        } else {
-          setSettings(sData);
-        }
-
-        const { data: lData, error: lErr } = await supabase
-          .from('ai_logs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(20);
-        if (lErr) throw lErr;
-        setLogs(lData || []);
-
-      } catch (err) {
-        console.error("Error fetching AI data:", err);
-      } finally {
-        setLoading(false);
-      }
+    if (!user) {
+      navigate('/login');
+      return;
     }
-    fetchData();
-  }, []);
+    fetchSettings();
+  }, [user]);
 
-  const handleUpdateSetting = async (provider: string, updates: Partial<AISetting>) => {
+  const fetchSettings = async () => {
+    setLoading(true);
     try {
-      const { error } = await supabase.from('ai_settings').upsert({
-        provider,
-        ...settings.find(s => s.provider === provider),
-        ...updates,
-        updated_at: new Date().toISOString()
-      });
+      const { data, error } = await supabase
+        .from('user_ai_configs')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      setSettings(prev => prev.map(s => s.provider === provider ? { ...s, ...updates } : s));
+      setSavedKeys(data || []);
     } catch (err) {
-      console.error("Failed to update AI setting:", err);
-      alert('설정 업데이트에 실패했습니다.');
+      console.error('Error fetching AI settings:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleKeyVisibility = (provider: string) => {
-    setShowKeys(prev => ({ ...prev, [provider]: !prev[provider] }));
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKey) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('user_ai_configs')
+        .upsert({
+          user_id: user?.id,
+          provider,
+          api_key: apiKey,
+          model: selectedModel,
+          status: 'active',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,provider' });
+
+      if (error) throw error;
+      
+      setApiKey('');
+      alert('API 연동 설정이 성공적으로 저장되었습니다.');
+      fetchSettings();
+    } catch (err: any) {
+      alert(`저장 실패: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const runPingTest = async (provider: string) => {
-    setTestResult(prev => ({ ...prev, [provider]: 'pending' }));
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('정말 이 API 설정을 삭제하시겠습니까?')) return;
     
-    // Simulate API ping
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    const setting = settings.find(s => s.provider === provider);
-    const isOk = setting?.api_key && setting.api_key.length > 10;
-    
-    setTestResult(prev => ({ ...prev, [provider]: isOk ? 'success' : 'error' }));
-    
-    setTimeout(() => {
-      setTestResult(prev => ({ ...prev, [provider]: null }));
-    }, 3000);
+    try {
+      const { error } = await supabase
+        .from('user_ai_configs')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      setSavedKeys(prev => prev.filter(k => k.id !== id));
+    } catch (err: any) {
+      alert('삭제 중 오류가 발생했습니다.');
+    }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // Could add a toast here
+  const maskKey = (key: string) => {
+    if (key.length <= 12) return '****';
+    return `${key.slice(0, 8)}...${key.slice(-4)}`;
   };
 
-  if (profile?.role !== 'admin') {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-950">
-        <ShieldAlert className="w-16 h-16 text-rose-500 mb-6" />
-        <h1 className="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter">Access Denied</h1>
-        <p className="text-slate-500 dark:text-slate-400 font-bold max-w-xs">
-          관리자 전용 설정 화면입니다. 권한이 있는 계정으로 로그인해주세요.
-        </p>
-      </div>
-    );
-  }
+  const currentProviderData = PROVIDERS.find(p => p.id === provider);
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-8 sm:py-12 space-y-10">
-      {/* Header Summary */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-slate-900 shadow-xl rounded-[20px] flex items-center justify-center border border-slate-700">
-            <Cpu className="w-7 h-7 text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-[950] text-slate-800 dark:text-white tracking-tighter uppercase">AI Settings</h1>
-            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm">지능형 서비스의 API 연동 상태와 리소스를 관리합니다.</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="px-5 py-3 glass-panel rounded-2xl flex items-center gap-4 border border-slate-200 dark:border-slate-800">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Service Status Summary</span>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500">OpenAI:</span>
-                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded uppercase">Active</span>
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">| 사용량: $12.50 / $50.00 (25%)</span>
-                </div>
-                <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-6">
-                  <span className="text-xs font-bold text-slate-500">Gemini:</span>
-                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded uppercase">Active</span>
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">| 사용량: 45,000 / 1,000,000 Free Tokens</span>
-                </div>
-              </div>
+    <div className="flex-1 bg-slate-50 dark:bg-slate-950 min-h-full p-6 md:p-10 overflow-y-auto no-scrollbar">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
+              <Bot className="w-6 h-6 text-white" />
             </div>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white">AI API 설정</h1>
           </div>
-        </div>
-      </div>
+          <p className="text-slate-500 font-medium">관리자 뿐만 아니라 모든 회원이 개인별 AI API를 등록하여 사용할 수 있습니다.</p>
+        </header>
 
-      {/* Main Grid: Service Cards */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {settings.map((service) => (
-          <div key={service.provider} className={clsx(
-            "glass-panel rounded-[32px] overflow-hidden border-2 transition-all duration-300",
-            service.is_active ? "border-slate-100 dark:border-slate-800" : "border-slate-200 dark:border-slate-900 opacity-60 grayscale-[0.5]"
-          )}>
-            {/* Header */}
-            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={clsx(
-                  "p-3 rounded-2xl flex items-center justify-center shadow-lg",
-                  service.provider === 'openai' ? "bg-[#10a37f] text-white" : "bg-white dark:bg-slate-800"
-                )}>
-                  {service.provider === 'openai' ? <Bot className="w-6 h-6" /> : <Database className="w-6 h-6 text-blue-500" />}
-                </div>
-                <div>
-                   <h3 className="font-[950] text-xl text-slate-800 dark:text-white capitalize tracking-tight">{service.provider}</h3>
-                   <div className="flex items-center gap-2 mt-0.5">
-                     <span className={clsx(
-                       "w-1.5 h-1.5 rounded-full",
-                       service.is_active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-400"
-                     )}></span>
-                     <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">
-                       {service.is_active ? 'Active' : 'Disabled'}
-                     </span>
-                   </div>
-                </div>
-              </div>
-              <button
-                onClick={() => handleUpdateSetting(service.provider, { is_active: !service.is_active })}
-                className={clsx(
-                  "relative w-12 h-6 rounded-full transition-colors duration-300 flex items-center",
-                  service.is_active ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
-                )}
-              >
-                <div className={clsx(
-                  "w-4.5 h-4.5 bg-white rounded-full shadow-md transition-transform duration-300",
-                  service.is_active ? "translate-x-6.5" : "translate-x-1"
-                )} />
-              </button>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left: Registration Form */}
+          <div className="lg:col-span-5">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 p-8 shadow-sm"
+            >
+              <h2 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-orange-500" /> AI 서비스 연동
+              </h2>
 
-            {/* Config Fields */}
-            <div className="p-8 space-y-6">
-              {/* API Key */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Key className="w-3.5 h-3.5" /> API Key
-                  </label>
-                  <button 
-                    onClick={() => toggleKeyVisibility(service.provider)}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center gap-1.5"
-                  >
-                    {showKeys[service.provider] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    {showKeys[service.provider] ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                <div className="relative group">
-                  <input
-                    type={showKeys[service.provider] ? "text" : "password"}
-                    value={service.api_key}
-                    onChange={(e) => handleUpdateSetting(service.provider, { api_key: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-mono focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                    placeholder="Enter API Key here..."
-                  />
-                  <button 
-                    onClick={() => copyToClipboard(service.api_key)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Default Model */}
+              <form onSubmit={handleSave} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Terminal className="w-3.5 h-3.5" /> Default Model
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={service.default_model}
-                      onChange={(e) => handleUpdateSetting(service.provider, { default_model: e.target.value })}
-                      className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-3.5 text-sm font-black focus:outline-none focus:ring-2 focus:ring-indigo-500/10 cursor-pointer"
-                    >
-                      {service.provider === 'openai' ? (
-                        <>
-                          <option value="gpt-4o">gpt-4o (Newest)</option>
-                          <option value="gpt-4-turbo">gpt-4-turbo</option>
-                          <option value="o1-preview">o1-preview</option>
-                          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-                          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                          <option value="gemini-1.0-pro">gemini-1.0-pro</option>
-                        </>
-                      )}
-                    </select>
-                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">제공자 선택</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {PROVIDERS.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setProvider(p.id as any);
+                          setSelectedModel(p.models[0]);
+                        }}
+                        className={clsx(
+                          "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all",
+                          provider === p.id 
+                            ? "border-orange-500 bg-orange-50/50 dark:bg-orange-500/10 shadow-sm" 
+                            : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-orange-200"
+                        )}
+                      >
+                        <img src={p.icon} className="w-6 h-6" alt={p.name} />
+                        <span className={clsx("font-bold text-sm", provider === p.id ? "text-orange-600 dark:text-orange-400" : "text-slate-500")}>
+                          {p.id === 'openai' ? 'OpenAI' : 'Gemini'}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Safety / Limit Settings */}
                 <div className="space-y-2">
-                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Settings2 className="w-3.5 h-3.5" /> {service.provider === 'openai' ? '사용량 제한 설정' : 'Safety Settings(안전 등급)'}
-                   </label>
-                   <div className="flex items-center gap-1.5">
-                     {['Low', 'Standard', 'High'].map((lv) => (
-                       <button
-                         key={lv}
-                         onClick={() => handleUpdateSetting(service.provider, { settings: { ...service.settings, safety_level: lv.toLowerCase() } })}
-                         className={clsx(
-                           "flex-1 py-3 text-[11px] font-black uppercase tracking-tighter rounded-xl border transition-all",
-                           service.settings.safety_level === lv.toLowerCase()
-                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/10"
-                            : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400"
-                         )}
-                       >
-                         {lv}
-                       </button>
-                     ))}
-                   </div>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">API 키 입력</label>
+                  <div className="relative">
+                    <input 
+                      type={showKey ? 'text' : 'password'}
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder={provider === 'openai' ? 'sk-...' : 'AIzaSy...'}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl pl-12 pr-12 py-4 font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/20"
+                    />
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <button 
+                      type="button"
+                      onClick={() => setShowKey(!showKey)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-400 transition-colors"
+                    >
+                      {showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1.5 px-1">
+                    {provider === 'openai' ? 'OpenAI Dashboard' : 'Google AI Studio'}에서 발급받은 키를 입력하세요.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">기본 모델 설정</label>
+                  <div className="relative">
+                    <select 
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl px-5 py-4 font-bold text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                    >
+                      {currentProviderData?.models.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <ChevronRight className="w-4 h-4 rotate-90" />
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={isSaving || !apiKey}
+                  className={clsx(
+                    "w-full py-5 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-2xl shadow-xl shadow-orange-500/20 transition-all flex items-center justify-center gap-2",
+                    (isSaving || !apiKey) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  API 연결 저장
+                </button>
+              </form>
+            </motion.div>
+          </div>
+
+          {/* Right: Saved Keys & Security Guide */}
+          <div className="lg:col-span-7 space-y-8">
+            {/* Top Right: Saved Keys */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 p-8 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-6 h-6 text-emerald-500" /> 저장된 API 리스트
+                </h2>
+                <button 
+                  onClick={fetchSettings}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 transition-all"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="py-10 flex flex-col items-center justify-center gap-3">
+                  <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
+                  <p className="text-xs font-bold text-slate-400">설정 불러오는 중...</p>
+                </div>
+              ) : savedKeys.length === 0 ? (
+                <div className="py-16 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
+                   <Bot className="w-12 h-12 text-slate-200 dark:text-slate-700 mx-auto mb-4" />
+                   <p className="text-sm font-bold text-slate-400">등록된 API 키가 없습니다.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {savedKeys.map((key) => {
+                    const pData = PROVIDERS.find(p => p.id === key.provider);
+                    return (
+                      <div key={key.id} className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 group hover:border-orange-200 transition-all">
+                        <div className="flex items-center gap-4">
+                          <img src={pData?.icon} className="w-10 h-10 p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm" alt="provider" />
+                          <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-black text-slate-800 dark:text-white">{pData?.name}</span>
+                              {key.status === 'active' ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                              ) : (
+                                <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <p className="text-[11px] font-mono text-slate-400">{maskKey(key.api_key)}</p>
+                               <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950 px-1.5 py-0.5 rounded-md uppercase">{key.model}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleDelete(key.id)}
+                          className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-rose-600 hover:border-rose-100 rounded-2xl shadow-sm transition-all active:scale-95"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+
+            {/* Bottom Right: Security Guide */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-orange-50 dark:bg-orange-900/10 rounded-[32px] border border-orange-100 dark:border-orange-800/30 p-8"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm">
+                  <AlertTriangle className="w-6 h-6 text-orange-500" />
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-black text-orange-900 dark:text-orange-400 mb-1">보안 주의사항 (Security Guide)</h3>
+                    <p className="text-sm text-orange-800/70 dark:text-orange-500/70 leading-relaxed font-medium">당신의 데이터 권리를 지키기 위해 다음 사항을 꼭 확인하세요.</p>
+                  </div>
+                  
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-3">
+                       <CheckCircle2 className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
+                       <p className="text-xs text-orange-800/80 dark:text-orange-500 font-bold">API 키는 브라우저 로컬 환경이 아닌 서버(Safe Vault)에 암호화되어 안전하게 저장됩니다.</p>
+                    </li>
+                    <li className="flex items-start gap-3">
+                       <CheckCircle2 className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
+                       <p className="text-xs text-orange-800/80 dark:text-orange-500 font-bold">불필요한 과금을 방지하기 위해 각 제공자 사이트에서 사용 한도를 설정하세요.</p>
+                    </li>
+                    <li className="flex items-start gap-3">
+                       <CheckCircle2 className="w-4 h-4 text-orange-400 mt-1 shrink-0" />
+                       <p className="text-xs text-orange-800/80 dark:text-orange-500 font-bold">유출이 의심될 경우 즉시 해당 제공자 사이트에서 키를 폐기하고 재발급받으세요.</p>
+                    </li>
+                  </ul>
                 </div>
               </div>
-
-              {/* Advanced Actions */}
-              <div className="pt-4 flex items-center justify-between gap-4">
-                 <button
-                   onClick={() => runPingTest(service.provider)}
-                   disabled={testResult[service.provider] === 'pending'}
-                   className={clsx(
-                     "flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl font-black text-sm transition-all",
-                     testResult[service.provider] === 'success' ? "bg-emerald-500 text-white" :
-                     testResult[service.provider] === 'error' ? "bg-rose-500 text-white" :
-                     "bg-slate-900 border border-slate-800 text-white hover:bg-slate-800"
-                   )}
-                 >
-                   {testResult[service.provider] === 'pending' ? (
-                     <RefreshCcw className="w-4 h-4 animate-spin" />
-                   ) : testResult[service.provider] === 'success' ? (
-                     <CheckCircle2 className="w-4 h-4" />
-                   ) : testResult[service.provider] === 'error' ? (
-                     <ShieldAlert className="w-4 h-4" />
-                   ) : (
-                     <PlayCircle className="w-4 h-4" />
-                   )}
-                   {testResult[service.provider] === 'pending' ? 'Testing...' : 
-                    testResult[service.provider] === 'success' ? 'Success' :
-                    testResult[service.provider] === 'error' ? 'Connection Failed' :
-                    'Ping Test Connection'}
-                 </button>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Global Stats Chart (Placeholder/Simple Bar) */}
-        <div className="xl:col-span-2 glass-panel rounded-[32px] overflow-hidden">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-900/5 dark:bg-slate-900/30">
-            <h3 className="font-[950] text-xl text-slate-800 dark:text-white tracking-tight flex items-center gap-3 underline decoration-indigo-500 underline-offset-8">
-              <Activity className="w-6 h-6 text-indigo-500" />
-              Prompt Logs & Real-time Monitoring
-            </h3>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-black text-slate-400 hover:text-slate-800 transition-colors">
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear Records
-            </button>
-          </div>
-          
-          <div className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800/50">
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">시간 (Time)</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">서비스 (Service)</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">모델 (Model)</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">요청 내용 요약 (Prompt)</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">토큰 수 (Tokens)</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">비용 (Cost)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                  {[
-                    { id: '1', date: new Date(), provider: 'openai', model: 'gpt-4o', prompt: '행사 설명 문구 최적화 (살사 바차타 페스티벌)', tokens: 1240, cost: 0.12 },
-                    { id: '2', date: new Date(Date.now() - 3600000), provider: 'gemini', model: 'gemini-1.5-pro', prompt: '사용자 장르 태깅 자동 분류 (Zouk Workshop)', tokens: 850, cost: 0.005 },
-                    { id: '3', date: new Date(Date.now() - 7200000), provider: 'openai', model: 'gpt-4o', prompt: '시스템 로그 요약 및 관리 알림', tokens: 4200, cost: 0.45 },
-                    { id: '4', date: new Date(Date.now() - 86400000), provider: 'gemini', model: 'gemini-1.5-flash', prompt: '커뮤니티 유해 게시물 필터링 배치작업', tokens: 15200, cost: 0.012 },
-                  ].map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-all group">
-                      <td className="px-8 py-5">
-                         <span className="text-xs font-bold text-slate-500 whitespace-nowrap">{format(log.date, 'MM.dd HH:mm:ss')}</span>
-                      </td>
-                      <td className="px-8 py-5">
-                         <span className={clsx(
-                           "text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider",
-                           log.provider === 'openai' ? "bg-[#10a37f]/10 text-[#10a37f]" : "bg-blue-500/10 text-blue-500"
-                         )}>
-                           {log.provider}
-                         </span>
-                      </td>
-                      <td className="px-8 py-5">
-                         <span className="text-[11px] font-black text-slate-400 uppercase">{log.model}</span>
-                      </td>
-                      <td className="px-8 py-5">
-                         <p className="text-[13px] font-black text-slate-700 dark:text-slate-200 truncate max-w-xs group-hover:max-w-none transition-all">{log.prompt}</p>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                         <span className="text-[13px] font-bold text-slate-600 dark:text-slate-400">{log.tokens.toLocaleString()}</span>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                         <span className="text-[13px] font-black text-indigo-600 dark:text-indigo-400">${log.cost.toFixed(3)}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="p-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-center">
-               <button className="flex items-center gap-2 text-[11px] font-black text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-[0.2em]">
-                 View Full Monitoring Logs <ChevronDown className="w-3.5 h-3.5" />
-               </button>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

@@ -415,7 +415,7 @@ export default function Navbar() {
                                 포인트 충전
                               </Link>
 
-                              {profile?.role === 'admin' && (
+                              {user && (
                                 <Link 
                                   to="/ai-settings" 
                                   onClick={() => setDropdownOpen(false)}
@@ -586,7 +586,7 @@ export default function Navbar() {
                           포인트 충전
                         </Link>
 
-                        {profile?.role === 'admin' && (
+                        {user && (
                           <Link
                             to="/ai-settings"
                             onClick={() => setIsMobileMenuOpen(false)}

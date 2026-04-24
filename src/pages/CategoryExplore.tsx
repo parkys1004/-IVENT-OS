@@ -60,32 +60,50 @@ export default function CategoryExplore() {
 
     const fetchItems = async () => {
       try {
-        let queryBuilder = supabase.from('events').select('*').eq('status', 'published');
+        let eventsData: any[] = [];
+        let classesData: any[] = [];
 
+        // 1. Fetch from events
+        let eventsQuery = supabase.from('events').select('*').eq('status', 'published');
         if (category === 'party') {
-          queryBuilder = queryBuilder.eq('is_lesson', false);
+          eventsQuery = eventsQuery.eq('is_lesson', false);
         } else if (category === 'lesson') {
-          queryBuilder = queryBuilder.eq('is_lesson', true);
+          eventsQuery = eventsQuery.eq('is_lesson', true);
         } else {
-          queryBuilder = queryBuilder.eq('category', category);
+          eventsQuery = eventsQuery.eq('category', category);
+        }
+        const { data: eData } = await eventsQuery.limit(48);
+        eventsData = eData || [];
+
+        // 2. Fetch from classes if needed
+        if (category === 'lesson' || !['party', 'instructor', 'dj', 'media', 'dj_media'].includes(category || '')) {
+          let classesQuery = supabase.from('classes').select('*');
+          if (category !== 'lesson') {
+            classesQuery = classesQuery.eq('category', category);
+          }
+          const { data: cData } = await classesQuery.limit(48);
+          classesData = cData || [];
         }
 
-        const { data, error } = await queryBuilder.limit(48);
-
-        if (error) throw error;
+        const combinedData = [...eventsData, ...classesData];
+        if (combinedData.length === 0) {
+          setEvents([]);
+          setLoading(false);
+          return;
+        }
         
         // Fetch registration counts
         const { data: allRegs } = await supabase
           .from('registrations')
           .select('event_id')
-          .in('event_id', data.map(e => e.id));
+          .in('event_id', combinedData.map(e => e.id));
 
         const regCounts: Record<string, number> = {};
         allRegs?.forEach(r => {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
 
-        const eventsData = data.map(e => ({
+        const mappedEvents = eventsData.map(e => ({
           id: e.id,
           title: e.title,
           description: e.description,
@@ -100,9 +118,31 @@ export default function CategoryExplore() {
           metadata: e.metadata || {},
           maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
           currentAttendees: regCounts[e.id] || 0
-        })) as any;
+        }));
+
+        const mappedClasses = classesData.map(c => ({
+          id: c.id,
+          title: c.title,
+          description: '',
+          date: c.start_date,
+          end_date: c.end_date,
+          category: c.category || 'lesson',
+          locationName: c.location_name,
+          imageUrl: '',
+          isLesson: true,
+          likesCount: 0,
+          createdAt: c.created_at,
+          metadata: {
+            level: c.level,
+            classTime: c.class_time,
+            address: c.address,
+            geoPoint: { lat: c.lat, lng: c.lng }
+          },
+          maxAttendees: 50,
+          currentAttendees: regCounts[c.id] || 0
+        }));
         
-        setEvents(eventsData);
+        setEvents([...mappedEvents, ...mappedClasses] as any);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching category events:', error);

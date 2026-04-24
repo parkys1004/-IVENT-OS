@@ -49,8 +49,26 @@ export default function PublicProfile() {
           career: profileData.career || '',
           portfolioUrl: profileData.portfolio_url || '',
           studioLocation: profileData.studio_location || '',
-          phone: profileData.phone || ''
+          phone: profileData.phone || '',
+          portfolioImages: profileData.portfolio_images || []
         };
+
+        // Fetch specialized data based on role
+        let specializedData = null;
+        if (mappedProfile.role === 'instructor') {
+          const { data } = await supabase.from('instructors').select('*').eq('id', id).maybeSingle();
+          specializedData = data;
+        } else if (mappedProfile.role === 'dj') {
+          const { data } = await supabase.from('djs').select('*').eq('id', id).maybeSingle();
+          specializedData = data;
+        } else if (mappedProfile.role === 'media') {
+          const { data } = await supabase.from('creators').select('*').eq('id', id).maybeSingle();
+          specializedData = data;
+        }
+
+        if (specializedData) {
+          (mappedProfile as any).specialized = specializedData;
+        }
 
         setProfile(mappedProfile);
 
@@ -62,9 +80,36 @@ export default function PublicProfile() {
           .eq('status', 'published')
           .order('date', { ascending: true });
 
-        if (!eventsError) {
-          setEvents(eventsData || []);
-        }
+        // Fetch classes taught by this user
+        const { data: classesData } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('instructor_id', id)
+          .order('start_date', { ascending: true });
+
+        const mappedEvents = (eventsData || []).map(e => ({
+          ...e,
+          id: e.id,
+          title: e.title,
+          date: e.date,
+          locationName: e.location_name,
+          category: e.category,
+          imageUrl: e.image_url,
+          isLesson: e.is_lesson
+        }));
+
+        const mappedClasses = (classesData || []).map(c => ({
+          id: c.id,
+          title: c.title,
+          date: c.start_date,
+          locationName: c.location_name,
+          category: c.category || 'lesson',
+          imageUrl: '',
+          isLesson: true,
+          status: 'published'
+        }));
+
+        setEvents([...mappedEvents, ...mappedClasses]);
 
       } catch (err: any) {
         console.error("Error fetching public profile:", err);
@@ -228,10 +273,17 @@ export default function PublicProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <section>
               <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-                <GraduationCap className="w-5 h-5 text-indigo-500" /> Specialties
+                <GraduationCap className="w-5 h-5 text-indigo-500" /> 
+                {profile.role === 'dj' ? 'Music Styles' : profile.role === 'media' ? 'Specialty' : 'Specialties'}
               </h3>
               <div className="flex flex-wrap gap-2">
-                {profile.specialties ? profile.specialties.split(',').map((s: string, idx: number) => (
+                {profile.role === 'dj' && (profile as any).specialized?.music_style 
+                  ? (profile as any).specialized.music_style.map((s: string, idx: number) => (
+                    <span key={idx} className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-4 py-2 rounded-xl text-sm font-bold border border-purple-100 dark:border-purple-800/30 shadow-sm">
+                      {s}
+                    </span>
+                  ))
+                  : profile.specialties ? profile.specialties.split(',').map((s: string, idx: number) => (
                   <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl text-sm font-bold border border-indigo-100 dark:border-indigo-800/30 shadow-sm">
                     {s.trim()}
                   </span>
@@ -241,15 +293,81 @@ export default function PublicProfile() {
             
             <section>
               <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-                <Trophy className="w-5 h-5 text-amber-500" /> Career Highlights
+                <Trophy className="w-5 h-5 text-amber-500" /> 
+                {profile.role === 'instructor' ? 'Experience' : 'Career Highlights'}
               </h3>
               <div className="bg-amber-50/30 dark:bg-amber-900/10 p-6 rounded-2xl border border-amber-100/50 dark:border-amber-900/20">
+                {profile.role === 'instructor' && (profile as any).specialized?.experience_years ? (
+                  <p className="text-sm font-bold text-slate-800 dark:text-amber-200 mb-2">
+                    { (profile as any).specialized.experience_years }년 이상 교육 경력
+                  </p>
+                ) : null}
                 <div className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-400 leading-6">
                   {profile.career || '경력 정보가 등록되지 않았습니다.'}
                 </div>
               </div>
             </section>
           </div>
+
+          {/* Specialized Equipment / Details Section */}
+          {((profile as any).specialized) && (
+            <section className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
+              <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
+                {profile.role === 'dj' ? <Music className="w-6 h-6 text-purple-500" /> : 
+                 profile.role === 'media' ? <Camera className="w-6 h-6 text-cyan-500" /> : 
+                 <GraduationCap className="w-6 h-6 text-indigo-500" />}
+                Professional Details
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {profile.role === 'dj' && (
+                  <>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Main Equipment</h4>
+                      <p className="text-slate-700 dark:text-slate-300 font-bold">{(profile as any).specialized.main_equipment || 'Not specified'}</p>
+                    </div>
+                    <div className="flex gap-4">
+                      {(profile as any).specialized.soundcloud_url && (
+                        <a href={(profile as any).specialized.soundcloud_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-orange-500 hover:opacity-80 transition-opacity font-bold">
+                          SoundCloud
+                        </a>
+                      )}
+                      {(profile as any).specialized.mixcloud_url && (
+                        <a href={(profile as any).specialized.mixcloud_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-500 hover:opacity-80 transition-opacity font-bold">
+                          MixCloud
+                        </a>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {profile.role === 'media' && (
+                  <>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Category</h4>
+                      <span className="bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 px-3 py-1 rounded-lg text-xs font-bold border border-cyan-100 dark:border-cyan-800">
+                        {(profile as any).specialized.category === 'photo' ? 'Photography' : 
+                         (profile as any).specialized.category === 'video' ? 'Videography' : 'Photo & Video'}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Equipment List</h4>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm whitespace-pre-wrap">{(profile as any).specialized.equipment_list || 'Not specified'}</p>
+                    </div>
+                  </>
+                )}
+
+                {profile.role === 'instructor' && (profile as any).specialized.curriculum_link && (
+                  <div className="col-span-full">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Curriculum / Portfolio</h4>
+                    <a href={(profile as any).specialized.curriculum_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl font-bold hover:bg-indigo-100 transition-colors">
+                      커리큘럼 확인하기 <Globe className="w-4 h-4 ml-1" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Hosted Events */}
           <section>

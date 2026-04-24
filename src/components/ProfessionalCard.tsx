@@ -64,7 +64,7 @@ export default function ProfessionalCard({ professional, index }: { professional
         </div>
  
         {/* Name & Role */}
-        <div className="mb-4">
+        <div className="mb-2">
           <h4 className="font-black text-slate-800 dark:text-white text-lg group-hover/pro:text-orange-500 dark:group-hover/pro:text-orange-400 transition-colors">
             {professional.displayName || '이름 없음'}
           </h4>
@@ -74,6 +74,26 @@ export default function ProfessionalCard({ professional, index }: { professional
           )}>
             {getRoleLabel(professional.role)}
           </span>
+        </div>
+
+        {/* Specialized Snippet */}
+        <div className="h-10 mb-4 overflow-hidden text-center">
+          {professional.role === 'dj' && (professional as any).specialized?.music_style ? (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold line-clamp-2">
+              {(professional as any).specialized.music_style.join(', ')}
+            </p>
+          ) : professional.role === 'media' && (professional as any).specialized?.category ? (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold line-clamp-2 uppercase">
+              {(professional as any).specialized.category === 'photo' ? 'Photography' : 
+               (professional as any).specialized.category === 'video' ? 'Videography' : 'Photo & Video'}
+            </p>
+          ) : professional.specialties ? (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold line-clamp-2">
+              {professional.specialties}
+            </p>
+          ) : (
+            <p className="text-[11px] text-slate-400 italic">전문가 프로필</p>
+          )}
         </div>
 
         {/* Stats */}

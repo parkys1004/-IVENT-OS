@@ -136,12 +136,42 @@ export default function EventDetail() {
     const fetchEventAndReg = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        // Try events table first
+        let { data, error } = await supabase
           .from('events')
           .select('*')
           .eq('id', id)
           .maybeSingle();
         
+        let isActuallyLesson = false;
+
+        if (!data) {
+          // Try classes table
+          const { data: classData, error: classError } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+          
+          if (classData) {
+            data = {
+              ...classData,
+              date: classData.start_date,
+              host_id: classData.instructor_id,
+              is_lesson: true,
+              metadata: {
+                level: classData.level,
+                classTime: classData.class_time,
+                address: classData.address,
+                geoPoint: { lat: classData.lat, lng: classData.lng }
+              }
+            };
+            isActuallyLesson = true;
+          } else if (classError) {
+            console.error("Error fetching class:", classError);
+          }
+        }
+
         if (error) {
           console.error("Error fetching event:", error);
           handleSupabaseError(error, OperationType.GET, 'events');
@@ -150,7 +180,7 @@ export default function EventDetail() {
         }
 
         if (!data) {
-          console.warn("Event not found or access denied:", id);
+          console.warn("Item not found or access denied:", id);
           navigate('/');
           return;
         }

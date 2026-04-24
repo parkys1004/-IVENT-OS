@@ -172,31 +172,20 @@ export default function CreateLesson() {
       }
 
       const { data, error } = await supabase
-        .from('events')
+        .from('classes')
         .insert({
           title: formData.title,
-          description: formData.description,
+          instructor_id: user.id,
+          level: formData.level,
           category: formData.category,
-          date: startDateTime.toISOString(),
-          end_date: endDateTime.toISOString(),
+          start_date: formData.date,
+          end_date: formData.endDate || formData.date,
+          class_time: formData.time,
+          price: formData.tickets[0]?.price || 0,
           location_name: formData.locationName,
-          image_url: formData.imageUrl,
-          host_id: user.id,
-          status: initialStatus,
-          is_lesson: true,
-          max_attendees: Number(formData.maxAttendees),
-          metadata: {
-            endDate: endDateTime.toISOString(),
-            level: formData.level,
-            maxAttendees: Number(formData.maxAttendees),
-            isLesson: true,
-            tickets: formData.tickets.filter(t => t.name.trim()),
-            paymentMethod: formData.paymentMethod,
-            formattedAddress: formData.formattedAddress,
-            city: formData.city,
-            country: formData.country,
-            geoPoint: formData.geoPoint,
-          }
+          address: formData.formattedAddress,
+          lat: formData.geoPoint?.lat,
+          lng: formData.geoPoint?.lng
         })
         .select()
         .single();

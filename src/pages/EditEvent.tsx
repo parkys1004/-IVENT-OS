@@ -73,15 +73,46 @@ export default function EditEvent() {
   const [coverImageIndex, setCoverImageIndex] = useState<number>(0);
   const [dragActive, setDragActive] = useState(false);
 
+  const [sourceTable, setSourceTable] = useState<'events' | 'classes'>('events');
+  
   useEffect(() => {
     const fetchEvent = async () => {
       if (!id) return;
       try {
-        const { data, error } = await supabase
+        // Try events table first
+        let { data, error } = await supabase
           .from('events')
           .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
+
+        if (data) {
+          setSourceTable('events');
+        } else {
+          // Try classes table
+          const { data: classData } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+          
+          if (classData) {
+            setSourceTable('classes');
+            data = {
+              ...classData,
+              date: classData.start_date,
+              host_id: classData.instructor_id,
+              is_lesson: true,
+              metadata: {
+                endDate: classData.end_date,
+                level: classData.level,
+                classTime: classData.class_time,
+                address: classData.address,
+                geoPoint: { lat: classData.lat, lng: classData.lng }
+              }
+            };
+          }
+        }
 
         if (error) throw error;
         if (data) {
@@ -100,10 +131,10 @@ export default function EditEvent() {
             endDate: format(endDateObj, 'yyyy-MM-dd'),
             endTime: format(endDateObj, 'HH:mm'),
             locationName: data.location_name || '',
-            formattedAddress: meta.formattedAddress || data.location_name || '',
+            formattedAddress: meta.formattedAddress || data.address || data.location_name || '',
             country: meta.country || '',
             city: meta.city || '',
-            geoPoint: meta.geoPoint || null,
+            geoPoint: meta.geoPoint || (data.lat ? { lat: data.lat, lng: data.lng } : null),
             imageUrl: data.image_url || '',
             maxAttendees: data.max_attendees || data.capacity || 50,
             djs: meta.djs || [],
@@ -120,11 +151,11 @@ export default function EditEvent() {
           setImages(loadedImages);
           setCoverImageIndex(0);
         } else {
-          alert('행사를 찾을 수 없습니다.');
+          alert('내역을 찾을 수 없습니다.');
           navigate('/');
         }
       } catch (error) {
-        console.error("Error fetching event:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
@@ -228,53 +259,79 @@ export default function EditEvent() {
     e.preventDefault();
     if (!user || !profile || !id) return;
     
+    // Re-fetch profile to ensure latest role
+    const { data: latestProfile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+    const isAdmin = profile?.role === 'admin' || latestProfile?.role === 'admin';
+
     setSubmitting(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
       const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 
-      // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
-
-      // Reset status to pending for non-admins to require re-approval after edits
       const newStatus = isAdmin ? eventData.status : 'pending';
 
-      const { data, error } = await supabase
-        .from('events')
-        .update({
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          location_name: formData.locationName,
-          image_url: mainImageUrl, 
-          max_attendees: Number(formData.maxAttendees),
-          status: newStatus,
-          metadata: {
-            endDate: endDate.toISOString(),
-            formattedAddress: formData.formattedAddress,
-            city: formData.city,
-            country: formData.country,
-            geoPoint: formData.geoPoint,
-            djs: formData.djs.filter(d => d.trim()),
-            performances: formData.performances.filter(p => p.trim()),
-            media: formData.media.filter(m => m.trim()),
-            tickets: formData.tickets.filter(t => t.name.trim()),
-            paymentMethod: formData.paymentMethod,
-            maxAttendees: Number(formData.maxAttendees),
-            additionalImages: images.filter((_, i) => i !== coverImageIndex)
-          }
-        })
-        .eq('id', id);
+      let updateError;
 
-      if (error) throw error;
+      if (sourceTable === 'events') {
+        const { error } = await supabase
+          .from('events')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            category: formData.category,
+            date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            location_name: formData.locationName,
+            image_url: mainImageUrl, 
+            max_attendees: Number(formData.maxAttendees),
+            status: newStatus,
+            metadata: {
+              endDate: endDate.toISOString(),
+              formattedAddress: formData.formattedAddress,
+              city: formData.city,
+              country: formData.country,
+              geoPoint: formData.geoPoint,
+              djs: formData.djs.filter(d => d.trim()),
+              performances: formData.performances.filter(p => p.trim()),
+              media: formData.media.filter(m => m.trim()),
+              tickets: formData.tickets.filter(t => t.name.trim()),
+              paymentMethod: formData.paymentMethod,
+              maxAttendees: Number(formData.maxAttendees),
+              additionalImages: images.filter((_, i) => i !== coverImageIndex)
+            }
+          })
+          .eq('id', id);
+        updateError = error;
+      } else {
+        // Classes table
+        const { error } = await supabase
+          .from('classes')
+          .update({
+            title: formData.title,
+            instructor_id: user.id,
+            level: (eventData.metadata as any)?.level || 'all',
+            category: formData.category,
+            start_date: formData.date,
+            end_date: formData.endDate || formData.date,
+            class_time: formData.time,
+            price: formData.tickets[0]?.price || 0,
+            location_name: formData.locationName,
+            address: formData.formattedAddress,
+            lat: formData.geoPoint?.lat,
+            lng: formData.geoPoint?.lng
+          })
+          .eq('id', id);
+        updateError = error;
+      }
+
+      if (updateError) throw updateError;
       
-      alert('행사가 성공적으로 수정되었습니다.');
+      alert(`${sourceTable === 'events' ? '행사' : '강습'}가 성공적으로 수정되었습니다.`);
       navigate(`/event/${id}`);
     } catch (err: any) {
-      handleSupabaseError(err, OperationType.UPDATE, 'events', user?.id || '');
-      alert(`행사 수정 중 오류가 발생했습니다: ${err.message || 'Unknown error'}`);
+      handleSupabaseError(err, OperationType.UPDATE, sourceTable, user?.id || '');
+      alert(`수정 중 오류가 발생했습니다: ${err.message || 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }

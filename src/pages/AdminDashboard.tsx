@@ -163,6 +163,12 @@ export default function AdminDashboard() {
         .order('date', { ascending: false })
         .limit(200);
 
+      const { data: fullClassesData } = await supabase
+        .from('classes')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
       // 2. Check Profiles
       const { data: usersData, error: uErr } = await supabase.from('profiles').select('*').limit(1);
       if (uErr) {
@@ -213,7 +219,7 @@ export default function AdminDashboard() {
         });
       }
 
-      if (fullEventsData) setEvents(fullEventsData.map(e => ({ 
+      const mappedEvents = (fullEventsData || []).map(e => ({ 
         id: e.id, 
         title: e.title,
         category: e.category,
@@ -227,7 +233,25 @@ export default function AdminDashboard() {
         endDate: e.end_date || (e.metadata as any)?.endDate,
         maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
         currentAttendees: regCounts[e.id] || 0
-      })));
+      }));
+
+      const mappedClasses = (fullClassesData || []).map(c => ({
+        id: c.id,
+        title: c.title,
+        category: c.category || 'lesson',
+        date: c.start_date,
+        status: 'published',
+        isBanner: false,
+        host_id: c.instructor_id,
+        hostName: profileMap[c.instructor_id] || '알 수 없는 강사',
+        isLesson: true,
+        priority: 0,
+        endDate: c.end_date,
+        maxAttendees: 50,
+        currentAttendees: regCounts[c.id] || 0
+      }));
+
+      setEvents([...mappedEvents, ...mappedClasses]);
 
       if (appData && (appData.value as any).approvalMode) {
         setApprovalMode((appData.value as any).approvalMode);
@@ -328,13 +352,24 @@ export default function AdminDashboard() {
 
   const handleApproveEvent = async (eventId: string) => {
     try {
-      const { error } = await supabase.from('events').update({ status: 'published' }).eq('id', eventId);
-      if (error) throw error;
+      const event = events.find(e => e.id === eventId);
+      const tableName = event?.isLesson ? 'classes' : 'events';
+
+      const { error } = await supabase.from(tableName).update({ status: 'published' }).eq('id', eventId);
+      
+      if (error) {
+        if (error.message.includes('relation "classes" does not exist') || error.message.includes('column "status" of relation "classes" does not exist')) {
+          alert('강습은 승인 절차가 필요하지 않거나 테이블 구조가 다릅니다.');
+          return;
+        }
+        throw error;
+      }
+
       setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'published' } : e));
-      alert('행사가 승인 및 공개되었습니다.');
+      alert(`${event?.isLesson ? '강습' : '행사'}가 승인되었습니다.`);
     } catch (error: any) {
-      console.error("Failed to approve event:", error);
-      alert(`행사 승인 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
+      console.error("Failed to approve:", error);
+      alert(`승인 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
     }
   };
 
@@ -375,12 +410,18 @@ export default function AdminDashboard() {
     setEditLinkUrl(banner.linkUrl);
   };
 
-  const handlePriorityChange = async (tableName: 'events' | 'profiles', id: string, priority: number) => {
+  const handlePriorityChange = async (tableName: 'events' | 'profiles' | 'classes', id: string, priority: number) => {
     try {
       const { error } = await supabase.from(tableName).update({ priority }).eq('id', id);
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('column "priority" of relation "classes" does not exist')) {
+          alert('강습 테이블에는 우선순위 컬럼이 없습니다.');
+          return;
+        }
+        throw error;
+      }
       
-      if (tableName === 'events') {
+      if (tableName === 'events' || tableName === 'classes') {
         setEvents(prev => prev.map(e => e.id === id ? { ...e, priority } : e));
       } else {
         setUsers(prev => prev.map(u => u.uid === id ? { ...u, priority } : u));

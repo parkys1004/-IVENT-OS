@@ -116,6 +116,10 @@ export default function ProfessionalDashboard() {
   // Profile management state
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  
+  // Specialized data state
+  const [specializedData, setSpecializedData] = useState<any>(null);
+
   const [profileForm, setProfileForm] = useState({
     displayName: '',
     shortBio: '',
@@ -125,12 +129,51 @@ export default function ProfessionalDashboard() {
     portfolioUrl: '',
     studioLocation: '',
     photoURL: '',
+    // Specialized fields
+    experienceYears: 0,
+    curriculumLink: '',
+    musicStyle: '',
+    mainEquipment: '',
+    soundcloudUrl: '',
+    mixcloudUrl: '',
+    creatorCategory: 'both' as 'photo' | 'video' | 'both',
+    equipmentList: '',
+    instagramUrl: '',
   });
 
   const isInitializedRef = useRef(false);
   useEffect(() => {
+    const fetchSpecializedData = async () => {
+      if (!user || !profile) return;
+      
+      let tableName = '';
+      if (profile.role === 'instructor') tableName = 'instructors';
+      else if (profile.role === 'dj') tableName = 'djs';
+      else if (profile.role === 'media') tableName = 'creators';
+      
+      if (!tableName) return;
+
+      const { data } = await supabase.from(tableName).select('*').eq('id', user.id).maybeSingle();
+      if (data) {
+        setSpecializedData(data);
+        setProfileForm(prev => ({
+          ...prev,
+          experienceYears: data.experience_years || 0,
+          curriculumLink: data.curriculum_link || '',
+          musicStyle: (data.music_style || []).join(', '),
+          mainEquipment: data.main_equipment || '',
+          soundcloudUrl: data.soundcloud_url || '',
+          mixcloudUrl: data.mixcloud_url || '',
+          creatorCategory: data.category || 'both',
+          equipmentList: data.equipment_list || '',
+          instagramUrl: data.instagram_url || '',
+        }));
+      }
+    };
+
     if (profile && !isInitializedRef.current) {
-      setProfileForm({
+      setProfileForm(prev => ({
+        ...prev,
         displayName: profile.displayName || '',
         shortBio: (profile as any).shortBio || '',
         description: (profile as any).description || '',
@@ -139,11 +182,12 @@ export default function ProfessionalDashboard() {
         portfolioUrl: (profile as any).portfolioUrl || '',
         studioLocation: (profile as any).studioLocation || '',
         photoURL: profile.photoURL || '',
-      });
+      }));
       setPortfolioImages(profile.portfolioImages || []);
       isInitializedRef.current = true;
+      fetchSpecializedData();
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -161,12 +205,13 @@ export default function ProfessionalDashboard() {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !profile) return;
     
     setIsSaving(true);
     setSaveMessage('');
     try {
-      const { error } = await supabase
+      // 1. Update main profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           display_name: profileForm.displayName,
@@ -181,8 +226,54 @@ export default function ProfessionalDashboard() {
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
       
+      // 2. Update specialized table
+      let specializedTable = '';
+      let specializedPayload: any = {};
+
+      if (profile.role === 'instructor') {
+        specializedTable = 'instructors';
+        specializedPayload = {
+          id: user.id,
+          specialty_genres: profileForm.specialties.split(',').map(s => s.trim()).filter(s => s),
+          experience_years: Number(profileForm.experienceYears),
+          bio: profileForm.description,
+          curriculum_link: profileForm.curriculumLink,
+          updated_at: new Date().toISOString()
+        };
+      } else if (profile.role === 'dj') {
+        specializedTable = 'djs';
+        specializedPayload = {
+          id: user.id,
+          music_style: profileForm.musicStyle.split(',').map(s => s.trim()).filter(s => s),
+          main_equipment: profileForm.mainEquipment,
+          soundcloud_url: profileForm.soundcloudUrl,
+          mixcloud_url: profileForm.mixcloudUrl,
+          updated_at: new Date().toISOString()
+        };
+      } else if (profile.role === 'media') {
+        specializedTable = 'creators';
+        specializedPayload = {
+          id: user.id,
+          category: profileForm.creatorCategory,
+          equipment_list: profileForm.equipmentList,
+          portfolio_url: profileForm.portfolioUrl,
+          instagram_url: profileForm.instagramUrl,
+          updated_at: new Date().toISOString()
+        };
+      }
+
+      if (specializedTable) {
+        const { error: specError } = await supabase
+          .from(specializedTable)
+          .upsert(specializedPayload);
+        
+        if (specError) {
+          console.warn(`Error updating ${specializedTable}:`, specError);
+        }
+      }
+
       await refreshProfile();
       setSaveMessage('프로필이 성공적으로 저장되었습니다.');
       setTimeout(() => setSaveMessage(''), 3000);
@@ -479,33 +570,133 @@ export default function ProfessionalDashboard() {
                    />
                  </div>
 
-                 {profile?.role === 'instructor' && (
-                   <div>
-                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">주요 레슨 장르 / 커리큘럼</label>
-                     <input 
-                        type="text" 
-                        name="specialties"
-                        value={profileForm.specialties}
-                        onChange={handleFormChange}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
-                        placeholder="예: 살사 온1, 바차타 센슈얼" 
-                     />
-                   </div>
-                 )}
+                  {profile?.role === 'instructor' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">주요 레슨 장르 / 커리큘럼</label>
+                        <input 
+                           type="text" 
+                           name="specialties"
+                           value={profileForm.specialties}
+                           onChange={handleFormChange}
+                           className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                           placeholder="예: 살사 온1, 바차타 센슈얼" 
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">강습 경력 (년)</label>
+                          <input 
+                            type="number" 
+                            name="experienceYears"
+                            value={profileForm.experienceYears}
+                            onChange={handleFormChange}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                            placeholder="숫자만 입력" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">커리큘럼 / 홍보 링크</label>
+                          <input 
+                            type="url" 
+                            name="curriculumLink"
+                            value={profileForm.curriculumLink}
+                            onChange={handleFormChange}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                            placeholder="https://..." 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                 {profile?.role === 'dj' && (
-                   <div>
-                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">주요 플레이 장르 (Specialties)</label>
-                     <input 
-                        type="text" 
-                        name="specialties"
-                        value={profileForm.specialties}
-                        onChange={handleFormChange}
-                        className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
-                        placeholder="예: Vinyl Salsa, Mambo, Guaguanco" 
-                     />
-                   </div>
-                 )}
+                  {profile?.role === 'dj' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">주요 플레이 장르 (Music Styles)</label>
+                        <input 
+                           type="text" 
+                           name="musicStyle"
+                           value={profileForm.musicStyle}
+                           onChange={handleFormChange}
+                           className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                           placeholder="예: Vinyl Salsa, Mambo, Guaguanco" 
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1">쉼표(,)로 구분하여 입력하세요.</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">보유 및 선호 장비 (Main Equipment)</label>
+                        <input 
+                           type="text" 
+                           name="mainEquipment"
+                           value={profileForm.mainEquipment}
+                           onChange={handleFormChange}
+                           className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                           placeholder="예: Technics SL-1200MK3" 
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">SoundCloud URL</label>
+                          <input 
+                            type="url" 
+                            name="soundcloudUrl"
+                            value={profileForm.soundcloudUrl}
+                            onChange={handleFormChange}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white text-xs" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">MixCloud URL</label>
+                          <input 
+                            type="url" 
+                            name="mixcloudUrl"
+                            value={profileForm.mixcloudUrl}
+                            onChange={handleFormChange}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white text-xs" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {profile?.role === 'media' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">전문 분야</label>
+                        <select 
+                          name="creatorCategory"
+                          value={profileForm.creatorCategory}
+                          onChange={(e: any) => handleFormChange(e)}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white"
+                        >
+                          <option value="photo">사진 (Photo)</option>
+                          <option value="video">영상 (Video)</option>
+                          <option value="both">사진 & 영상 (Both)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">사용 장비 (Equipment List)</label>
+                        <textarea 
+                           name="equipmentList"
+                           value={profileForm.equipmentList}
+                           onChange={handleFormChange}
+                           className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white text-sm" 
+                           placeholder="주요 촬영 장비를 입력하세요." 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Instagram URL</label>
+                        <input 
+                          type="url" 
+                          name="instagramUrl"
+                          value={profileForm.instagramUrl}
+                          onChange={handleFormChange}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl px-4 py-3 text-slate-800 dark:text-white" 
+                        />
+                      </div>
+                    </div>
+                  )}
 
                  {(profile?.role === 'media' || profile?.role === 'dj' || profile?.role === 'instructor') && (
                    <div>

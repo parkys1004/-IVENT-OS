@@ -175,16 +175,30 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           .from('events')
           .select('*')
           .eq('status', 'published')
+          // .eq('is_lesson', false) // Optional: filter out lessons from events if we move them all
           .order('date', { ascending: true })
           .limit(60);
 
         if (eventsError) throw eventsError;
 
-        // Fetch registration counts for these events
+        // 1.1 Fetch Classes (Lessons)
+        const { data: classesData, error: classesError } = await supabase
+          .from('classes')
+          .select('*')
+          .order('start_date', { ascending: true })
+          .limit(40);
+
+        if (classesError) {
+          console.warn("Classes table might not exist or has errors:", classesError);
+        }
+
+        // Fetch registration counts for these items
+        const allEventIds = [...(eventsData?.map(e => e.id) || []), ...(classesData?.map(c => c.id) || [])];
+        
         const { data: allRegs } = await supabase
           .from('registrations')
           .select('event_id')
-          .in('event_id', eventsData.map(e => e.id));
+          .in('event_id', allEventIds);
 
         const regCounts: Record<string, number> = {};
         allRegs?.forEach(r => {
@@ -211,27 +225,70 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           likesCount: e.likes_count,
           createdAt: e.created_at,
           metadata: e.metadata || {}
-        })) as unknown as EventData[];
+        }));
+
+        const mappedClasses = (classesData || []).map(c => ({
+          id: c.id,
+          title: c.title,
+          description: '', // Missing in schema
+          date: c.start_date,
+          end_date: c.end_date,
+          category: c.category || 'lesson',
+          locationName: c.location_name,
+          status: 'published', // Assume published
+          price: c.price,
+          maxAttendees: 50, // Default since missing in schema
+          currentAttendees: regCounts[c.id] || 0,
+          hostId: c.instructor_id,
+          imageUrl: '', // Missing in schema
+          isBanner: false,
+          isLesson: true,
+          priority: 0,
+          likesCount: 0,
+          createdAt: c.created_at,
+          metadata: {
+            level: c.level,
+            classTime: c.class_time,
+            address: c.address,
+            geoPoint: { lat: c.lat, lng: c.lng }
+          }
+        }));
         
-        setEvents(mappedEvents);
+        setEvents([...mappedEvents, ...mappedClasses] as unknown as EventData[]);
 
         // 2. Fetch Professionals
         const { data: proData, error: proError } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            *,
+            instructors(*),
+            djs(*),
+            creators(*)
+          `)
           .in('role', ['instructor', 'dj', 'media'])
+          .order('priority', { ascending: false })
           .limit(20);
 
         if (proError) throw proError;
-        const mappedPros = proData.map(p => ({
-          uid: p.id,
-          email: p.email,
-          displayName: p.display_name,
-          photoURL: p.photo_url,
-          role: p.role,
-          createdAt: p.created_at,
-          points: p.points
-        })) as UserProfile[];
+        const mappedPros = proData.map(p => {
+          let specialized = null;
+          if (p.role === 'instructor') specialized = p.instructors?.[0];
+          else if (p.role === 'dj') specialized = p.djs?.[0];
+          else if (p.role === 'media') specialized = p.creators?.[0];
+
+          return {
+            uid: p.id,
+            email: p.email,
+            displayName: p.display_name,
+            photoURL: p.photo_url,
+            role: p.role,
+            createdAt: p.created_at,
+            points: p.points,
+            followersCount: p.followers_count || 0,
+            specialties: p.specialties,
+            specialized: specialized
+          } as any;
+        });
         setProfessionals(mappedPros);
 
         // 3. Fetch Banners

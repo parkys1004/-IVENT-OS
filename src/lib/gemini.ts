@@ -22,7 +22,7 @@ export async function translateText(text: string, targetLanguage: string) {
   
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
       contents: `Translate the following text to ${targetLanguage}. Maintain the original tone and format. Only return the translated text. Original text: ${text}`,
     });
     

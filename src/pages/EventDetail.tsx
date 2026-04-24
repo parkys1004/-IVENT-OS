@@ -295,7 +295,7 @@ export default function EventDetail() {
           })));
         }
       } catch (err) {
-        handleSupabaseError(err, OperationType.GET, 'events');
+        handleSupabaseError(err, OperationType.GET, 'parties');
       } finally {
         setLoading(false);
       }

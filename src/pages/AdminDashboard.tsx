@@ -155,7 +155,7 @@ export default function AdminDashboard() {
         setPointStats({ totalIssued: issued, totalUsed: used, history: pHistory });
       }
 
-      setDbHealth({ profiles: { status: 'ok' }, events: { status: 'ok' }, promo_banners: { status: 'ok' }, settings: { status: 'ok' } });
+      setDbHealth({ profiles: { status: 'ok' }, parties: { status: 'ok' }, promo_banners: { status: 'ok' }, settings: { status: 'ok' } });
     } catch (err: any) {
       setFetchError(err.message || '데이터 로드 실패');
     } finally {

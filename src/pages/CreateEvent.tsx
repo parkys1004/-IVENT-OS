@@ -124,10 +124,15 @@ export default function CreateEvent() {
       const base64Data = dataUrl.split(',')[1];
       const mimeType = 'image/webp';
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('GEMINI_API_KEY is not configured in environment variables.');
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash", // Updated to latest stable flash model
+        model: "gemini-3-flash-preview",
         contents: [
           {
             inlineData: {
@@ -179,9 +184,13 @@ export default function CreateEvent() {
            maxAttendees: parsed.maxAttendees || prev.maxAttendees
         }));
       }
-    } catch(err) {
+    } catch(err: any) {
       console.error('AI Analysis failed:', err);
-      alert('AI 분석 중 오류가 발생했습니다.');
+      if (err.message?.includes('GEMINI_API_KEY')) {
+        alert('AI 분석을 위해 GEMINI_API_KEY 설정이 필요합니다. 설정 메뉴에서 API 키를 등록해주세요.');
+      } else {
+        alert('AI 분석 중 오류가 발생했습니다: ' + (err.message || '알 수 없는 오류'));
+      }
     } finally {
       setAiLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

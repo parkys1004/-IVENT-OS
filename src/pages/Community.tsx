@@ -67,7 +67,7 @@ export default function Community() {
       if (activeCategory === 'review') {
         let query = supabase
           .from('event_reviews')
-          .select('*, author:profiles(display_name, photo_url), event:events(title)')
+          .select('*, author:profiles(display_name, photo_url), event:parties(title)')
           .order('created_at', { ascending: false });
 
         if (currentSearch) {

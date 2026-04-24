@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, PlusCircle, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles, Lock } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, PlusCircle, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles, Lock, Database, Camera } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -768,6 +768,91 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+
+  const handleMigration = async () => {
+    if (!window.confirm('기존 데이터를 신규 분리 테이블로 마이그레이션하시겠습니까? (이 작업은 되돌릴 수 없습니다)')) return;
+    
+    setLoading(true);
+    try {
+      let log = '';
+
+      // 1. Migrate Lessons (events -> classes)
+      const { data: legacyLessons, error: lError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_lesson', true);
+      
+      if (lError) throw new Error(`강습 로드 실패: ${lError.message}`);
+      
+      if (legacyLessons && legacyLessons.length > 0) {
+        log += `추출된 구 강습 데이터: ${legacyLessons.length}건\n`;
+        const classEntries = legacyLessons.map(e => ({
+          id: e.id,
+          title: e.title,
+          instructor_id: e.host_id,
+          level: (e.metadata as any)?.level || 'all',
+          category: e.category,
+          start_date: e.date,
+          end_date: e.end_date || (e.metadata as any)?.endDate || e.date,
+          class_time: (e as any).time || '저녁',
+          price: (e.metadata as any)?.tickets?.[0]?.price || 0,
+          location_name: e.location_name,
+          address: (e.metadata as any)?.formattedAddress || '',
+          lat: (e.metadata as any)?.geoPoint?.lat,
+          lng: (e.metadata as any)?.geoPoint?.lng,
+          created_at: e.created_at
+        }));
+
+        const { error: cError } = await supabase.from('classes').upsert(classEntries);
+        if (cError) throw new Error(`실제 마이그레이션 실패 (classes): ${cError.message}`);
+        log += `✅ 강습 테이블 마이그레이션 완료\n`;
+      } else {
+        log += `마이그레이션할 강습 데이터가 없습니다.\n`;
+      }
+
+      // 2. Migrate Professionals (profiles -> specialized tables)
+      const { data: pros, error: pError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['instructor', 'dj', 'media']);
+      
+      if (pError) throw new Error(`전문가 로드 실패: ${pError.message}`);
+
+      if (pros && pros.length > 0) {
+        const instructors = pros.filter(p => p.role === 'instructor').map(p => ({
+          id: p.id,
+          specialty_genres: p.specialties ? p.specialties.split(',').map((s: string) => s.trim()) : [],
+          bio: (p as any).description || '',
+          updated_at: new Date().toISOString()
+        }));
+
+        const djs = pros.filter(p => p.role === 'dj').map(p => ({
+          id: p.id,
+          music_style: p.specialties ? p.specialties.split(',').map((s: string) => s.trim()) : [],
+          updated_at: new Date().toISOString()
+        }));
+
+        const creators = pros.filter(p => p.role === 'media').map(p => ({
+          id: p.id,
+          category: 'both',
+          updated_at: new Date().toISOString()
+        }));
+
+        if (instructors.length > 0) await supabase.from('instructors').upsert(instructors);
+        if (djs.length > 0) await supabase.from('djs').upsert(djs);
+        if (creators.length > 0) await supabase.from('creators').upsert(creators);
+
+        log += `✅ 전문가 테이블 (${instructors.length + djs.length + creators.length}명) 초기화 완료\n`;
+      }
+
+      alert(`마이그레이션 성공!\n\n${log}`);
+    } catch (error: any) {
+      console.error("Migration fatal error:", error);
+      alert(`마이그레이션 중 치명적 오류 발생: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderHomeContent = () => (
     <div className="space-y-6 overflow-y-auto no-scrollbar">
@@ -1713,6 +1798,31 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 shrink-0">
+                  {/* Data Management & Migration */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2 mb-2">
+                        <Database className="w-5 h-5 text-amber-500" /> 데이터 통합 마이그레이션
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                        기존의 강습(events 테이블) 및 전문가(profiles 테이블) 데이터를 신규 전용 테이블(`classes`, `instructors`, `djs`, `creators`)로 안전하게 이전합니다.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-5 border border-amber-100 dark:border-amber-900/20">
+                      <p className="text-xs text-amber-700 dark:text-amber-400 font-bold mb-4 leading-relaxed">
+                        ⚠️ 주의: 이 작업은 대량의 데이터 쓰기 작업을 수행합니다. 네트워크 상태가 안정적인지 확인 후 실행해주세요. 이미 이전된 데이터는 업데이트(Upsert) 처리됩니다.
+                      </p>
+                      <button 
+                        onClick={handleMigration}
+                        disabled={loading}
+                        className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0"
+                      >
+                        {loading ? '마이그레이션 진행 중...' : '지금 데이터 이전 시작하기'}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Event Priority Management */}
                   <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-slate-100 dark:border-slate-800">

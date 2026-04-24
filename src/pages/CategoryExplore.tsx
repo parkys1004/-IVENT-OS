@@ -60,27 +60,29 @@ export default function CategoryExplore() {
 
     const fetchItems = async () => {
       try {
-        // Fetch from BOTH parties and lessons tables
-        let partiesQuery = supabase.from('parties').select('*').eq('status', 'published');
-        let lessonsQuery = supabase.from('lessons').select('*').eq('status', 'published');
-
-        if (category !== 'all' && category !== 'party' && category !== 'lesson') {
-          partiesQuery = partiesQuery.eq('category', category);
-          lessonsQuery = lessonsQuery.eq('category', category);
+        const combinedData: any[] = [];
+        
+        // Fetch Parties
+        if (category !== 'lesson') {
+          let partiesQuery = supabase.from('parties').select('*').eq('status', 'published');
+          if (category !== 'all' && category !== 'party') {
+            partiesQuery = partiesQuery.eq('category', category);
+          }
+          const { data, error } = await partiesQuery.limit(50);
+          if (error) console.error("Party fetch error:", error);
+          if (data) combinedData.push(...data.map(p => ({ ...p, isLesson: false })));
         }
 
-        const [partiesRes, lessonsRes] = await Promise.all([
-          partiesQuery.limit(50),
-          lessonsQuery.limit(50)
-        ]);
-
-        const partiesData = partiesRes.data || [];
-        const lessonsData = lessonsRes.data || [];
-
-        const combinedData = [
-          ...partiesData.map(p => ({ ...p, isLesson: false })),
-          ...lessonsData.map(l => ({ ...l, isLesson: true }))
-        ];
+        // Fetch Lessons
+        if (category !== 'party') {
+          let lessonsQuery = supabase.from('lessons').select('*').eq('status', 'published');
+          if (category !== 'all' && category !== 'lesson') {
+            lessonsQuery = lessonsQuery.eq('category', category);
+          }
+          const { data, error } = await lessonsQuery.limit(50);
+          if (error) console.error("Lesson fetch error:", error);
+          if (data) combinedData.push(...data.map(l => ({ ...l, isLesson: true })));
+        }
 
         if (combinedData.length === 0) {
           setEvents([]);

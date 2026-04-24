@@ -714,7 +714,6 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       <div className="space-y-16">
         {dashboardConfig.sectionOrder.map((sectionKey) => {
           if (sectionKey === 'parties') {
-            if (parties.length === 0) return null;
             return (
               <section key="parties" className="space-y-6">
                 <div className="flex items-center justify-between px-2">
@@ -727,16 +726,21 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                     <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                  {parties.map((event, idx) => (
-                    <EventCard key={event.id} event={event} index={idx} />
-                  ))}
-                </div>
+                {parties.length === 0 ? (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+                    현재 대기 중인 파티가 없습니다.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                    {parties.map((event, idx) => (
+                      <EventCard key={event.id} event={event} index={idx} />
+                    ))}
+                  </div>
+                )}
               </section>
             );
           }
           if (sectionKey === 'lessons') {
-            if (lessons.length === 0) return null;
             return (
               <section key="lessons" className="space-y-6">
                 <div className="flex items-center justify-between px-2">
@@ -749,11 +753,17 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                     <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-                  {lessons.map((event, idx) => (
-                    <EventCard key={event.id} event={event} index={idx} />
-                  ))}
-                </div>
+                {lessons.length === 0 ? (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+                    현재 모집 중인 강습이 없습니다.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                    {lessons.map((event, idx) => (
+                      <EventCard key={event.id} event={event} index={idx} />
+                    ))}
+                  </div>
+                )}
               </section>
             );
           }

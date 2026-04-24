@@ -90,12 +90,14 @@ export default function CategoryExplore() {
           title: e.title,
           description: e.description,
           date: e.date,
+          end_date: e.end_date,
           category: e.category,
           locationName: e.location_name,
           imageUrl: e.image_url,
           isLesson: e.is_lesson,
           likesCount: e.likes_count,
           createdAt: e.created_at,
+          metadata: e.metadata || {},
           maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
           currentAttendees: regCounts[e.id] || 0
         })) as any;

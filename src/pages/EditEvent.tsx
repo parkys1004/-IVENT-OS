@@ -228,7 +228,7 @@ export default function EditEvent() {
     setSubmitting(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
-      const endDateStr = `${formData.endDate || formData.date}T${formData.endTime || '23:59'}`;
+      const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
@@ -242,7 +242,20 @@ export default function EditEvent() {
           date: startDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
-          capacity: Number(formData.maxAttendees)
+          max_attendees: Number(formData.maxAttendees),
+          metadata: {
+            endDate: endDate.toISOString(),
+            formattedAddress: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            geoPoint: formData.geoPoint,
+            djs: formData.djs.filter(d => d.trim()),
+            performances: formData.performances.filter(p => p.trim()),
+            media: formData.media.filter(m => m.trim()),
+            tickets: formData.tickets.filter(t => t.name.trim()),
+            paymentMethod: formData.paymentMethod,
+            maxAttendees: Number(formData.maxAttendees)
+          }
         })
         .eq('id', id);
 

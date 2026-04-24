@@ -251,7 +251,7 @@ export default function CreateEvent() {
     setLoading(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.time}`);
-      const endDateStr = `${formData.endDate || formData.date}T${formData.endTime || '23:59'}`;
+      const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 
       // Basic Date Validations
       const now = new Date();
@@ -296,7 +296,20 @@ export default function CreateEvent() {
           host_id: user.id,
           status: initialStatus,
           is_lesson: formData.isLesson,
-          capacity: Number(formData.maxAttendees)
+          max_attendees: Number(formData.maxAttendees),
+          metadata: {
+            endDate: endDate.toISOString(),
+            formattedAddress: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            geoPoint: formData.geoPoint,
+            djs: formData.djs.filter(d => d.trim()),
+            performances: formData.performances.filter(p => p.trim()),
+            media: formData.media.filter(m => m.trim()),
+            tickets: formData.tickets.filter(t => t.name.trim()),
+            paymentMethod: formData.paymentMethod,
+            maxAttendees: Number(formData.maxAttendees)
+          }
         });
 
       if (error) throw error;

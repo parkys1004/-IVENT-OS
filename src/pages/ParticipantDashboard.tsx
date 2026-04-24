@@ -196,6 +196,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           title: e.title,
           description: e.description,
           date: e.date,
+          end_date: e.end_date,
           category: e.category,
           locationName: e.location_name,
           status: e.status,
@@ -208,7 +209,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           isLesson: e.is_lesson,
           priority: e.priority,
           likesCount: e.likes_count,
-          createdAt: e.created_at
+          createdAt: e.created_at,
+          metadata: e.metadata || {}
         })) as unknown as EventData[];
         
         setEvents(mappedEvents);
@@ -330,10 +332,9 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     const eventCategory = e.category?.toLowerCase() || '';
     const currentFilter = filter?.toLowerCase() || 'all';
 
-    const matchesCategory = currentFilter === 'all' || 
-      (currentFilter === 'party' && !e.isLesson) ||
-      (currentFilter === 'lesson' && e.isLesson) ||
-      (eventCategory === currentFilter);
+    // Note: for categorized sections like 'parties' and 'lessons', 
+    // we want all events that match search and date, regardless of the top-level category filter.
+    // However, for the main "Search & Discover" area (if we were using one), we'd use matchesCategory.
     
     const matchesSearch = searchQuery === '' || 
       e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -349,7 +350,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     // An event is relevant if it hasn't ended yet
     const isUpcomingOrOngoing = endTime > now;
 
-    return matchesCategory && matchesSearch && isUpcomingOrOngoing;
+    return matchesSearch && isUpcomingOrOngoing;
   }).sort((a, b) => {
     // 1. Primary Sort logic based on selected sortBy
     let comparison = 0;
@@ -384,8 +385,17 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   // Grouping for categorized grids - Apply priority sorting to professors too
   const sortedProfessionals = [...professionals].sort((a, b) => ((b as any).priority || 0) - ((a as any).priority || 0));
 
-  const parties = others.filter(e => !e.isLesson).slice(0, dashboardConfig.partiesLimit || 9);
-  const lessons = others.filter(e => e.isLesson).slice(0, dashboardConfig.lessonsLimit || 6);
+  const parties = others.filter(e => {
+    const isActuallyParty = !e.isLesson;
+    const matchesCategoryFilter = filter === 'all' || filter === 'party' || e.category === filter;
+    return isActuallyParty && matchesCategoryFilter;
+  }).slice(0, dashboardConfig.partiesLimit || 9);
+
+  const lessons = others.filter(e => {
+    const isActuallyLesson = e.isLesson;
+    const matchesCategoryFilter = filter === 'all' || filter === 'lesson' || e.category === filter;
+    return isActuallyLesson && matchesCategoryFilter;
+  }).slice(0, dashboardConfig.lessonsLimit || 6);
   const instructors = sortedProfessionals.filter(u => u.role === 'instructor').slice(0, dashboardConfig.instructorsLimit || 6);
   const djAndMedia = sortedProfessionals.filter(u => ['dj', 'media'].includes(u.role)).slice(0, dashboardConfig.djMediaLimit || 6);
 

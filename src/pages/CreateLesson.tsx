@@ -149,7 +149,8 @@ export default function CreateLesson() {
     setLoading(true);
     try {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
-      // const endDateTime = new Date(`${formData.endDate || formData.date}T${formData.endTime || formData.time}`);
+      const fallbackEnd = new Date(startDateTime.getTime() + 4 * 60 * 60 * 1000);
+      const endDateTime = formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || formData.time}`) : fallbackEnd;
 
       // Check approval setting
       const { data: configData } = await supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle();
@@ -182,7 +183,13 @@ export default function CreateLesson() {
           host_id: user.id,
           status: initialStatus,
           is_lesson: true,
-          capacity: Number(formData.maxAttendees)
+          max_attendees: Number(formData.maxAttendees),
+          metadata: {
+            endDate: endDateTime.toISOString(),
+            level: formData.level,
+            maxAttendees: Number(formData.maxAttendees),
+            isLesson: true
+          }
         })
         .select()
         .single();

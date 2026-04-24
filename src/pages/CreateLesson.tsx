@@ -374,37 +374,58 @@ export default function CreateLesson() {
                 <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider text-sm">장소 정보</h2>
+              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+                <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100 italic">
+                  자동 완성 비활성 (API 키 없음)
+                </span>
+              )}
             </div>
 
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">상세 주소 검색</label>
-                {isLoaded ? (
+                {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
+                  <div className="space-y-3">
+                    <input
+                      required
+                      type="text"
+                      name="locationName"
+                      value={formData.locationName}
+                      onChange={e => setFormData({ ...formData, locationName: e.target.value })}
+                      className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-blue-500 outline-none transition-all font-medium"
+                      placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
+                    />
+                    <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                      {loadError ? (
+                        <div className="text-rose-500 space-y-2">
+                           <p className="font-bold flex items-center gap-1.5"><X className="w-3.5 h-3.5"/> 구글 맵 로드 오류</p>
+                           <p className="font-mono text-[10px] bg-rose-50 dark:bg-rose-900/20 p-2 rounded">{loadError.message}</p>
+                           <p className="text-slate-500 dark:text-slate-400 font-normal">
+                             자동 완성 기능이 일시적으로 비활성화되었습니다. 위 입력창에 장소를 직접 입력해주세요.
+                           </p>
+                        </div>
+                      ) : (
+                        <>
+                          💡 <b>Settings &gt; Secrets</b>에서 <code className="text-blue-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
+                          * <b>필수 활성화 API:</b> Maps JavaScript API, Places API
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ) : isLoaded ? (
                   <PlaceSearch 
                     onPlaceSelect={handlePlaceSelect}
                     onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
                     placeholder="주소를 검색하거나 직접 입력하세요"
                   />
                 ) : (
-                  <input
-                    type="text"
-                    required
-                    placeholder="지도를 불러오는 중..."
-                    disabled
-                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-medium"
-                  />
+                  <div className="w-full h-14 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl"></div>
                 )}
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">장소 이름</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.locationName}
-                  onChange={e => setFormData({ ...formData, locationName: e.target.value })}
-                  placeholder="예: 댄스 스튜디오 A"
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-blue-500 outline-none transition-all font-medium"
-                />
+                {formData.formattedAddress && (
+                  <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400">
+                    상세주소: {formData.formattedAddress} {formData.city && `(${formData.city}, ${formData.country})`}
+                  </p>
+                )}
               </div>
             </div>
           </section>

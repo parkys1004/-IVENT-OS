@@ -55,7 +55,7 @@ export default function PastEvents() {
           const meta = e.metadata || {};
           return {
             ...e,
-            maxAttendees: meta.maxAttendees || e.max_attendees || 0,
+            maxAttendees: meta.maxAttendees || e.max_attendees || (e as any).capacity || 0,
             currentAttendees: regCounts[e.id] || 0
           };
         });

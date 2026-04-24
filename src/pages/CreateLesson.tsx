@@ -182,17 +182,7 @@ export default function CreateLesson() {
           host_id: user.id,
           status: initialStatus,
           is_lesson: true,
-          metadata: {
-            maxAttendees: Number(formData.maxAttendees),
-            level: formData.level,
-            tickets: formData.tickets,
-            paymentMethod: formData.paymentMethod,
-            formattedAddress: formData.formattedAddress,
-            city: formData.city,
-            country: formData.country,
-            geoPoint: formData.geoPoint,
-            endDate: formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || '23:59'}`).toISOString() : null
-          }
+          capacity: Number(formData.maxAttendees)
         })
         .select()
         .single();

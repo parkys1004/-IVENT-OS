@@ -189,7 +189,7 @@ export default function EventDetail() {
           country: meta.country || '',
           status: data.status,
           price: data.price,
-          capacity: meta.maxAttendees || data.max_attendees || data.capacity,
+          capacity: meta.maxAttendees || data.max_attendees || data.capacity || 0,
           hostId: data.host_id,
           hostName: hostDisplayName,
           imageUrl: data.image_url,

@@ -41,7 +41,7 @@ export default function HostDashboard() {
           category: e.category,
           date: e.date,
           currentAttendees: e.current_attendees || 0,
-          maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || 0,
+          maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
           status: e.status
         })) as EventData[];
 

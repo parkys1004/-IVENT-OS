@@ -296,19 +296,7 @@ export default function CreateEvent() {
           host_id: user.id,
           status: initialStatus,
           is_lesson: formData.isLesson,
-          metadata: {
-            endDate: endDateStr,
-            maxAttendees: Number(formData.maxAttendees),
-            djs: formData.djs,
-            performances: formData.performances,
-            media: formData.media,
-            tickets: formData.tickets,
-            paymentMethod: formData.paymentMethod,
-            formattedAddress: formData.formattedAddress,
-            city: formData.city,
-            country: formData.country,
-            geoPoint: formData.geoPoint
-          }
+          capacity: Number(formData.maxAttendees)
         });
 
       if (error) throw error;

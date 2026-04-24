@@ -100,12 +100,12 @@ export default function EditEvent() {
             endDate: format(endDateObj, 'yyyy-MM-dd'),
             endTime: format(endDateObj, 'HH:mm'),
             locationName: data.location_name || '',
-            formattedAddress: meta.formattedAddress || '',
+            formattedAddress: meta.formattedAddress || data.location_name || '',
             country: meta.country || '',
             city: meta.city || '',
             geoPoint: meta.geoPoint || null,
             imageUrl: data.image_url || '',
-            maxAttendees: meta.maxAttendees || data.max_attendees || 50,
+            maxAttendees: data.capacity || 50,
             djs: meta.djs || [],
             performances: meta.performances || [],
             media: meta.media || [],
@@ -242,19 +242,7 @@ export default function EditEvent() {
           date: startDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
-          metadata: {
-            endDate: endDateStr,
-            maxAttendees: Number(formData.maxAttendees),
-            djs: formData.djs,
-            performances: formData.performances,
-            media: formData.media,
-            tickets: formData.tickets,
-            paymentMethod: formData.paymentMethod,
-            formattedAddress: formData.formattedAddress,
-            city: formData.city,
-            country: formData.country,
-            geoPoint: formData.geoPoint
-          }
+          capacity: Number(formData.maxAttendees)
         })
         .eq('id', id);
 

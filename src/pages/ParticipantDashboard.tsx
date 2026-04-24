@@ -170,91 +170,99 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 1. Fetch Events
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('events')
+        // 1. Fetch Parties
+        const { data: partiesData, error: partiesError } = await supabase
+          .from('parties')
           .select('*')
           .eq('status', 'published')
-          // .eq('is_lesson', false) // Optional: filter out lessons from events if we move them all
-          .order('date', { ascending: true })
           .limit(60);
 
-        if (eventsError) throw eventsError;
+        if (partiesError) throw partiesError;
 
-        // 1.1 Fetch Classes (Lessons)
-        const { data: classesData, error: classesError } = await supabase
-          .from('classes')
+        // 1.1 Fetch Lessons
+        const { data: lessonsData, error: lessonsError } = await supabase
+          .from('lessons')
           .select('*')
-          .order('start_date', { ascending: true })
+          .eq('status', 'published')
           .limit(40);
 
-        if (classesError) {
-          console.warn("Classes table might not exist or has errors:", classesError);
+        if (lessonsError) {
+          console.warn("Lessons table error:", lessonsError);
         }
 
         // Fetch registration counts for these items
-        const allEventIds = [...(eventsData?.map(e => e.id) || []), ...(classesData?.map(c => c.id) || [])];
+        const allItemIds = [...(partiesData?.map(e => e.id) || []), ...(lessonsData?.map(c => c.id) || [])];
         
         const { data: allRegs } = await supabase
           .from('registrations')
           .select('event_id')
-          .in('event_id', allEventIds);
+          .in('event_id', allItemIds);
 
         const regCounts: Record<string, number> = {};
         allRegs?.forEach(r => {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
         
-        const mappedEvents = eventsData.map(e => ({
+        const mappedParties = (partiesData || []).map(e => ({
           id: e.id,
           title: e.title,
           description: e.description,
-          date: e.date,
+          date: e.date || (e as any).start_date,
           end_date: e.end_date,
           category: e.category,
           locationName: e.location_name,
+          formattedAddress: e.formatted_address,
           status: e.status,
           price: e.price,
-          maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
+          maxAttendees: e.max_attendees || 0,
           currentAttendees: regCounts[e.id] || 0,
           hostId: e.host_id,
           imageUrl: e.image_url,
           isBanner: e.is_banner,
-          isLesson: e.is_lesson,
+          isLesson: false,
           priority: e.priority,
           likesCount: e.likes_count,
           createdAt: e.created_at,
-          metadata: e.metadata || {}
+          djs: e.djs || [],
+          performances: e.performances || [],
+          media: e.media || [],
+          tickets: e.tickets || [],
+          paymentMethod: e.payment_method || ''
         }));
 
-        const mappedClasses = (classesData || []).map(c => ({
+        const mappedLessons = (lessonsData || []).map(c => ({
           id: c.id,
           title: c.title,
-          description: '', // Missing in schema
-          date: c.start_date,
+          description: c.description,
+          date: c.date || (c as any).start_date,
           end_date: c.end_date,
           category: c.category || 'lesson',
           locationName: c.location_name,
-          status: 'published', // Assume published
+          formattedAddress: c.formatted_address,
+          status: c.status,
           price: c.price,
-          maxAttendees: 50, // Default since missing in schema
+          maxAttendees: c.max_attendees || 50,
           currentAttendees: regCounts[c.id] || 0,
-          hostId: c.instructor_id,
-          imageUrl: '', // Missing in schema
-          isBanner: false,
+          hostId: c.host_id,
+          imageUrl: c.image_url,
+          isBanner: c.is_banner,
           isLesson: true,
-          priority: 0,
-          likesCount: 0,
+          priority: c.priority,
+          likesCount: c.likes_count,
           createdAt: c.created_at,
-          metadata: {
-            level: c.level,
-            classTime: c.class_time,
-            address: c.address,
-            geoPoint: { lat: c.lat, lng: c.lng }
-          }
+          level: c.level,
+          tickets: c.tickets || [],
+          paymentMethod: c.payment_method || ''
         }));
         
-        setEvents([...mappedEvents, ...mappedClasses] as unknown as EventData[]);
+        // Combine and sort by date
+        const combined = [...mappedParties, ...mappedLessons].sort((a, b) => {
+          const timeA = a.date ? new Date(a.date).getTime() : 0;
+          const timeB = b.date ? new Date(b.date).getTime() : 0;
+          return timeA - timeB;
+        });
+
+        setEvents(combined as unknown as EventData[]);
 
         // 2. Fetch Professionals
         const { data: proData, error: proError } = await supabase
@@ -317,7 +325,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
       } catch (error: any) {
         setFetchError(error.message || '데이터를 불러오는 중 오류가 발생했습니다.');
-        handleSupabaseError(error, OperationType.LIST, 'events');
+        // If we were querying parties/lessons, the error might be there
+        if (error.message?.includes('parties') || error.message?.includes('lessons')) {
+           handleSupabaseError(error, OperationType.LIST, error.message.includes('parties') ? 'parties' : 'lessons');
+        } else {
+           handleSupabaseError(error, OperationType.LIST, 'registrations');
+        }
       } finally {
         setLoading(false);
       }
@@ -331,21 +344,45 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       const fetchRegs = async () => {
         setLoadingRegistrations(true);
         try {
-          const { data, error } = await supabase
+          const { data: regsData, error: regsError } = await supabase
             .from('registrations')
-            .select(`
-              id,
-              status,
-              registered_at,
-              event:events(*)
-            `)
-            .eq('user_id', user.id);
+            .select('*')
+            .eq('user_id', user.id)
+            .order('registered_at', { ascending: false });
 
-          if (error) throw error;
+          if (regsError) throw regsError;
           
-          const mappedRegs = data.map((r: any) => {
-            if (!r.event) {
-              // This might be a class or a deleted event
+          if (!regsData || regsData.length === 0) {
+            setRegistrations([]);
+            return;
+          }
+
+          // Fetch parties and lessons for these registrations
+          const eventIds = regsData.map(r => r.event_id);
+          
+          const [partiesRes, lessonsRes] = await Promise.all([
+            supabase.from('parties').select('*').in('id', eventIds),
+            supabase.from('lessons').select('*').in('id', eventIds)
+          ]);
+
+          const partiesMap: Record<string, any> = {};
+          partiesRes.data?.forEach(p => partiesMap[p.id] = { 
+            ...p, 
+            isLesson: false,
+            date: p.date || (p as any).start_date // Graceful fallback
+          });
+          
+          const lessonsMap: Record<string, any> = {};
+          lessonsRes.data?.forEach(l => lessonsMap[l.id] = { 
+            ...l, 
+            isLesson: true,
+            date: l.date || (l as any).start_date // Graceful fallback
+          });
+
+          const mappedRegs = regsData.map((r: any) => {
+            const eventInfo = partiesMap[r.event_id] || lessonsMap[r.event_id];
+            
+            if (!eventInfo) {
               return {
                 id: r.id,
                 status: r.status,
@@ -366,12 +403,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
               status: r.status,
               registeredAt: r.registered_at,
               event: {
-                id: r.event.id,
-                title: r.event.title,
-                category: r.event.category,
-                imageUrl: r.event.image_url,
-                date: r.event.date,
-                locationName: r.event.location_name
+                id: eventInfo.id,
+                title: eventInfo.title,
+                category: eventInfo.category,
+                imageUrl: eventInfo.image_url,
+                date: eventInfo.date,
+                locationName: eventInfo.location_name,
+                isLesson: eventInfo.isLesson
               } as unknown as EventData
             };
           });

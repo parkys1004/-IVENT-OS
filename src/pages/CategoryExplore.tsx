@@ -60,32 +60,28 @@ export default function CategoryExplore() {
 
     const fetchItems = async () => {
       try {
-        let eventsData: any[] = [];
-        let classesData: any[] = [];
+        // Fetch from BOTH parties and lessons tables
+        let partiesQuery = supabase.from('parties').select('*').eq('status', 'published');
+        let lessonsQuery = supabase.from('lessons').select('*').eq('status', 'published');
 
-        // 1. Fetch from events
-        let eventsQuery = supabase.from('events').select('*').eq('status', 'published');
-        if (category === 'party') {
-          eventsQuery = eventsQuery.eq('is_lesson', false);
-        } else if (category === 'lesson') {
-          eventsQuery = eventsQuery.eq('is_lesson', true);
-        } else {
-          eventsQuery = eventsQuery.eq('category', category);
-        }
-        const { data: eData } = await eventsQuery.limit(48);
-        eventsData = eData || [];
-
-        // 2. Fetch from classes if needed
-        if (category === 'lesson' || !['party', 'instructor', 'dj', 'media', 'dj_media'].includes(category || '')) {
-          let classesQuery = supabase.from('classes').select('*');
-          if (category !== 'lesson') {
-            classesQuery = classesQuery.eq('category', category);
-          }
-          const { data: cData } = await classesQuery.limit(48);
-          classesData = cData || [];
+        if (category !== 'all' && category !== 'party' && category !== 'lesson') {
+          partiesQuery = partiesQuery.eq('category', category);
+          lessonsQuery = lessonsQuery.eq('category', category);
         }
 
-        const combinedData = [...eventsData, ...classesData];
+        const [partiesRes, lessonsRes] = await Promise.all([
+          partiesQuery.limit(50),
+          lessonsQuery.limit(50)
+        ]);
+
+        const partiesData = partiesRes.data || [];
+        const lessonsData = lessonsRes.data || [];
+
+        const combinedData = [
+          ...partiesData.map(p => ({ ...p, isLesson: false })),
+          ...lessonsData.map(l => ({ ...l, isLesson: true }))
+        ];
+
         if (combinedData.length === 0) {
           setEvents([]);
           setLoading(false);
@@ -103,49 +99,29 @@ export default function CategoryExplore() {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
 
-        const mappedEvents = eventsData.map(e => ({
+        const mappedItems = combinedData.map(e => ({
           id: e.id,
           title: e.title,
-          description: e.description,
-          date: e.date,
+          description: e.description || '',
+          date: e.date || (e as any).start_date, // Handle potential schema variance
           end_date: e.end_date,
           category: e.category,
           locationName: e.location_name,
           imageUrl: e.image_url,
-          isLesson: e.is_lesson,
-          likesCount: e.likes_count,
+          isLesson: e.isLesson,
+          likesCount: e.likes_count || 0,
           createdAt: e.created_at,
           metadata: e.metadata || {},
-          maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
-          currentAttendees: regCounts[e.id] || 0
-        }));
-
-        const mappedClasses = classesData.map(c => ({
-          id: c.id,
-          title: c.title,
-          description: '',
-          date: c.start_date,
-          end_date: c.end_date,
-          category: c.category || 'lesson',
-          locationName: c.location_name,
-          imageUrl: '',
-          isLesson: true,
-          likesCount: 0,
-          createdAt: c.created_at,
-          metadata: {
-            level: c.level,
-            classTime: c.class_time,
-            address: c.address,
-            geoPoint: { lat: c.lat, lng: c.lng }
-          },
-          maxAttendees: 50,
-          currentAttendees: regCounts[c.id] || 0
+          maxAttendees: e.max_attendees || 0,
+          currentAttendees: regCounts[e.id] || 0,
+          level: (e as any).level,
+          classTime: (e as any).class_time
         }));
         
-        setEvents([...mappedEvents, ...mappedClasses] as any);
+        setEvents(mappedItems as any);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching category events:', error);
+        console.error('Error fetching category items:', error);
         setLoading(false); 
       }
     };

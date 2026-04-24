@@ -176,68 +176,41 @@ export default function CreateLesson() {
         }
       }
 
-      // 2. Insert into events first (Master table for all bookable items)
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
+      // 2. Insert into lessons
+      const { data: lessonData, error: lessonError } = await supabase
+        .from('lessons')
         .insert({
           title: formData.title,
           description: formData.description,
           category: formData.category,
           date: startDateTime.toISOString(),
           end_date: endDateTime.toISOString(),
+          class_time: formData.time,
           location_name: formData.locationName,
+          formatted_address: formData.formattedAddress,
+          city: formData.city,
+          country: formData.country,
+          lat: formData.geoPoint?.lat,
+          lng: formData.geoPoint?.lng,
           image_url: formData.imageUrl,
           host_id: user.id,
-          max_attendees: Number(formData.maxAttendees),
-          is_lesson: true,
           status: initialStatus,
+          max_attendees: Number(formData.maxAttendees),
           price: formData.tickets[0]?.price || 0,
-          metadata: {
-            endDate: endDateTime.toISOString(),
-            formattedAddress: formData.formattedAddress,
-            city: formData.city,
-            country: formData.country,
-            geoPoint: formData.geoPoint,
-            tickets: formData.tickets,
-            paymentMethod: formData.paymentMethod,
-            level: formData.level,
-            maxAttendees: Number(formData.maxAttendees)
-          }
+          level: formData.level,
+          tickets: formData.tickets,
+          payment_method: formData.paymentMethod
         })
         .select()
         .single();
 
-      if (eventError) throw eventError;
+      if (lessonError) throw lessonError;
 
-      // 3. Insert into classes using the same ID (Specialized metadata)
-      const { error: classError } = await supabase
-        .from('classes')
-        .insert({
-          id: eventData.id, 
-          title: formData.title,
-          instructor_id: user.id,
-          level: formData.level,
-          category: formData.category,
-          start_date: startDateTime.toISOString(),
-          end_date: endDateTime.toISOString(),
-          class_time: formData.time,
-          price: formData.tickets[0]?.price || 0,
-          location_name: formData.locationName,
-          address: formData.formattedAddress,
-          lat: formData.geoPoint?.lat,
-          lng: formData.geoPoint?.lng
-        });
-
-      if (classError) {
-        console.error("Partial failure: Events record created but Classes record failed.", classError);
-        // We continue because even with just events, the lesson will show up
-      }
-
-      if (eventData) {
-        navigate(`/event/${eventData.id}`);
+      if (lessonData) {
+        navigate(`/event/${lessonData.id}`);
       }
     } catch (error) {
-      handleSupabaseError(error, 'create', 'events', user?.id || '');
+      handleSupabaseError(error, 'create', 'lessons', user?.id || '');
       alert('강습 등록 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);

@@ -73,44 +73,49 @@ export default function PublicProfile() {
 
         setProfile(mappedProfile);
 
-        // Fetch events hosted by this user
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('events')
+        // Fetch parties hosted by this user
+        const { data: partiesData, error: partiesError } = await supabase
+          .from('parties')
           .select('*')
           .eq('host_id', id)
-          .eq('status', 'published')
-          .order('date', { ascending: true });
+          .eq('status', 'published');
 
-        // Fetch classes taught by this user
-        const { data: classesData } = await supabase
-          .from('classes')
+        // Fetch lessons taught by this user
+        const { data: lessonsData } = await supabase
+          .from('lessons')
           .select('*')
-          .eq('instructor_id', id)
-          .order('start_date', { ascending: true });
+          .eq('host_id', id)
+          .eq('status', 'published');
 
-        const mappedEvents = (eventsData || []).map(e => ({
-          ...e,
-          id: e.id,
-          title: e.title,
-          date: e.date,
-          locationName: e.location_name,
-          category: e.category,
-          imageUrl: e.image_url,
-          isLesson: e.is_lesson
+        const mappedParties = (partiesData || []).map(p => ({
+          id: p.id,
+          title: p.title,
+          date: p.date || (p as any).start_date,
+          locationName: p.location_name,
+          category: p.category,
+          imageUrl: p.image_url,
+          isLesson: false,
+          maxAttendees: p.max_attendees || (p as any).capacity || 0,
+          status: p.status
         }));
 
-        const mappedClasses = (classesData || []).map(c => ({
-          id: c.id,
-          title: c.title,
-          date: c.start_date,
-          locationName: c.location_name,
-          category: c.category || 'lesson',
-          imageUrl: '',
+        const mappedLessons = (lessonsData || []).map(l => ({
+          id: l.id,
+          title: l.title,
+          date: l.date || (l as any).start_date,
+          locationName: l.location_name,
+          category: l.category || 'lesson',
+          imageUrl: l.image_url,
           isLesson: true,
+          maxAttendees: l.max_attendees || (l as any).capacity || 0,
           status: 'published'
         }));
 
-        setEvents([...mappedEvents, ...mappedClasses]);
+        const combined = [...mappedParties, ...mappedLessons].sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        setEvents(combined);
 
       } catch (err: any) {
         console.error("Error fetching public profile:", err);
@@ -386,13 +391,13 @@ export default function PublicProfile() {
                     id: event.id,
                     title: event.title,
                     date: event.date,
-                    locationName: event.location_name,
+                    locationName: event.locationName,
                     category: event.category,
-                    imageUrl: event.image_url,
-                    currentAttendees: (event.metadata as any)?.currentAttendees || event.current_attendees || 0,
-                    maxAttendees: (event.metadata as any)?.maxAttendees || event.max_attendees || (event as any).capacity || 100,
+                    imageUrl: event.imageUrl,
+                    currentAttendees: event.currentAttendees || 0,
+                    maxAttendees: event.maxAttendees || 100,
                     status: event.status || 'published',
-                    isLesson: event.is_lesson
+                    isLesson: event.isLesson
                   }} />
                 ))}
               </div>

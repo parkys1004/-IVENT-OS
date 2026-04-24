@@ -73,44 +73,32 @@ export default function EditEvent() {
   const [coverImageIndex, setCoverImageIndex] = useState<number>(0);
   const [dragActive, setDragActive] = useState(false);
 
-  const [sourceTable, setSourceTable] = useState<'events' | 'classes'>('events');
+  const [sourceTable, setSourceTable] = useState<'parties' | 'lessons'>('parties');
   
   useEffect(() => {
     const fetchEvent = async () => {
       if (!id) return;
       try {
-        // Try events table first
+        // Try parties table first
         let { data, error } = await supabase
-          .from('events')
+          .from('parties')
           .select('*')
           .eq('id', id)
           .maybeSingle();
 
         if (data) {
-          setSourceTable('events');
+          setSourceTable('parties');
         } else {
-          // Try classes table
-          const { data: classData } = await supabase
-            .from('classes')
+          // Try lessons table
+          const { data: lessonData } = await supabase
+            .from('lessons')
             .select('*')
             .eq('id', id)
             .maybeSingle();
           
-          if (classData) {
-            setSourceTable('classes');
-            data = {
-              ...classData,
-              date: classData.start_date,
-              host_id: classData.instructor_id,
-              is_lesson: true,
-              metadata: {
-                endDate: classData.end_date,
-                level: classData.level,
-                classTime: classData.class_time,
-                address: classData.address,
-                geoPoint: { lat: classData.lat, lng: classData.lng }
-              }
-            };
+          if (lessonData) {
+            setSourceTable('lessons');
+            data = lessonData;
           }
         }
 
@@ -118,9 +106,8 @@ export default function EditEvent() {
         if (data) {
           setEventData(data);
           
-          const meta = data.metadata || {};
-          const startDateObj = data.date ? new Date(data.date) : new Date();
-          const endDateObj = meta.endDate ? new Date(meta.endDate) : (data.end_date ? new Date(data.end_date) : startDateObj);
+          const startDateObj = (data.date || data.start_date) ? new Date(data.date || data.start_date) : new Date();
+          const endDateObj = data.end_date ? new Date(data.end_date) : startDateObj;
 
           setFormData({
             title: data.title || '',
@@ -131,22 +118,21 @@ export default function EditEvent() {
             endDate: format(endDateObj, 'yyyy-MM-dd'),
             endTime: format(endDateObj, 'HH:mm'),
             locationName: data.location_name || '',
-            formattedAddress: meta.formattedAddress || data.address || data.location_name || '',
-            country: meta.country || '',
-            city: meta.city || '',
-            geoPoint: meta.geoPoint || (data.lat ? { lat: data.lat, lng: data.lng } : null),
+            formattedAddress: data.formatted_address || data.location_name || '',
+            country: data.country || '',
+            city: data.city || '',
+            geoPoint: (data.lat && data.lng) ? { lat: data.lat, lng: data.lng } : null,
             imageUrl: data.image_url || '',
             maxAttendees: data.max_attendees || data.capacity || 50,
-            djs: meta.djs || [],
-            performances: meta.performances || [],
-            media: meta.media || [],
-            paymentMethod: meta.paymentMethod || '',
-            tickets: meta.tickets || [],
+            djs: data.djs || [],
+            performances: data.performances || [],
+            media: data.media || [],
+            paymentMethod: data.payment_method || '',
+            tickets: data.tickets || [],
           });
 
           const loadedImages = [
-            ...(data.image_url ? [data.image_url] : []),
-            ...(meta.additionalImages || [])
+            ...(data.image_url ? [data.image_url] : [])
           ];
           setImages(loadedImages);
           setCoverImageIndex(0);
@@ -273,63 +259,35 @@ export default function EditEvent() {
 
       let updateError;
 
-      if (formData.category === 'lesson' || eventData.is_lesson) {
-        // Update Events (Master)
-        const { error: eventError } = await supabase
-          .from('events')
+      if (sourceTable === 'lessons') {
+        const { error } = await supabase
+          .from('lessons')
           .update({
             title: formData.title,
             description: formData.description,
             category: formData.category,
             date: startDate.toISOString(),
             end_date: endDate.toISOString(),
+            class_time: formData.time,
             location_name: formData.locationName,
+            formatted_address: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            lat: formData.geoPoint?.lat,
+            lng: formData.geoPoint?.lng,
             image_url: mainImageUrl, 
-            max_attendees: Number(formData.maxAttendees),
             status: newStatus,
-            is_lesson: true,
-            metadata: {
-              endDate: endDate.toISOString(),
-              formattedAddress: formData.formattedAddress,
-              city: formData.city,
-              country: formData.country,
-              geoPoint: formData.geoPoint,
-              djs: formData.djs.filter(d => d.trim()),
-              performances: formData.performances.filter(p => p.trim()),
-              media: formData.media.filter(m => m.trim()),
-              tickets: formData.tickets.filter(t => t.name.trim()),
-              paymentMethod: formData.paymentMethod,
-              maxAttendees: Number(formData.maxAttendees),
-              additionalImages: images.filter((_, i) => i !== coverImageIndex),
-              level: (eventData.metadata as any)?.level || 'all'
-            }
+            max_attendees: Number(formData.maxAttendees),
+            price: formData.tickets[0]?.price || 0,
+            level: eventData.level || 'beginner',
+            tickets: formData.tickets.filter(t => t.name.trim()),
+            payment_method: formData.paymentMethod
           })
           .eq('id', id);
-        
-        // Update Classes (Specialized)
-        const { error: classError } = await supabase
-          .from('classes')
-          .upsert({
-            id: id,
-            title: formData.title,
-            instructor_id: eventData.host_id,
-            level: (eventData.metadata as any)?.level || 'all',
-            category: formData.category,
-            start_date: formData.date,
-            end_date: formData.endDate || formData.date,
-            class_time: formData.time,
-            price: formData.tickets[0]?.price || 0,
-            location_name: formData.locationName,
-            address: formData.formattedAddress,
-            lat: formData.geoPoint?.lat,
-            lng: formData.geoPoint?.lng
-          });
-        
-        updateError = eventError || classError;
+        updateError = error;
       } else {
-        // Regular Event
         const { error } = await supabase
-          .from('events')
+          .from('parties')
           .update({
             title: formData.title,
             description: formData.description,
@@ -337,23 +295,20 @@ export default function EditEvent() {
             date: startDate.toISOString(),
             end_date: endDate.toISOString(),
             location_name: formData.locationName,
+            formatted_address: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            lat: formData.geoPoint?.lat,
+            lng: formData.geoPoint?.lng,
             image_url: mainImageUrl, 
-            max_attendees: Number(formData.maxAttendees),
             status: newStatus,
-            metadata: {
-              endDate: endDate.toISOString(),
-              formattedAddress: formData.formattedAddress,
-              city: formData.city,
-              country: formData.country,
-              geoPoint: formData.geoPoint,
-              djs: formData.djs.filter(d => d.trim()),
-              performances: formData.performances.filter(p => p.trim()),
-              media: formData.media.filter(m => m.trim()),
-              tickets: formData.tickets.filter(t => t.name.trim()),
-              paymentMethod: formData.paymentMethod,
-              maxAttendees: Number(formData.maxAttendees),
-              additionalImages: images.filter((_, i) => i !== coverImageIndex)
-            }
+            max_attendees: Number(formData.maxAttendees),
+            price: formData.tickets[0]?.price || 0,
+            djs: formData.djs.filter(d => d.trim()),
+            performances: formData.performances.filter(p => p.trim()),
+            media: formData.media.filter(m => m.trim()),
+            tickets: formData.tickets.filter(t => t.name.trim()),
+            payment_method: formData.paymentMethod
           })
           .eq('id', id);
         updateError = error;
@@ -361,7 +316,7 @@ export default function EditEvent() {
 
       if (updateError) throw updateError;
       
-      alert(`${sourceTable === 'events' ? '행사' : '강습'}가 성공적으로 수정되었습니다.`);
+      alert(`${sourceTable === 'parties' ? '행사' : '강습'}가 성공적으로 수정되었습니다.`);
       navigate(`/event/${id}`);
     } catch (err: any) {
       handleSupabaseError(err, OperationType.UPDATE, sourceTable, user?.id || '');
@@ -412,9 +367,8 @@ export default function EditEvent() {
     
     setSubmitting(true);
     try {
-      // Deleting from events will cascade delete classes if it's a lesson
       const { error } = await supabase
-        .from('events')
+        .from(sourceTable)
         .delete()
         .eq('id', id);
 
@@ -423,7 +377,7 @@ export default function EditEvent() {
       alert('성공적으로 삭제되었습니다.');
       navigate('/');
     } catch (err: any) {
-      handleSupabaseError(err, OperationType.DELETE, 'events', user?.id || '');
+      handleSupabaseError(err, OperationType.DELETE, sourceTable, user?.id || '');
       alert(`삭제 중 오류가 발생했습니다: ${err.message || 'Unknown error'}`);
     } finally {
       setSubmitting(false);

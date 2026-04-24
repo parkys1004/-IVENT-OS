@@ -15,30 +15,41 @@ export default function PastEvents() {
       try {
         setLoading(true);
         const now = new Date().toISOString();
-        const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(); // 12 hours ago safety margin
 
-        // Fetch events that likely passed
-        // We use a broader date search and filter in JS to handle metadata-based end dates safely
-        const { data, error } = await supabase
-          .from('events')
+        // Fetch parties that likely passed
+        const { data: partiesData, error: partiesError } = await supabase
+          .from('parties')
           .select('*')
-          .eq('status', 'published')
-          .lt('date', now)
-          .order('date', { ascending: false });
+          .eq('status', 'published');
 
-        if (error) throw error;
+        if (partiesError) throw partiesError;
+
+        // Fetch lessons that likely passed
+        const { data: lessonsData } = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('status', 'published');
+
+        const combinedData = [
+          ...(partiesData || []).map(p => ({ ...p, isLesson: false, date: p.date || (p as any).start_date })),
+          ...(lessonsData || []).map(l => ({ ...l, isLesson: true, date: l.date || (l as any).start_date }))
+        ];
         
         // Filter in memory to be 100% sure the event has ended
-        const reallyPassed = data.filter(e => {
-          const meta = e.metadata || {};
-          const endDateStr = meta.endDate || e.end_date;
+        const reallyPassed = combinedData.filter(e => {
+          const endDateStr = e.end_date;
+          const eventDate = e.date;
+          
           if (endDateStr) {
             return new Date(endDateStr) < new Date();
           }
           // Fallback if no end date: check if start date was more than 4 hours ago
-          const startDate = new Date(e.date);
-          return startDate < new Date(Date.now() - 4 * 60 * 60 * 1000);
-        });
+          if (eventDate) {
+            const startDate = new Date(eventDate);
+            return startDate < new Date(Date.now() - 4 * 60 * 60 * 1000);
+          }
+          return false;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         // Fetch registration counts
         const { data: allRegs } = await supabase
@@ -52,11 +63,17 @@ export default function PastEvents() {
         });
 
         const mappedEvents = reallyPassed.map(e => {
-          const meta = e.metadata || {};
           return {
-            ...e,
-            maxAttendees: meta.maxAttendees || e.max_attendees || (e as any).capacity || 0,
-            currentAttendees: regCounts[e.id] || 0
+            id: e.id,
+            title: e.title,
+            date: e.date,
+            locationName: e.location_name,
+            category: e.category,
+            imageUrl: e.image_url,
+            isLesson: e.isLesson,
+            maxAttendees: e.max_attendees || 0,
+            currentAttendees: regCounts[e.id] || 0,
+            status: e.status
           };
         });
 

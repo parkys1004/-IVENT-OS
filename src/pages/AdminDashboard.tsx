@@ -83,8 +83,8 @@ export default function AdminDashboard() {
     try {
       const [
         { data: profiles },
-        { data: evts },
-        { data: classes },
+        { data: partyList },
+        { data: lessonList },
         { data: banners },
         { data: dashConfig },
         { data: pConfig },
@@ -92,8 +92,8 @@ export default function AdminDashboard() {
         { data: appConfig }
       ] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('events').select('*').order('priority', { ascending: false }),
-        supabase.from('classes').select('*').order('created_at', { ascending: false }),
+        supabase.from('parties').select('*').order('priority', { ascending: false }),
+        supabase.from('lessons').select('*').order('priority', { ascending: false }),
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle(),
@@ -106,25 +106,44 @@ export default function AdminDashboard() {
         profiles.forEach(p => profileMap[p.id] = p.display_name || '이름 없음');
         setUsers(profiles.map(u => ({
           uid: u.id, email: u.email, displayName: u.display_name, photoURL: u.photo_url, role: u.role,
+          isApproved: u.is_approved, // Added isApproved
           createdAt: u.created_at, priority: u.priority || 0, points: u.points || 0
         })));
       }
 
-      const mappedEvents = (evts || []).map(e => ({
-        id: e.id, 
-        title: e.title, 
-        category: e.category, 
-        date: e.date, 
-        status: e.status,
-        isBanner: e.is_banner, 
-        host_id: e.host_id, 
-        hostName: profileMap[e.host_id] || '알 수 없는 사용자',
-        isLesson: e.is_lesson, 
-        priority: e.priority || 0,
-        endDate: e.end_date // Added this for date range display
+      const mappedParties = (partyList || []).map(p => ({
+        id: p.id, 
+        title: p.title, 
+        category: p.category, 
+        date: p.date || (p as any).start_date, 
+        status: p.status,
+        isBanner: p.is_banner, 
+        host_id: p.host_id, 
+        hostName: profileMap[p.host_id] || '알 수 없는 사용자',
+        isLesson: false, 
+        priority: p.priority || 0,
+        endDate: p.end_date
       }));
 
-      setEvents(mappedEvents);
+      const mappedLessons = (lessonList || []).map(l => ({
+        id: l.id, 
+        title: l.title, 
+        category: l.category, 
+        date: l.date || (l as any).start_date, 
+        status: l.status,
+        isBanner: l.is_banner, 
+        host_id: l.host_id, 
+        hostName: profileMap[l.host_id] || '알 수 없는 강사',
+        isLesson: true, 
+        priority: l.priority || 0,
+        endDate: l.end_date
+      }));
+
+      setEvents([...mappedParties, ...mappedLessons].map(e => ({
+        ...e,
+        currentAttendees: 0, // Will be fetched via components if needed or added here
+        maxAttendees: (e as any).max_attendees || (e as any).capacity || 50
+      })));
       if (banners) setPromoBanners(banners.map(b => ({ id: b.id, imageUrl: b.image_url, linkUrl: b.link_url, isActive: b.is_active })));
       if (dashConfig) setDashboardConfig(dashConfig.value as DashboardConfig);
       if (pConfig) setPointPolicies({ ...DEFAULT_POINT_POLICIES, ...pConfig.value });
@@ -276,7 +295,9 @@ export default function AdminDashboard() {
                   setPromoBanners={setPromoBanners} 
                   events={events} 
                   handleBannerToggle={async (id, current) => {
-                    const { error } = await supabase.from('events').update({ is_banner: !current }).eq('id', id);
+                    const evt = events.find(e => e.id === id);
+                    const tableName = evt?.isLesson ? 'lessons' : 'parties';
+                    const { error } = await supabase.from(tableName).update({ is_banner: !current }).eq('id', id);
                     if (!error) fetchAdminData();
                   }}
                 />

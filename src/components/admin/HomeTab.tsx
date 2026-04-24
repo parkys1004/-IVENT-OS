@@ -36,7 +36,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     try {
       let log = '';
 
-      // 1. Migrate Lessons (events -> classes)
+      // 1. Migrate Lessons (events -> lessons)
       const { data: legacyLessons, error: lError } = await supabase
         .from('events')
         .select('*')
@@ -46,25 +46,26 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       
       if (legacyLessons && legacyLessons.length > 0) {
         log += `추출된 구 강습 데이터: ${legacyLessons.length}건\n`;
-        const classEntries = legacyLessons.map(e => ({
+        const lessonEntries = legacyLessons.map(e => ({
           id: e.id,
           title: e.title,
-          instructor_id: e.host_id,
+          host_id: e.host_id,
           level: (e.metadata as any)?.level || 'all',
           category: e.category,
-          start_date: e.date,
+          date: e.date,
           end_date: e.end_date || (e.metadata as any)?.endDate || e.date,
           class_time: (e as any).time || '저녁',
           price: (e.metadata as any)?.tickets?.[0]?.price || 0,
           location_name: e.location_name,
-          address: (e.metadata as any)?.formattedAddress || '',
+          formatted_address: (e.metadata as any)?.formattedAddress || '',
           lat: (e.metadata as any)?.geoPoint?.lat,
           lng: (e.metadata as any)?.geoPoint?.lng,
+          status: e.status || 'published',
           created_at: e.created_at
         }));
 
-        const { error: cError } = await supabase.from('classes').upsert(classEntries);
-        if (cError) throw new Error(`실제 마이그레이션 실패 (classes): ${cError.message}`);
+        const { error: cError } = await supabase.from('lessons').upsert(lessonEntries);
+        if (cError) throw new Error(`실제 마이그레이션 실패 (lessons): ${cError.message}`);
         log += `✅ 강습 테이블 마이그레이션 완료\n`;
       } else {
         log += `마이그레이션할 강습 데이터가 없습니다.\n`;

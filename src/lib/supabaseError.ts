@@ -19,7 +19,7 @@ export interface SupabaseErrorInfo {
   }
 }
 
-export function handleSupabaseError(error: any, operationType: string, table: 'events' | 'profiles' | 'registrations' | 'promo_banners' | 'settings' | 'user_followers', userId?: string) {
+export function handleSupabaseError(error: any, operationType: string, table: 'events' | 'profiles' | 'registrations' | 'promo_banners' | 'settings' | 'user_followers' | 'parties' | 'lessons', userId?: string) {
   let errorMessage = 'Unknown error';
 
   if (error) {

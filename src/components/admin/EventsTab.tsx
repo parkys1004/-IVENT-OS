@@ -40,13 +40,18 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     }
   };
 
+  const getTableName = (id: string) => {
+    const evt = events.find(e => e.id === id);
+    return evt?.isLesson ? 'lessons' : 'parties';
+  };
+
   const handlePriorityChange = async (id: string, priority: number) => {
-    const { error } = await supabase.from('events').update({ priority }).eq('id', id);
+    const { error } = await supabase.from(getTableName(id)).update({ priority }).eq('id', id);
     if (!error) fetchAdminData();
   };
 
   const handleBannerToggle = async (eventId: string, currentStatus: boolean) => {
-    const { error } = await supabase.from('events').update({ is_banner: !currentStatus }).eq('id', eventId);
+    const { error } = await supabase.from(getTableName(eventId)).update({ is_banner: !currentStatus }).eq('id', eventId);
     if (!error) fetchAdminData();
   };
 
@@ -67,7 +72,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     setIsSaving(true);
     try {
       const { data, error } = await supabase
-        .from('events')
+        .from(getTableName(eventId))
         .update({ status: 'published' })
         .eq('id', eventId)
         .select();
@@ -92,7 +97,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      const { error } = await supabase.from(getTableName(eventId)).delete().eq('id', eventId);
       if (error) throw error;
 
       setEvents(prev => prev.filter(e => e.id !== eventId));

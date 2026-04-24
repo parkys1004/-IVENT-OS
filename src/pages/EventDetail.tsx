@@ -136,9 +136,9 @@ export default function EventDetail() {
     const fetchEventAndReg = async () => {
       try {
         setLoading(true);
-        // Try events table first
+        // Try parties table first
         let { data, error } = await supabase
-          .from('events')
+          .from('parties')
           .select('*')
           .eq('id', id)
           .maybeSingle();
@@ -146,35 +146,24 @@ export default function EventDetail() {
         let isActuallyLesson = false;
 
         if (!data) {
-          // Try classes table
-          const { data: classData, error: classError } = await supabase
-            .from('classes')
+          // Try lessons table
+          const { data: lessonData, error: lessonError } = await supabase
+            .from('lessons')
             .select('*')
             .eq('id', id)
             .maybeSingle();
           
-          if (classData) {
-            data = {
-              ...classData,
-              date: classData.start_date,
-              host_id: classData.instructor_id,
-              is_lesson: true,
-              metadata: {
-                level: classData.level,
-                classTime: classData.class_time,
-                address: classData.address,
-                geoPoint: { lat: classData.lat, lng: classData.lng }
-              }
-            };
+          if (lessonData) {
+            data = lessonData;
             isActuallyLesson = true;
-          } else if (classError) {
-            console.error("Error fetching class:", classError);
+          } else if (lessonError) {
+            console.error("Error fetching lesson:", lessonError);
           }
         }
 
         if (error) {
-          console.error("Error fetching event:", error);
-          handleSupabaseError(error, OperationType.GET, 'events');
+          console.error("Error fetching party:", error);
+          handleSupabaseError(error, OperationType.GET, 'parties');
           navigate('/');
           return;
         }
@@ -204,38 +193,37 @@ export default function EventDetail() {
           .select('*', { count: 'exact', head: true })
           .eq('event_id', id);
 
-        const meta = data.metadata || {};
         const mappedEvent = {
           id: data.id,
           title: data.title,
           description: data.description,
-          date: data.date,
-          endDate: meta.endDate || data.end_date,
+          date: data.date || (data as any).start_date,
+          endDate: data.end_date,
           category: data.category,
           locationName: data.location_name,
-          formattedAddress: meta.formattedAddress || data.location_name,
-          geoPoint: meta.geoPoint || null,
-          city: meta.city || '',
-          country: meta.country || '',
+          formattedAddress: data.formatted_address || data.location_name,
+          geoPoint: (data.lat && data.lng) ? { lat: data.lat, lng: data.lng } : null,
+          city: data.city || '',
+          country: data.country || '',
           status: data.status,
           price: data.price,
-          capacity: meta.maxAttendees || data.max_attendees || data.capacity || 0,
+          capacity: data.max_attendees || 0,
           hostId: data.host_id,
           hostName: hostDisplayName,
           imageUrl: data.image_url,
           isBanner: data.is_banner,
-          isLesson: data.is_lesson,
+          isLesson: isActuallyLesson,
           priority: data.priority,
           likesCount: data.likes_count,
           createdAt: data.created_at,
-          maxAttendees: meta.maxAttendees || data.max_attendees || data.capacity || 50,
+          maxAttendees: data.max_attendees || 50,
           currentAttendees: regCount || 0,
-          djs: meta.djs || [],
-          performances: meta.performances || [],
-          media: meta.media || [],
-          tickets: meta.tickets || [],
-          paymentMethod: meta.paymentMethod || '',
-          level: meta.level || 'beginner'
+          djs: data.djs || [],
+          performances: data.performances || [],
+          media: data.media || [],
+          tickets: data.tickets || [],
+          paymentMethod: data.payment_method || '',
+          level: data.level || 'beginner'
         };
         
         setEvent(mappedEvent);

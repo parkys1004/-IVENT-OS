@@ -49,27 +49,47 @@ export default function MyPage() {
       if (!user) return;
       setLoadingRegs(true);
       try {
-        const { data, error } = await supabase
+        const { data: regsData, error: regsError } = await supabase
           .from('registrations')
-          .select(`
-            id,
-            status,
-            registered_at,
-            event_id,
-            event:events (
-              title,
-              date,
-              is_lesson
-            )
-          `)
+          .select('*')
           .eq('user_id', user.id)
           .order('registered_at', { ascending: false });
 
-        if (error) throw error;
+        if (regsError) throw regsError;
         
-        const mappedRegs = data?.map((reg: any) => {
-          // If reg.event is null (could happen if it's a class or deleted), provide fallbacks
-          const eventInfo = reg.event || { title: '알 수 없는 행사', date: null, is_lesson: false };
+        if (!regsData || regsData.length === 0) {
+          setRegistrations([]);
+          return;
+        }
+
+        // Fetch parties and lessons for these registrations
+        const eventIds = regsData.map(r => r.event_id);
+        
+        const [partiesRes, lessonsRes] = await Promise.all([
+          supabase.from('parties').select('*').in('id', eventIds),
+          supabase.from('lessons').select('*').in('id', eventIds)
+        ]);
+
+        const partiesMap: Record<string, any> = {};
+        partiesRes.data?.forEach(p => partiesMap[p.id] = { ...p, isLesson: false });
+        
+        const lessonsMap: Record<string, any> = {};
+        lessonsRes.data?.forEach(l => lessonsMap[l.id] = { ...l, isLesson: true });
+
+        const mappedRegs = regsData.map((reg: any) => {
+          const eventInfo = partiesMap[reg.event_id] || lessonsMap[reg.event_id];
+          
+          if (!eventInfo) {
+            return {
+              id: reg.id,
+              eventId: reg.event_id,
+              status: reg.status,
+              registeredAt: reg.registered_at,
+              eventTitle: '알 수 없는 행사',
+              eventDate: null,
+              isLesson: false,
+            };
+          }
           
           return {
             id: reg.id,
@@ -77,10 +97,10 @@ export default function MyPage() {
             status: reg.status,
             registeredAt: reg.registered_at,
             eventTitle: eventInfo.title,
-            eventDate: eventInfo.date,
-            isLesson: eventInfo.is_lesson,
+            eventDate: eventInfo.date || (eventInfo as any).start_date,
+            isLesson: eventInfo.isLesson,
           };
-        }) || [];
+        });
         
         setRegistrations(mappedRegs);
       } catch (error) {

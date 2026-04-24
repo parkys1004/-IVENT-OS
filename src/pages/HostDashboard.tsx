@@ -27,25 +27,37 @@ export default function HostDashboard() {
     
     const fetchEvents = async () => {
       try {
-        const { data, error } = await supabase
-          .from('events')
-          .select('*')
-          .eq('host_id', user.id)
-          .order('date', { ascending: false });
+        const [partiesRes, lessonsRes] = await Promise.all([
+          supabase.from('parties').select('*').eq('host_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('lessons').select('*').eq('host_id', user.id).order('created_at', { ascending: false })
+        ]);
 
-        if (error) throw error;
+        if (partiesRes.error) throw partiesRes.error;
+        if (lessonsRes.error) throw lessonsRes.error;
         
-        const mappedData = (data || []).map(e => ({
-          id: e.id,
-          title: e.title,
-          category: e.category,
-          date: e.date,
-          currentAttendees: e.current_attendees || 0,
-          maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || (e as any).capacity || 0,
-          status: e.status
-        })) as EventData[];
+        const mappedParties = (partiesRes.data || []).map(p => ({
+          id: p.id,
+          title: p.title,
+          category: p.category,
+          date: p.date || (p as any).start_date,
+          currentAttendees: p.current_attendees || 0,
+          maxAttendees: (p.metadata as any)?.maxAttendees || p.max_attendees || (p as any).capacity || 0,
+          status: p.status,
+          isLesson: false
+        }));
 
-        setMyEvents(mappedData);
+        const mappedLessons = (lessonsRes.data || []).map(l => ({
+          id: l.id,
+          title: l.title,
+          category: l.category,
+          date: l.date || (l as any).start_date,
+          currentAttendees: l.current_attendees || 0,
+          maxAttendees: (l.metadata as any)?.maxAttendees || l.max_attendees || (l as any).capacity || 0,
+          status: l.status,
+          isLesson: true
+        }));
+
+        setMyEvents([...mappedParties, ...mappedLessons]);
       } catch (error) {
         console.error("Error fetching host events:", error);
       } finally {

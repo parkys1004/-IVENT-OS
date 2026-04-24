@@ -23,7 +23,8 @@ import {
   ExternalLink,
   MessageSquare,
   ChevronDown,
-  Coins
+  Coins,
+  Bot
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -404,6 +405,26 @@ export default function Navbar() {
                                 <Settings className="w-4.5 h-4.5 text-slate-400" />
                                 {t('nav.profile')}
                               </Link>
+
+                              <Link 
+                                to="/points" 
+                                onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-4 px-6 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                              >
+                                <Coins className="w-4.5 h-4.5 text-amber-500" />
+                                포인트 충전
+                              </Link>
+
+                              {profile?.role === 'admin' && (
+                                <Link 
+                                  to="/ai-settings" 
+                                  onClick={() => setDropdownOpen(false)}
+                                  className="flex items-center gap-4 px-6 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                >
+                                  <Bot className="w-4.5 h-4.5 text-indigo-500" />
+                                  API 설정 (AI)
+                                </Link>
+                              )}
                               
                               <div className="my-2 h-px bg-slate-100 dark:bg-slate-800/50 mx-4"></div>
 
@@ -548,6 +569,40 @@ export default function Navbar() {
                           </div>
                           프로필 설정
                         </Link>
+
+                        <Link
+                          to="/points"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={clsx(
+                            "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                            location.pathname === '/points' 
+                              ? "bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/20" 
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-amber-500">
+                            <Coins className="w-5 h-5" />
+                          </div>
+                          포인트 충전
+                        </Link>
+
+                        {profile?.role === 'admin' && (
+                          <Link
+                            to="/ai-settings"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={clsx(
+                              "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                              location.pathname === '/ai-settings' 
+                                ? "bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/20" 
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            )}
+                          >
+                            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-500">
+                              <Bot className="w-5 h-5" />
+                            </div>
+                            API 설정 (AI)
+                          </Link>
+                        )}
 
                         {(profile?.role === 'instructor' || profile?.role === 'dj' || profile?.role === 'media') && (
                           <Link

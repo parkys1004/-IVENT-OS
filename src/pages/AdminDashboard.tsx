@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, PlusCircle, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles, Lock, Database, Camera } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Key, Settings, Trash2, Home, CreditCard, ChevronRight, UserCheck, Search, Filter, Plus, PlusCircle, Image as ImageIcon, Link as LinkIcon, Save, X, Upload, FileImage, Ticket, ArrowUp, ArrowDown, LayoutGrid, Layout, ShieldAlert, AlertCircle, GraduationCap, Flame, Clock, Music, CheckCircle2, Coins, History, TrendingUp, Wallet, Sparkles, Lock, Database, Camera, Bot } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -1438,6 +1438,12 @@ export default function AdminDashboard() {
             >
                <LayoutGrid className="w-5 h-5" /> 홈 화면 설정
             </button>
+            <Link 
+              to="/ai-settings"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
+            >
+               <Bot className="w-5 h-5 text-indigo-500" /> AI API 설정
+            </Link>
           </nav>
         </div>
         

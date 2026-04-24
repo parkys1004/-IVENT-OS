@@ -247,6 +247,38 @@ CREATE TABLE point_history (
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
+CREATE TABLE point_packages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  points INTEGER NOT NULL,
+  bonus_points INTEGER DEFAULT 0,
+  price_amount INTEGER NOT NULL,
+  currency TEXT DEFAULT 'KRW',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. AI SETTINGS & LOGS
+CREATE TABLE ai_settings (
+  provider TEXT PRIMARY KEY, -- 'openai', 'gemini'
+  api_key TEXT,
+  default_model TEXT,
+  is_active BOOLEAN DEFAULT true,
+  settings JSONB DEFAULT '{}', -- Usage limits, safety settings etc.
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE ai_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  prompt_summary TEXT,
+  tokens_used INTEGER,
+  cost FLOAT8,
+  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- RLS for Community Features
 ALTER TABLE community_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE community_comments ENABLE ROW LEVEL SECURITY;
@@ -254,12 +286,31 @@ ALTER TABLE event_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE point_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE point_packages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_logs ENABLE ROW LEVEL SECURITY;
 
 -- ... (previous policies)
 
 -- Point History Policies
 CREATE POLICY "Users can view own point history." ON point_history FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Only admins can insert/update point history." ON point_history FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Point Packages Policies
+CREATE POLICY "Anyone can view active point packages." ON point_packages FOR SELECT USING (is_active = true);
+CREATE POLICY "Only admins can manage point packages." ON point_packages FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- AI Settings Policies
+CREATE POLICY "Only admins can view/manage AI settings." ON ai_settings FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- AI Logs Policies
+CREATE POLICY "Only admins can view AI logs." ON ai_logs FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 

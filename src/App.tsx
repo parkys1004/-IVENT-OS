@@ -11,6 +11,8 @@ import Community from './pages/Community';
 import PostDetail from './pages/PostDetail';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
+import PointRecharge from './pages/PointRecharge';
+import AISettings from './pages/AISettings';
 import PublicProfile from './pages/PublicProfile';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -114,6 +116,8 @@ function AppContent() {
           <Route path="/past-events" element={<PastEvents />} />
           <Route path="/login" element={<Login />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/points" element={<PointRecharge />} />
+          <Route path="/ai-settings" element={<AISettings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
         </Routes>

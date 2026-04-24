@@ -72,6 +72,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data) {
         console.log("Profile found:", data.display_name);
+
+        // Auto-promote admin email
+        if (data.email === 'aimaster1004@gmail.com' && data.role !== 'admin') {
+          console.log("Auto-promoting aimaster1004@gmail.com to admin role...");
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ role: 'admin', is_approved: true })
+            .eq('id', userId);
+          if (!updateError) {
+            data.role = 'admin';
+            data.is_approved = true;
+          }
+        }
+
         const mappedProfile: UserProfile = {
           uid: data.id,
           email: data.email,
@@ -107,13 +121,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'participant';
           window.sessionStorage.removeItem('intendedRole'); // Clear it once used
 
+          // Check if this specific email should be admin
+          const isAdminEmail = activeUser.email === 'aimaster1004@gmail.com';
+          const assignedRole = isAdminEmail ? 'admin' : intendedRole;
+
           const newProfile = {
             id: userId,
             email: activeUser.email,
             display_name: activeUser.user_metadata?.full_name || activeUser.email?.split('@')[0] || 'User',
             photo_url: activeUser.user_metadata?.avatar_url || '',
-            role: intendedRole,
-            is_approved: intendedRole === 'participant', // Only participants approved by default
+            role: assignedRole,
+            is_approved: isAdminEmail || intendedRole === 'participant', 
             points: 1000, // Welcome points
             created_at: new Date().toISOString()
           };

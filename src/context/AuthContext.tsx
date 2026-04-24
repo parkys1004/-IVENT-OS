@@ -154,6 +154,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const isAdminEmail = activeUser.email?.toLowerCase() === 'aimaster1004@gmail.com';
           const assignedRole = isAdminEmail ? 'admin' : intendedRole;
 
+          let signupPoints = 1000;
+          try {
+            const { data: settingData } = await supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle();
+            if (settingData?.value?.signup_reward !== undefined) {
+               signupPoints = Number(settingData.value.signup_reward);
+            }
+          } catch(e) {
+            console.error("Failed to load point policies for signup:", e);
+          }
+
           const newProfile = {
             id: userId,
             email: activeUser.email,
@@ -161,7 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             photo_url: activeUser.user_metadata?.avatar_url || '',
             role: assignedRole,
             is_approved: true,
-            points: 1000,
+            points: signupPoints,
             created_at: new Date().toISOString()
           };
 
@@ -191,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               role: assignedRole,
               isApproved: true,
               createdAt: new Date().toISOString(),
-              points: 1000
+              points: signupPoints
             });
             if (assignedRole === 'admin') setViewMode('admin');
           } else if (createdData) {
@@ -199,11 +209,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             window.sessionStorage.removeItem('intendedRole');
 
             // Log initial point grant
-            if (createdData.points === 1000) {
+            if (signupPoints > 0) {
               await supabase.from('point_history').insert({
                 user_id: createdData.id,
-                amount: 1000,
-                reason: '신규 회원가입 축하 포인트'
+                amount: signupPoints,
+                reason: '신규 가입을 축하합니다!'
               });
             }
             

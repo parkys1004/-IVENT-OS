@@ -7,6 +7,7 @@ export interface PointPolicy {
 }
 
 export const DEFAULT_POINT_POLICIES = {
+  signup_reward: 1000,
   booking_reward_percent: 5, // 5% of price
   early_bird_bonus: 500,
   community_post: 100,

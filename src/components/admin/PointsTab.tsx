@@ -96,6 +96,15 @@ export const PointsTab: React.FC<PointsTabProps> = ({
               </h4>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
+                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300">회원가입 완료 보너스</label>
+                   <input 
+                    type="number" 
+                    value={(pointPolicies as any).signup_reward || 0} 
+                    onChange={e => setPointPolicies((prev: any) => ({ ...prev, signup_reward: Number(e.target.value) }))}
+                    className="w-20 bg-slate-50 dark:bg-slate-800 border-none rounded-lg p-2 text-right font-black outline-none focus:ring-2 focus:ring-indigo-500/20" 
+                   />
+                </div>
+                <div className="flex items-center justify-between">
                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">티켓 금액별 적립률 (%)</label>
                    <input 
                     type="number" 

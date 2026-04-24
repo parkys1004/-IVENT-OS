@@ -373,24 +373,13 @@ export default function PointRecharge() {
                      </p>
                    </div>
                    <button
-                     disabled={!paymentMethod || isProcessing}
-                     onClick={handleRecharge}
+                     disabled={true}
                      className={clsx(
-                       "w-full sm:w-auto px-16 py-6 bg-orange-500 hover:bg-orange-600 text-white rounded-[24px] font-[950] text-xl shadow-xl shadow-orange-500/20 hover:translate-y-[-4px] active:translate-y-0 disabled:opacity-50 disabled:translate-y-0 transition-all flex items-center justify-center gap-4",
-                       isProcessing && "cursor-not-allowed"
+                       "w-full sm:w-auto px-16 py-6 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-[24px] font-[950] text-xl shadow-none transition-all flex items-center justify-center gap-4 cursor-not-allowed"
                      )}
                    >
-                     {isProcessing ? (
-                       <>
-                         <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                         결제 진행 중...
-                       </>
-                     ) : (
-                       <>
-                         <Zap className="w-6 h-6" />
-                         지금 충전하기
-                       </>
-                     )}
+                     <Zap className="w-6 h-6 outline-none" />
+                     결제 시스템 연동 중
                    </button>
                 </div>
               </div>

@@ -56,7 +56,7 @@ CREATE TABLE events (
 -- 3. REGISTRATIONS
 CREATE TABLE registrations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'cancelled')),
   registered_at TIMESTAMPTZ DEFAULT NOW()
@@ -105,7 +105,7 @@ CREATE POLICY "Hosts and Admins can update events." ON events FOR UPDATE USING (
 );
 
 -- Registrations Policies
-CREATE POLICY "Users can view own registrations." ON registrations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Anyone can view registrations." ON registrations FOR SELECT USING (true);
 CREATE POLICY "Users can register for events." ON registrations FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Promo Banners & Settings
@@ -148,7 +148,7 @@ CREATE TABLE community_posts (
   title TEXT NOT NULL,
   content TEXT NOT NULL,
   category TEXT NOT NULL CHECK (category IN ('free', 'inquiry')),
-  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
@@ -156,7 +156,7 @@ CREATE TABLE community_posts (
 CREATE TABLE community_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   post_id UUID REFERENCES community_posts(id) ON DELETE CASCADE NOT NULL,
-  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -165,7 +165,7 @@ CREATE TABLE community_comments (
 CREATE TABLE event_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
-  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -174,7 +174,7 @@ CREATE TABLE event_comments (
 CREATE TABLE event_reviews (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
-  author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
@@ -184,7 +184,7 @@ CREATE TABLE event_reviews (
 CREATE TABLE event_photos (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   image_url TEXT NOT NULL,
   caption TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
@@ -193,7 +193,7 @@ CREATE TABLE event_photos (
 -- 7. POINT SYSTEM
 CREATE TABLE point_history (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   amount INTEGER NOT NULL,
   reason TEXT NOT NULL,
   metadata JSONB DEFAULT '{}',

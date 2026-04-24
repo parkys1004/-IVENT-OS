@@ -135,19 +135,41 @@ export default function EventDetail() {
 
     const fetchEventAndReg = async () => {
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from('events')
-          .select('*, host:profiles(display_name)')
+          .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
         
-        if (error || !data) {
+        if (error) {
+          console.error("Error fetching event:", error);
+          handleSupabaseError(error, OperationType.GET, 'events');
           navigate('/');
           return;
         }
 
+        if (!data) {
+          console.warn("Event not found or access denied:", id);
+          navigate('/');
+          return;
+        }
+
+        // Fetch host display name separately
+        let hostDisplayName = '알 수 없는 호스트';
+        if (data.host_id) {
+          const { data: hostData } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', data.host_id)
+            .maybeSingle();
+          if (hostData?.display_name) {
+            hostDisplayName = hostData.display_name;
+          }
+        }
+
         // Fetch actual registration count
-        const { count: regCount, error: countErr } = await supabase
+        const { count: regCount } = await supabase
           .from('registrations')
           .select('*', { count: 'exact', head: true })
           .eq('event_id', id);
@@ -167,16 +189,16 @@ export default function EventDetail() {
           country: meta.country || '',
           status: data.status,
           price: data.price,
-          capacity: data.max_attendees,
+          capacity: data.max_attendees || data.capacity,
           hostId: data.host_id,
-          hostName: (data.host as any)?.display_name || '알 수 없는 호스트',
+          hostName: hostDisplayName,
           imageUrl: data.image_url,
           isBanner: data.is_banner,
           isLesson: data.is_lesson,
           priority: data.priority,
           likesCount: data.likes_count,
           createdAt: data.created_at,
-          maxAttendees: data.max_attendees || 50,
+          maxAttendees: data.max_attendees || data.capacity || 50,
           currentAttendees: regCount || 0,
           djs: meta.djs || [],
           performances: meta.performances || [],

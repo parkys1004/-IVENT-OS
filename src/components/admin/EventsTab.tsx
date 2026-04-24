@@ -66,10 +66,19 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   const handleApproveEvent = async (eventId: string) => {
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('events').update({ status: 'published' }).eq('id', eventId);
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('events')
+        .update({ status: 'published' })
+        .eq('id', eventId)
+        .select();
 
-      setEvents(prev => prev.map(e => e.id === eventId ? { ...e, status: 'published' } : e));
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        throw new Error('업데이트할 항목을 찾을 수 없거나 권한이 없습니다.');
+      }
+
+      await fetchAdminData();
       alert(`성공적으로 승인되었습니다.`);
     } catch (error: any) {
       alert(`승인 중 오류 발생: ${error.message}`);

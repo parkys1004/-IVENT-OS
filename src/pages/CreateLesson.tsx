@@ -417,6 +417,7 @@ export default function CreateLesson() {
                     onPlaceSelect={handlePlaceSelect}
                     onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
                     placeholder="주소를 검색하거나 직접 입력하세요"
+                    value={formData.locationName}
                   />
                 ) : (
                   <div className="w-full h-14 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl"></div>

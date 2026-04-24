@@ -766,6 +766,7 @@ export default function CreateEvent() {
               onPlaceSelect={handlePlaceSelect}
               onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
               placeholder="예: 강남역 쌍용플래티넘"
+              value={formData.locationName}
             />
           ) : (
             <div className="w-full h-11 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-[10px]"></div>

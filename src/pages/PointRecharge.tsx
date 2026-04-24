@@ -12,7 +12,13 @@ import {
   Clock,
   Smartphone,
   Wallet,
-  AlertCircle
+  AlertCircle,
+  Footprints,
+  Music,
+  Flame,
+  Zap,
+  Star,
+  Award
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
@@ -23,15 +29,19 @@ import clsx from 'clsx';
 interface PointPackage {
   id: string;
   name: string;
+  title: string;
   points: number;
   bonus_points: number;
   price_amount: number;
   currency: string;
+  features: string[];
+  icon: React.ReactNode;
+  color: string;
+  isPopular?: boolean;
 }
 
 export default function PointRecharge() {
   const { user, profile, refreshProfile } = useAuth();
-  const [packages, setPackages] = useState<PointPackage[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPackage, setSelectedPackage] = useState<PointPackage | null>(null);
@@ -39,32 +49,51 @@ export default function PointRecharge() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [rechargeSuccess, setRechargeSuccess] = useState(false);
 
+  const packages: PointPackage[] = [
+    { 
+      id: 'tier-1', 
+      name: 'Light Dancer', 
+      title: 'Light Dancer',
+      points: 10000, 
+      bonus_points: 0, 
+      price_amount: 11000, 
+      currency: 'KRW',
+      features: ['Basic event entry', 'Community access'],
+      icon: <Footprints className="w-6 h-6" />,
+      color: 'slate'
+    },
+    { 
+      id: 'tier-2', 
+      name: 'Pro Dancer', 
+      title: 'Pro Dancer',
+      points: 30000, 
+      bonus_points: 1500, 
+      price_amount: 33000, 
+      currency: 'KRW',
+      isPopular: true,
+      features: ['5% Bonus points', 'Priority class booking', 'AI dance analysis (5 sessions)'],
+      icon: <Music className="w-6 h-6" />,
+      color: 'orange'
+    },
+    { 
+      id: 'tier-3', 
+      name: 'Master Dancer', 
+      title: 'Master Dancer',
+      points: 50000, 
+      bonus_points: 5000, 
+      price_amount: 55000, 
+      currency: 'KRW',
+      features: ['10% Bonus points', 'Free workshop pass (1 time)', 'Unlimited AI analysis', 'Exclusive badge'],
+      icon: <Flame className="w-6 h-6" />,
+      color: 'lime'
+    },
+  ];
+
   useEffect(() => {
     async function fetchData() {
       if (!user) return;
       setLoading(true);
       try {
-        // Fetch packages
-        const { data: pkgData, error: pkgErr } = await supabase
-          .from('point_packages')
-          .select('*')
-          .eq('is_active', true)
-          .order('price_amount', { ascending: true });
-        
-        if (pkgErr) throw pkgErr;
-        
-        // If no packages exist in DB, provide defaults
-        if (!pkgData || pkgData.length === 0) {
-          setPackages([
-            { id: '1', name: 'Lite Pack', points: 3000, bonus_points: 0, price_amount: 3300, currency: 'KRW' },
-            { id: '2', name: 'Value Pack', points: 10000, bonus_points: 500, price_amount: 11000, currency: 'KRW' },
-            { id: '3', name: 'Pro Pack', points: 30000, bonus_points: 2000, price_amount: 33000, currency: 'KRW' },
-            { id: '4', name: 'VIP Pack', points: 50000, bonus_points: 5000, price_amount: 55000, currency: 'KRW' },
-          ]);
-        } else {
-          setPackages(pkgData);
-        }
-
         // Fetch history
         const { data: histData, error: histErr } = await supabase
           .from('point_history')
@@ -76,7 +105,7 @@ export default function PointRecharge() {
         setHistory(histData || []);
 
       } catch (err) {
-        console.error("Error fetching point data:", err);
+        console.error("Error fetching point history:", err);
       } finally {
         setLoading(false);
       }
@@ -146,283 +175,309 @@ export default function PointRecharge() {
 
   if (!user || !profile) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="w-12 h-12 text-slate-300 mb-4" />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center bg-slate-950">
+        <AlertCircle className="w-12 h-12 text-slate-700 mb-4" />
         <p className="text-slate-500 font-bold">로그인이 필요한 서비스입니다.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 py-8 sm:py-12 space-y-10">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight leading-tight">
-            포인트 충전 및 관리
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold mt-1">
-            댄스하이브에서 다양한 서비스를 이용해보세요.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
-           <Coins className="w-4 h-4 text-amber-500" />
-           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">My Balance</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Summary & History */}
-        <div className="lg:col-span-12 space-y-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="max-w-6xl mx-auto w-full px-4 py-12 sm:py-20 space-y-16">
+        
+        {/* Header Section */}
+        <div className="flex flex-col items-center text-center space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-3 px-6 py-3 bg-orange-500/10 border border-orange-500/20 rounded-full"
+          >
+            <Zap className="w-5 h-5 text-[#F39C12]" />
+            <span className="text-[#F39C12] font-black text-sm tracking-tight">DANCEHIVE RHYTHM POINTS</span>
+          </motion.div>
           
-          {/* My Wallet Summary */}
-          <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 rounded-[32px] p-8 sm:p-10 text-white shadow-2xl shadow-indigo-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-x-32 -translate-y-32 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/20 rounded-full blur-2xl -translate-x-16 translate-y-16 pointer-events-none"></div>
-            
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-              <div>
-                <p className="text-indigo-100/60 font-black text-xs uppercase tracking-[0.2em] mb-4">Current Balance</p>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-5xl sm:text-7xl font-[950] tracking-tighter leading-none">
-                    {(profile.points || 0).toLocaleString()}
-                  </span>
-                  <span className="text-2xl font-black opacity-40 uppercase">Point</span>
-                </div>
-                <div className="mt-6 flex items-center gap-6">
-                   <div className="flex flex-col">
-                     <span className="text-[10px] font-black text-indigo-200/50 uppercase mb-1">Expiring Soon</span>
-                     <span className="font-bold text-sm">0 P</span>
-                   </div>
-                   <div className="w-px h-8 bg-white/10"></div>
-                   <div className="flex flex-col">
-                     <span className="text-[10px] font-black text-indigo-200/50 uppercase mb-1">Last Recharge</span>
-                     <span className="font-bold text-sm">
-                       {history.length > 0 ? format(new Date(history[0].created_at), 'yyyy.MM.dd') : '없음'}
-                     </span>
-                   </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-3 shrink-0">
-                <button 
-                  onClick={() => document.getElementById('packages-section')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black text-sm shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  포인트 충전하기
-                </button>
-                <p className="text-[10px] text-center text-indigo-100/40 font-bold uppercase tracking-widest">Secure Payments by Dancehive</p>
-              </div>
-            </div>
-          </div>
+          <motion.h1 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl sm:text-6xl font-black tracking-tighter"
+          >
+            My Current Rhythm Points:<br/>
+            <span className="text-orange-500">{(profile.points || 0).toLocaleString()} P</span>
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-slate-400 font-bold max-w-xl mx-auto"
+          >
+            댄스하이브 전용 포인트를 충전하여 행사 예매, 강습 예약,<br className="hidden sm:block" />
+            그리고 AI 댄스 분석까지 댄서들을 위한 모든 서비스를 이용하세요.
+          </motion.p>
+        </div>
 
-          <div id="packages-section" className="scroll-mt-24 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
-                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4" />
+        {/* Tier Cards Grid */}
+        <div id="packages-section" className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
+          {packages.map((pkg, idx) => (
+            <motion.div
+              key={pkg.id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 * idx }}
+              className={clsx(
+                "relative group p-8 rounded-[40px] border-2 transition-all flex flex-col h-full overflow-hidden",
+                pkg.isPopular 
+                  ? "bg-gradient-to-b from-orange-500/20 to-orange-500/5 border-[#F39C12] shadow-2xl shadow-orange-500/10" 
+                  : "bg-slate-900/40 border-slate-800 hover:border-slate-700"
+              )}
+            >
+              {pkg.isPopular && (
+                <div className="absolute top-6 right-6">
+                  <span className="bg-[#F39C12] text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg">Most Popular</span>
                 </div>
-                충전 금액 선택
-              </h2>
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Choose Your Package</span>
-            </div>
+              )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {packages.map((pkg) => (
-                <button
-                  key={pkg.id}
+              {/* Icon & Title */}
+              <div className={clsx(
+                "w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-inner",
+                pkg.id === 'tier-1' ? "bg-slate-800 text-slate-300" :
+                pkg.id === 'tier-2' ? "bg-orange-500/20 text-[#F39C12]" :
+                "bg-lime-500/20 text-[#A3E635]"
+              )}>
+                {pkg.icon}
+              </div>
+
+              <div className="flex-1 space-y-6">
+                <div>
+                  <h3 className="text-2xl font-black mb-1">{pkg.title}</h3>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-[1000] tracking-tighter">
+                      {pkg.points.toLocaleString()}
+                    </span>
+                    <span className="text-base font-black opacity-40">P</span>
+                  </div>
+                  {pkg.bonus_points > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5 text-lime-400 font-black text-xs">
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      + {pkg.bonus_points.toLocaleString()} Bonus Points
+                    </div>
+                  )}
+                </div>
+
+                <ul className="space-y-4">
+                  {pkg.features.map((feature, fIdx) => (
+                    <li key={fIdx} className="flex items-start gap-3">
+                      <div className="mt-1 p-0.5 rounded-full bg-white/5 border border-white/10">
+                        <CheckCircle2 className={clsx(
+                          "w-3.5 h-3.5",
+                          pkg.isPopular ? "text-[#F39C12]" : "text-slate-500"
+                        )} />
+                      </div>
+                      <span className="text-sm font-bold text-slate-300 tracking-tight">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-12 pt-8 border-t border-white/5 flex flex-col gap-4">
+                 <div className="flex flex-col">
+                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">One-time Recharge</span>
+                   <span className="text-3xl font-[1000] tracking-tighter">
+                     {pkg.price_amount.toLocaleString()} <span className="text-sm opacity-40 font-black tracking-normal">KRW</span>
+                   </span>
+                 </div>
+                 <button 
                   onClick={() => setSelectedPackage(pkg)}
                   className={clsx(
-                    "relative group p-6 rounded-[28px] border-2 transition-all text-left flex flex-col h-full",
-                    selectedPackage?.id === pkg.id
-                      ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-500/20"
-                      : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900/40"
+                   "w-full py-5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02] active:scale-95 shadow-xl",
+                   selectedPackage?.id === pkg.id 
+                    ? "bg-slate-100 text-slate-900"
+                    : pkg.isPopular 
+                      ? "bg-[#F39C12] text-white shadow-orange-500/20" 
+                      : "bg-slate-800 text-slate-100 hover:bg-slate-700"
                   )}
-                >
-                  <div className="flex-1">
-                    <p className={clsx(
-                      "text-[11px] font-black uppercase tracking-widest mb-3",
-                      selectedPackage?.id === pkg.id ? "text-indigo-200" : "text-slate-400"
-                    )}>
-                      {pkg.name}
-                    </p>
-                    <div className="flex items-baseline gap-1 mb-2">
-                      <span className="text-3xl font-[1000] tracking-tighter">
-                        {pkg.points.toLocaleString()}
-                      </span>
-                      <span className="text-sm font-black opacity-60">P</span>
-                    </div>
-                    {pkg.bonus_points > 0 && (
-                      <div className={clsx(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border",
-                        selectedPackage?.id === pkg.id
-                          ? "bg-white/10 border-white/20 text-white"
-                          : "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-900/30 text-amber-600 dark:text-amber-400"
-                      )}>
-                        <ArrowUpRight className="w-3 h-3" />
-                        +{pkg.bonus_points.toLocaleString()} P 추가적립
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-8 pt-4 border-t border-current/10 flex items-center justify-between">
-                    <span className="text-lg font-black tracking-tight">
-                      {pkg.price_amount.toLocaleString()}원
-                    </span>
-                    <div className={clsx(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                      selectedPackage?.id === pkg.id 
-                        ? "bg-white text-indigo-600" 
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-400"
-                    )}>
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
-                  </div>
+                 >
+                   {selectedPackage?.id === pkg.id ? 'Selected' : 'Select Package'}
+                   <ChevronRight className="w-4 h-4" />
+                 </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
 
-                  {selectedPackage?.id === pkg.id && (
-                    <motion.div 
-                      layoutId="pkg-check"
-                      className="absolute -top-3 -right-3 w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white dark:border-slate-900"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                    </motion.div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <AnimatePresence>
-            {selectedPackage && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="space-y-6"
-              >
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
-                    <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg flex items-center justify-center">
-                      <CreditCard className="w-4 h-4" />
-                    </div>
-                    결제 수단 선택
-                  </h2>
+        {/* Payment & Additional Sections */}
+        <AnimatePresence>
+          {selectedPackage && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="space-y-12"
+            >
+              {/* Payment Methods */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-center text-center">
+                   <div>
+                     <h2 className="text-2xl font-black mb-2">Select Payment Method</h2>
+                     <p className="text-slate-500 text-sm font-bold">간편결제로 빠르고 안전하게 충전하세요.</p>
+                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto">
                   {[
-                    { id: 'kakao', name: '카카오페이', icon: <Smartphone className="w-5 h-5" />, color: 'bg-[#FEE500] text-black' },
-                    { id: 'toss', name: '토스페이', icon: <Smartphone className="w-5 h-5" />, color: 'bg-[#0050FF] text-white' },
-                    { id: 'card', name: '신용/체크카드', icon: <CreditCard className="w-5 h-5" />, color: 'bg-slate-800 dark:bg-slate-200 text-white dark:text-black' },
-                    { id: 'transfer', name: '무통장입금', icon: <Wallet className="w-5 h-5" />, color: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' }
+                    { id: 'kakao', name: '카카오페이', icon: <Smartphone className="w-6 h-6" />, color: 'bg-[#FEE500] text-black' },
+                    { id: 'toss', name: '토스페이', icon: <Smartphone className="w-6 h-6" />, color: 'bg-[#0050FF] text-white' },
+                    { id: 'card', name: '신용/체크카드', icon: <CreditCard className="w-6 h-6" />, color: 'bg-white text-black' },
+                    { id: 'transfer', name: '무통장입금', icon: <Wallet className="w-6 h-6" />, color: 'bg-slate-800 text-slate-300' }
                   ].map((method) => (
                     <button
                       key={method.id}
                       onClick={() => setPaymentMethod(method.id as any)}
                       className={clsx(
-                        "relative flex flex-col items-center justify-center gap-3 p-6 rounded-[24px] border-2 transition-all group",
+                        "relative flex flex-col items-center justify-center gap-4 p-8 rounded-[32px] border-2 transition-all group overflow-hidden",
                         paymentMethod === method.id
-                          ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
-                          : "border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                          ? "border-[#F39C12] bg-[#F39C12]/5"
+                          : "border-slate-800 hover:border-slate-700 bg-slate-900/40"
                       )}
                     >
                       <div className={clsx(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-110",
+                        "w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110",
                         method.color
                       )}>
                         {method.icon}
                       </div>
                       <span className="text-xs font-black tracking-tight">{method.name}</span>
                       {paymentMethod === method.id && (
-                        <div className="absolute top-3 right-3 w-4 h-4 bg-indigo-600 text-white rounded-full flex items-center justify-center">
-                          <CheckCircle2 className="w-2.5 h-2.5 shadow-sm" />
+                        <div className="absolute top-4 right-4 w-5 h-5 bg-[#F39C12] text-white rounded-full flex items-center justify-center">
+                          <CheckCircle2 className="w-3 h-3 shadow-sm" />
                         </div>
                       )}
                     </button>
                   ))}
                 </div>
 
-                <div className="p-8 glass-panel rounded-[32px] flex flex-col sm:flex-row items-center justify-between gap-6">
+                {/* Final Checkout */}
+                <div className="max-w-4xl mx-auto mt-10 p-10 bg-slate-900/50 border border-slate-800 rounded-[48px] flex flex-col sm:flex-row items-center justify-between gap-8">
                    <div className="text-center sm:text-left">
-                     <p className="text-slate-400 font-bold text-sm mb-1">최종 결제 금액</p>
-                     <p className="text-3xl font-[1000] text-slate-800 dark:text-white tracking-tighter">
-                       {selectedPackage.price_amount.toLocaleString()}원
-                     </p>
-                     <p className="text-[11px] text-indigo-600 dark:text-amber-400 font-black uppercase mt-1">
-                       Total Points: {(selectedPackage.points + selectedPackage.bonus_points).toLocaleString()} P
+                     <p className="text-slate-500 font-bold text-sm mb-1 uppercase tracking-widest">Final Amount</p>
+                     <div className="flex items-baseline gap-2">
+                       <span className="text-4xl font-[1000] tracking-tighter">
+                         {selectedPackage.price_amount.toLocaleString()}
+                       </span>
+                       <span className="text-xl font-black opacity-40">KRW</span>
+                     </div>
+                     <p className="text-xs font-black text-lime-400 mt-2 uppercase tracking-tight">
+                       Receive {(selectedPackage.points + selectedPackage.bonus_points).toLocaleString()} Rhythm Points
                      </p>
                    </div>
                    <button
                      disabled={!paymentMethod || isProcessing}
                      onClick={handleRecharge}
-                     className="w-full sm:w-auto px-12 py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-[24px] font-[950] text-lg shadow-xl shadow-indigo-500/10 hover:translate-y-[-2px] hover:shadow-indigo-500/20 disabled:opacity-50 disabled:translate-y-0 transition-all flex items-center justify-center gap-3"
+                     className={clsx(
+                       "w-full sm:w-auto px-16 py-6 bg-[#F39C12] hover:bg-[#E67E22] text-white rounded-[24px] font-[950] text-xl shadow-2xl shadow-orange-500/20 hover:translate-y-[-4px] active:translate-y-0 disabled:opacity-50 disabled:translate-y-0 transition-all flex items-center justify-center gap-4",
+                       isProcessing && "cursor-not-allowed"
+                     )}
                    >
                      {isProcessing ? (
                        <>
-                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                         결제 처리 중...
+                         <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                         Processing Payment...
                        </>
                      ) : (
-                       '지금 충전하기'
+                       <>
+                         <Zap className="w-6 h-6" />
+                         Recharge Now
+                       </>
                      )}
                    </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* Transaction History Section */}
-          <div className="space-y-6 pt-10">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
-                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg flex items-center justify-center">
-                  <History className="w-4 h-4" />
-                </div>
-                포인트 이용 내역
-              </h2>
-            </div>
+        {/* Footer Link & Usage History */}
+        <div className="pt-20 space-y-12">
+          <div className="flex flex-col items-center justify-center text-center gap-8 border-t border-slate-800 pt-16">
+             <div className="flex items-center gap-10">
+               <div className="flex flex-col items-center gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
+                 <Smartphone className="w-8 h-8" />
+                 <span className="text-[10px] font-black uppercase text-center">KakaoPay</span>
+               </div>
+               <div className="flex flex-col items-center gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
+                 <Smartphone className="w-8 h-8" />
+                 <span className="text-[10px] font-black uppercase text-center">Toss</span>
+               </div>
+               <div className="flex flex-col items-center gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
+                 <CreditCard className="w-8 h-8" />
+                 <span className="text-[10px] font-black uppercase text-center">Cards</span>
+               </div>
+             </div>
 
-            <div className="glass-panel rounded-[32px] overflow-hidden">
+             <div className="flex flex-col items-center gap-4">
+               <button 
+                onClick={() => document.getElementById('history-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="group flex items-center gap-3 text-slate-500 hover:text-[#F39C12] font-black text-sm tracking-tight transition-colors"
+               >
+                 <History className="w-4 h-4 transition-transform group-hover:rotate-[-180deg]" />
+                 Check Point Usage History
+                 <ArrowUpRight className="w-4 h-4" />
+               </button>
+               <p className="text-[10px] text-slate-700 font-bold max-w-sm">
+                 All transactions are secured with 256-bit SSL encryption. Rhythm Points are non-refundable after use.
+               </p>
+             </div>
+          </div>
+
+          {/* Usage History Details */}
+          <div id="history-section" className="scroll-mt-24 space-y-8 pb-20">
+            <h2 className="text-2xl font-black flex items-center gap-3">
+              <Award className="w-6 h-6 text-lime-400" />
+              Point Usage Details
+            </h2>
+
+            <div className="glass-panel overflow-hidden border border-slate-800">
                {history.length > 0 ? (
-                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                 <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left">
                       <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800/50">
-                          <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">DATE</th>
-                          <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">CATEGORY</th>
-                          <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest">DESCRIPTION</th>
-                          <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">AMOUNT</th>
+                        <tr className="bg-slate-900/50 border-b border-slate-800">
+                          <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Date</th>
+                          <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</th>
+                          <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">Description</th>
+                          <th className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Points</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                      <tbody className="divide-y divide-slate-800/30">
                         {history.map((item) => (
-                           <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                             <td className="px-8 py-5">
-                               <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold text-xs">
-                                 <Clock className="w-3 h-3" />
+                           <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                             <td className="px-8 py-6">
+                               <div className="flex items-center gap-3 text-slate-500 font-bold text-xs">
+                                 <Clock className="w-3.5 h-3.5" />
                                  {format(new Date(item.created_at), 'yyyy-MM-dd')}
                                </div>
                              </td>
-                             <td className="px-8 py-5 px-8">
+                             <td className="px-8 py-6">
                                <span className={clsx(
-                                 "text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider",
+                                 "text-[9px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider",
                                  item.amount > 0 
-                                   ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
-                                   : "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                   ? "bg-lime-500/10 text-lime-400" 
+                                   : "bg-orange-500/10 text-orange-400"
                                )}>
                                  {item.amount > 0 ? 'RECHARGE' : 'SPENT'}
                                </span>
                              </td>
-                             <td className="px-8 py-5">
-                               <p className="text-sm font-black text-slate-700 dark:text-slate-200 tracking-tight">{item.reason}</p>
+                             <td className="px-8 py-6">
+                               <p className="text-sm font-black text-slate-300 tracking-tight">{item.reason}</p>
                              </td>
-                             <td className="px-8 py-5 text-right">
+                             <td className="px-8 py-6 text-right">
                                <p className={clsx(
-                                 "text-[15px] font-[950] tracking-tighter",
-                                 item.amount > 0 ? "text-emerald-600" : "text-rose-600"
+                                 "text-lg font-[1000] tracking-tighter",
+                                 item.amount > 0 ? "text-lime-400" : "text-white"
                                )}>
-                                 {item.amount > 0 ? `+${item.amount.toLocaleString()}` : item.amount.toLocaleString()} P
+                                 {item.amount > 0 ? `+${item.amount.toLocaleString()}` : item.amount.toLocaleString()}
                                </p>
                              </td>
                            </tr>
@@ -432,8 +487,8 @@ export default function PointRecharge() {
                  </div>
                ) : (
                  <div className="py-24 text-center">
-                    <History className="w-12 h-12 text-slate-200 dark:text-slate-800 mx-auto mb-4" />
-                    <p className="text-slate-400 font-bold">이용 내역이 존재하지 않습니다.</p>
+                    <History className="w-12 h-12 text-slate-800 mx-auto mb-4" />
+                    <p className="text-slate-600 font-bold">이용 내역이 존재하지 않습니다.</p>
                  </div>
                )}
             </div>
@@ -450,27 +505,27 @@ export default function PointRecharge() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={resetState}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-xl"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl overflow-hidden p-8 text-center"
+              className="relative w-full max-w-sm bg-slate-900 border border-slate-800 rounded-[48px] shadow-2xl overflow-hidden p-10 text-center"
             >
-              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-lime-500/20 text-lime-400 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">충전 완료!</h3>
-              <p className="text-slate-500 dark:text-slate-400 font-bold mb-8">
-                성공적으로 포인트가 충전되었습니다.<br/>
-                이제 더 많은 행사를 즐겨보세요!
+              <h3 className="text-3xl font-black text-white mb-2 tracking-tighter">Level Up!</h3>
+              <p className="text-slate-400 font-bold mb-10 leading-relaxed">
+                포인트가 성공적으로 충전되었습니다.<br/>
+                이제 댄스하이브의 프리미엄 기능을 즐겨보세요!
               </p>
               <button
                 onClick={resetState}
-                className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-[950] shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                className="w-full py-5 bg-[#F39C12] text-white rounded-2xl font-[950] text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
               >
-                닫기
+                Let's Dance
               </button>
             </motion.div>
           </div>

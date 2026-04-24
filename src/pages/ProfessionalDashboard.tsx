@@ -5,7 +5,7 @@ import {
   Music, GraduationCap, Camera, CalendarDays, Star, Settings, PlayCircle, Users, 
   ImageIcon as ImageIcon, Briefcase, ChevronRight, CheckCircle2, XCircle, Clock, 
   Plus, BarChart3, CreditCard, PenTool, User, X, BookOpen, MessageSquare, 
-  Layout, Headphones, Video, Layers, ListMusic, UserCheck
+  Layout, Headphones, Video, Layers, ListMusic, UserCheck, Coins, Bot
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -55,7 +55,9 @@ export default function ProfessionalDashboard() {
     participant: [] // Should not really be here but for safety
   };
 
-  const currentRoleMenus = [...(roleMenus[profile?.role || 'host'] || roleMenus.host), { key: 'profile', label: '프로필 설정', icon: <Settings className="w-5 h-5" /> }];
+  const currentRoleMenus = [...(roleMenus[profile?.role || 'host'] || roleMenus.host), 
+    { key: 'profile', label: '프로필 설정', icon: <Settings className="w-5 h-5" /> }
+  ];
   
   // Image handling from EditEvent.tsx logic
   const portfolioFileInputRef = useRef<HTMLInputElement>(null);
@@ -887,6 +889,27 @@ export default function ProfessionalDashboard() {
                 {activeMenu === item.key && <ChevronRight className="w-4 h-4" />}
               </button>
             ))}
+
+            <div className="my-4 h-px bg-slate-100/50 dark:bg-slate-800/50 mx-2"></div>
+            
+            <Link 
+              to="/points"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white group"
+            >
+              <div className="flex items-center gap-3">
+                <Coins className="w-5 h-5 text-amber-500 transition-transform group-hover:scale-110" />
+                포인트 충전
+              </div>
+            </Link>
+            <Link 
+              to="/ai-settings"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white group"
+            >
+              <div className="flex items-center gap-3">
+                <Bot className="w-5 h-5 text-indigo-500 transition-transform group-hover:scale-110" />
+                AI API 설정
+              </div>
+            </Link>
           </nav>
         </div>
       </div>

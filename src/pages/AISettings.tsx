@@ -161,12 +161,19 @@ export default function AISettings() {
         <div className="flex items-center gap-3">
           <div className="px-5 py-3 glass-panel rounded-2xl flex items-center gap-4 border border-slate-200 dark:border-slate-800">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Monthly Usage</span>
-              <span className="text-lg font-black text-slate-800 dark:text-white">$12.50 / $50.00</span>
-            </div>
-            <div className="w-px h-8 bg-slate-100 dark:bg-slate-800"></div>
-            <div className="text-right">
-              <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">25.0%</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">Service Status Summary</span>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500">OpenAI:</span>
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded uppercase">Active</span>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">| 사용량: $12.50 / $50.00 (25%)</span>
+                </div>
+                <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-6">
+                  <span className="text-xs font-bold text-slate-500">Gemini:</span>
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded uppercase">Active</span>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">| 사용량: 45,000 / 1,000,000 Free Tokens</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -282,7 +289,7 @@ export default function AISettings() {
                 {/* Safety / Limit Settings */}
                 <div className="space-y-2">
                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Settings2 className="w-3.5 h-3.5" /> Safety Rank
+                    <Settings2 className="w-3.5 h-3.5" /> {service.provider === 'openai' ? '사용량 제한 설정' : 'Safety Settings(안전 등급)'}
                    </label>
                    <div className="flex items-center gap-1.5">
                      {['Low', 'Standard', 'High'].map((lv) => (
@@ -352,12 +359,12 @@ export default function AISettings() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800/50">
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Timestamp</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Service</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Model</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Purpose</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Tokens</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Cost</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">시간 (Time)</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">서비스 (Service)</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">모델 (Model)</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">요청 내용 요약 (Prompt)</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">토큰 수 (Tokens)</th>
+                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">비용 (Cost)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">

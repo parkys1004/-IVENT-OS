@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, MapPin, Users, CalendarDays, Clock, Flame, Ticket, Heart, MessageSquare, 
   Settings, ChevronRight, Lock, ArrowUpDown, Camera, User, Plus, BarChart3, 
-  Award, Trophy, Zap, LayoutGrid, List, QrCode, TrendingUp, Archive, Gift, Compass,
+  Award, Trophy, Zap, LayoutGrid, List, QrCode, TrendingUp, Archive, Gift, Compass, Coins, Bot,
   CheckCircle2, AlertCircle, Info, Star, Music, Filter, Sparkles
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -1312,6 +1312,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold transition-all text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
               >
                 <Coins className="w-5 h-5 text-amber-500" /> 포인트 충전
+              </Link>
+              <Link 
+                to="/ai-settings"
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold transition-all text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
+              >
+                <Bot className="w-5 h-5 text-indigo-500" /> AI API 설정
               </Link>
             </div>
           </nav>

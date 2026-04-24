@@ -37,72 +37,20 @@ export default function Login() {
     }
 
     try {
-      // AI Studio의 iframe 환경에서는 팝업 방식의 로그인이 필요합니다.
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // 사용자가 요청한 리다이렉트 방식의 로그인 적용
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-          skipBrowserRedirect: true,
+          skipBrowserRedirect: false, // 팝업이 아닌 페이지 이동 방식
         }
       });
       
       if (error) throw error;
+      
+      // skipBrowserRedirect: false 인 경우 supabase가 자동으로 페이지를 리다이렉트합니다.
+      // 따라서 별도의 팝업 처리나 후속 로직이 필요하지 않습니다.
 
-      if (data?.url) {
-        const width = 500;
-        const height = 600;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        const popup = window.open(
-          data.url,
-          'google-login',
-          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,status=no`
-        );
-
-        if (!popup) {
-          setErrorMsg("팝업 차단이 감지되었습니다. 팝업 허용 후 다시 시도해주세요.");
-          return;
-        }
-
-        // Listen for the message from the popup
-        const handleAuthMessage = async (event: MessageEvent) => {
-          if (event.origin !== window.location.origin) return;
-          
-          if (event.data?.type === 'SUPABASE_AUTH_SUCCESS') {
-            window.removeEventListener('message', handleAuthMessage);
-            setLoading(true);
-            
-            // Force a session refresh
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              navigate('/');
-            } else {
-              // Wait a bit more and try again
-              setTimeout(async () => {
-                const { data: { session: retrySession } } = await supabase.auth.getSession();
-                if (retrySession) navigate('/');
-              }, 1000);
-            }
-          }
-        };
-
-        window.addEventListener('message', handleAuthMessage);
-
-        // Fallback: Still monitor popup closure
-        const checkPopup = setInterval(async () => {
-          if (popup.closed) {
-            clearInterval(checkPopup);
-            // Give it a moment to sync storage
-            setTimeout(async () => {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (session) {
-                navigate('/');
-              }
-            }, 500);
-          }
-        }, 1000);
-      }
     } catch (error: any) {
       setErrorMsg(`로그인 처리 중 문제가 발생했습니다. (${error.message || '오류'})`);
       window.sessionStorage.removeItem('intendedRole');

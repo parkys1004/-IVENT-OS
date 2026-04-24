@@ -57,7 +57,7 @@ function SupabaseConfigWarning() {
 }
 
 function AppContent() {
-  const { profile, viewMode } = useAuth();
+  const { profile, viewMode, authError } = useAuth();
   const location = useLocation();
 
   // Handle OAuth Redirect and Popup Closing
@@ -93,6 +93,11 @@ function AppContent() {
       "text-slate-800 dark:text-slate-100 font-sans flex flex-col transition-colors duration-200",
       isDashboardView ? "h-screen overflow-hidden" : "min-h-screen"
     )}>
+      {authError && (
+        <div className="bg-red-500 text-white text-xs py-1 px-4 text-center font-bold relative z-[9999]">
+          ⚠️ 보안 데이터 연결/생성 오류: {authError} (임시 프로필로 접속 중)
+        </div>
+      )}
       <Navbar />
       <AnimatedBackground />
       <main className={clsx(

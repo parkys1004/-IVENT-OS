@@ -32,6 +32,7 @@ interface AuthContextType {
   loading: boolean;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  authError?: string | null;
   refreshProfile: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true, 
   viewMode: 'participant', 
   setViewMode: () => {}, 
+  authError: null,
   refreshProfile: async () => {},
   logout: async () => {}
 });
@@ -51,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('participant');
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -58,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string, currentUser?: User) => {
     console.log("Fetching profile for user:", userId);
+    setAuthError(null);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -67,16 +71,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error("Supabase profile error:", error);
+        setAuthError(error.message);
         throw error;
       }
       
+      const activeUser = currentUser || user;
+      const userEmail = activeUser?.email?.toLowerCase() || data?.email?.toLowerCase();
+
       if (data) {
         console.log("Profile found:", data.display_name, "Role:", data.role);
 
-        // Source of truth for email check should be the auth user if available
-        const activeUser = currentUser || user;
-        const userEmail = activeUser?.email?.toLowerCase() || data.email?.toLowerCase();
-        
         // Auto-promote admin email (case-insensitive)
         if (userEmail === 'aimaster1004@gmail.com') {
           if (data.role !== 'admin') {
@@ -93,12 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setViewMode('admin');
             } else {
               console.error("Promotion failed:", updateError);
+              setAuthError(`Promotion failed: ${updateError.message}`);
             }
           } else {
-             // Already admin in DB, ensure viewMode is correct if not already set
-             // This helps if they were already admin but viewMode defaulted to participant
              if (viewMode !== 'admin') {
-               console.log("User is admin in DB but viewMode is not admin. Fixing...");
                setViewMode('admin');
              }
           }
@@ -117,7 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        // ALWAYS clear intendedRole once we have a profile (either found or updated)
         window.sessionStorage.removeItem('intendedRole'); 
 
         const mappedProfile: UserProfile = {
@@ -126,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: data.display_name,
           photoURL: data.photo_url,
           role: data.role as UserRole,
-          isApproved: data.is_approved ?? true, // Default to true for better demo experience
+          isApproved: data.is_approved ?? true,
           createdAt: data.created_at,
           points: data.points,
           followersCount: data.followers_count,
@@ -141,21 +142,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setProfile(mappedProfile);
         
-        // Initial viewMode logic
         if (data.role === 'admin') setViewMode('admin');
         else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
         else setViewMode('participant');
       } else {
-        // No profile record found, but we have userId (potential new user)
-        const activeUser = currentUser || user;
         if (activeUser) {
           console.log("No profile record found. Creating initial profile...");
           
-          // Get intended role from sessionStorage (set by Login.tsx)
           const storedRole = window.sessionStorage.getItem('intendedRole');
           const intendedRole = (storedRole as UserRole) || 'participant';
-
-          // Check if this specific email should be admin (case-insensitive)
           const isAdminEmail = activeUser.email?.toLowerCase() === 'aimaster1004@gmail.com';
           const assignedRole = isAdminEmail ? 'admin' : intendedRole;
 
@@ -165,8 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             display_name: activeUser.user_metadata?.full_name || activeUser.email?.split('@')[0] || 'User',
             photo_url: activeUser.user_metadata?.avatar_url || '',
             role: assignedRole,
-            is_approved: true, // Auto-approve all for demo
-            points: 1000, // Welcome points
+            is_approved: true,
+            points: 1000,
             created_at: new Date().toISOString()
           };
 
@@ -177,21 +172,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
 
           if (createError) {
+            setAuthError(`Creation failed: ${createError.message}`);
             if (createError.code === '23505') {
-              // Unique constraint violation - likely another parallel call succeeded.
-              // Just re-fetch the profile one last time.
               const { data: reFetch } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
               if (reFetch) {
-                console.log("Parallel creation detected, profile found on re-fetch.");
-                // Recursive call (one-time)
                 fetchProfile(userId, currentUser);
                 return;
               }
             }
             console.error("Failed to create profile:", createError);
+            
+            // EMERGENCY FALLBACK if creation completely fails
+            setProfile({
+              uid: userId,
+              email: activeUser.email || '',
+              displayName: activeUser.user_metadata?.full_name || 'Fallback User',
+              photoURL: activeUser.user_metadata?.avatar_url || '',
+              role: assignedRole,
+              isApproved: true,
+              createdAt: new Date().toISOString(),
+              points: 1000
+            });
+            if (assignedRole === 'admin') setViewMode('admin');
           } else if (createdData) {
             console.log("Profile created successfully:", createdData);
-            window.sessionStorage.removeItem('intendedRole'); // ONLY clear if creation succeeded or exists
+            window.sessionStorage.removeItem('intendedRole');
             
             const mappedCreatedProfile: UserProfile = {
               uid: createdData.id,
@@ -209,12 +214,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             else if (['host', 'dj', 'instructor', 'media'].includes(createdData.role)) setViewMode('professional');
             else setViewMode('participant');
           }
-        } else {
-          console.warn("User has no profile record and no user object available.");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Critical failure in fetchProfile:", error);
+      setAuthError(error.message || "Unknown error occurred");
+      
+      // EMERGENCY FALLBACK for critical failure
+      if (currentUser || user) {
+        const activeUser = currentUser || user;
+        if (activeUser) {
+           const isAdminEmail = activeUser.email?.toLowerCase() === 'aimaster1004@gmail.com';
+           setProfile({
+              uid: userId,
+              email: activeUser.email || '',
+              displayName: activeUser.user_metadata?.full_name || 'Fallback User',
+              photoURL: activeUser.user_metadata?.avatar_url || '',
+              role: isAdminEmail ? 'admin' : 'participant',
+              isApproved: true,
+              createdAt: new Date().toISOString(),
+              points: 1000
+           });
+           if (isAdminEmail) setViewMode('admin');
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -273,7 +296,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, viewMode, setViewMode, refreshProfile, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, viewMode, setViewMode, authError, refreshProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

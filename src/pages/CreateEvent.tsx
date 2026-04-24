@@ -456,6 +456,8 @@ export default function CreateEvent() {
                <option value="kizomba">키좀바 (Kizomba)</option>
                <option value="salsa_bachata">살사/바차타 (Salsa/Bachata)</option>
                <option value="sal_ba_ki">살바키 (Sal-Ba-Ki)</option>
+               <option value="party">파티 (Party)</option>
+               <option value="lesson">강습 (Lesson)</option>
              </select>
           </div>
           <div>

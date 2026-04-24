@@ -113,7 +113,10 @@ export default function EditEvent() {
             tickets: meta.tickets || [],
           });
 
-          const loadedImages = data.image_url ? [data.image_url] : [];
+          const loadedImages = [
+            ...(data.image_url ? [data.image_url] : []),
+            ...(meta.additionalImages || [])
+          ];
           setImages(loadedImages);
           setCoverImageIndex(0);
         } else {
@@ -233,6 +236,9 @@ export default function EditEvent() {
       // We maintain imageUrl for backwards compatibility, using the selected cover image.
       const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
 
+      // Reset status to pending for non-admins to require re-approval after edits
+      const newStatus = isAdmin ? eventData.status : 'pending';
+
       const { data, error } = await supabase
         .from('events')
         .update({
@@ -244,6 +250,7 @@ export default function EditEvent() {
           location_name: formData.locationName,
           image_url: mainImageUrl, 
           max_attendees: Number(formData.maxAttendees),
+          status: newStatus,
           metadata: {
             endDate: endDate.toISOString(),
             formattedAddress: formData.formattedAddress,
@@ -255,7 +262,8 @@ export default function EditEvent() {
             media: formData.media.filter(m => m.trim()),
             tickets: formData.tickets.filter(t => t.name.trim()),
             paymentMethod: formData.paymentMethod,
-            maxAttendees: Number(formData.maxAttendees)
+            maxAttendees: Number(formData.maxAttendees),
+            additionalImages: images.filter((_, i) => i !== coverImageIndex)
           }
         })
         .eq('id', id);
@@ -329,19 +337,9 @@ export default function EditEvent() {
   }
 
   // Check permissions: only host or admin can edit
-  const isHost = user && eventData?.hostId === user.uid;
+  const isHost = user && eventData?.host_id === user.id;
   const isAdmin = profile?.role === 'admin';
   
-  if (loadError) {
-    return (
-      <div className="max-w-[1000px] mx-auto glass-panel rounded-[24px] p-12 text-center">
-        <h2 className="text-xl font-bold text-red-600 mb-2">지구본 로드 실패</h2>
-        <p className="text-slate-500 mb-4">구글 맵 서비스를 불러올 수 없습니다. 인터넷 연결을 확인해주세요.</p>
-        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-slate-800 text-white rounded-lg font-bold">새로고침</button>
-      </div>
-    );
-  }
-
   if (!isHost && !isAdmin) {
     return (
       <div className="text-center py-20">

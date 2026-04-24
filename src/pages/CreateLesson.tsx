@@ -189,7 +189,13 @@ export default function CreateLesson() {
             endDate: endDateTime.toISOString(),
             level: formData.level,
             maxAttendees: Number(formData.maxAttendees),
-            isLesson: true
+            isLesson: true,
+            tickets: formData.tickets.filter(t => t.name.trim()),
+            paymentMethod: formData.paymentMethod,
+            formattedAddress: formData.formattedAddress,
+            city: formData.city,
+            country: formData.country,
+            geoPoint: formData.geoPoint,
           }
         })
         .select()
@@ -206,6 +212,16 @@ export default function CreateLesson() {
       setLoading(false);
     }
   };
+
+  if (!user || !['admin', 'host', 'dj', 'instructor', 'media'].includes(profile?.role || '')) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-2xl font-bold text-slate-800">접근 권한이 없습니다</h2>
+        <p className="text-slate-500 mt-2">강습 주최자 또는 전문가 계정만 접근할 수 있습니다.</p>
+        <button onClick={() => navigate('/')} className="mt-4 text-teal-600 font-bold hover:text-teal-700 transition-colors">메인으로 돌아가기</button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">

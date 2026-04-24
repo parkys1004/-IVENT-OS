@@ -343,19 +343,38 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
           if (error) throw error;
           
-          const mappedRegs = data.map((r: any) => ({
-            id: r.id,
-            status: r.status,
-            registeredAt: r.registered_at,
-            event: {
-              id: r.event.id,
-              title: r.event.title,
-              category: r.event.category,
-              imageUrl: r.event.image_url,
-              date: r.event.date,
-              locationName: r.event.location_name
-            } as unknown as EventData
-          }));
+          const mappedRegs = data.map((r: any) => {
+            if (!r.event) {
+              // This might be a class or a deleted event
+              return {
+                id: r.id,
+                status: r.status,
+                registeredAt: r.registered_at,
+                event: {
+                  id: 'unknown',
+                  title: '알 수 없는 행사 또는 강습',
+                  category: 'unknown',
+                  imageUrl: '',
+                  date: r.registered_at,
+                  locationName: '정보 없음'
+                } as unknown as EventData
+              };
+            }
+
+            return {
+              id: r.id,
+              status: r.status,
+              registeredAt: r.registered_at,
+              event: {
+                id: r.event.id,
+                title: r.event.title,
+                category: r.event.category,
+                imageUrl: r.event.image_url,
+                date: r.event.date,
+                locationName: r.event.location_name
+              } as unknown as EventData
+            };
+          });
 
           setRegistrations(mappedRegs);
         } catch (error) {

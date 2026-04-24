@@ -67,15 +67,20 @@ export default function MyPage() {
 
         if (error) throw error;
         
-        const mappedRegs = data?.map((reg: any) => ({
-          id: reg.id,
-          eventId: reg.event_id,
-          status: reg.status,
-          registeredAt: reg.registered_at,
-          eventTitle: reg.event?.title || '알 수 없는 행사',
-          eventDate: reg.event?.date,
-          isLesson: reg.event?.is_lesson || false,
-        })) || [];
+        const mappedRegs = data?.map((reg: any) => {
+          // If reg.event is null (could happen if it's a class or deleted), provide fallbacks
+          const eventInfo = reg.event || { title: '알 수 없는 행사', date: null, is_lesson: false };
+          
+          return {
+            id: reg.id,
+            eventId: reg.event_id,
+            status: reg.status,
+            registeredAt: reg.registered_at,
+            eventTitle: eventInfo.title,
+            eventDate: eventInfo.date,
+            isLesson: eventInfo.is_lesson,
+          };
+        }) || [];
         
         setRegistrations(mappedRegs);
       } catch (error) {

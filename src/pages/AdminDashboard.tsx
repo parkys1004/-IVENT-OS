@@ -358,8 +358,8 @@ export default function AdminDashboard() {
       const { error } = await supabase.from(tableName).update({ status: 'published' }).eq('id', eventId);
       
       if (error) {
-        if (error.message.includes('relation "classes" does not exist') || error.message.includes('column "status" of relation "classes" does not exist')) {
-          alert('강습은 승인 절차가 필요하지 않거나 테이블 구조가 다릅니다.');
+        if (error.message.includes('column "status" of relation "classes" does not exist')) {
+          alert('강습 테이블에 status 컬럼이 없습니다. SQL Editor에서 "alter table public.classes add column status text default \'pending\';" 을 실행해주세요.');
           return;
         }
         throw error;

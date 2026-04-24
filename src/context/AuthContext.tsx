@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, currentUser?: User) => {
     console.log("Fetching profile for user:", userId);
     try {
       const { data, error } = await supabase
@@ -96,7 +96,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
         else setViewMode('participant');
       } else {
-        console.warn("User has no profile record in 'profiles' table.");
+        // No profile record found, but we have userId (potential new user)
+        const activeUser = currentUser || user;
+        if (activeUser) {
+          console.log("No profile record found. Creating initial profile...");
+          
+          // Get intended role from sessionStorage (set by Login.tsx)
+          const intendedRole = window.sessionStorage.getItem('intendedRole') as UserRole || 'participant';
+          window.sessionStorage.removeItem('intendedRole'); // Clear it once used
+
+          const newProfile = {
+            id: userId,
+            email: activeUser.email,
+            display_name: activeUser.user_metadata?.full_name || activeUser.email?.split('@')[0] || 'User',
+            photo_url: activeUser.user_metadata?.avatar_url || '',
+            role: intendedRole,
+            points: 1000, // Welcome points
+            created_at: new Date().toISOString()
+          };
+
+          const { data: createdData, error: createError } = await supabase
+            .from('profiles')
+            .insert(newProfile)
+            .select()
+            .single();
+
+          if (createError) {
+            console.error("Failed to create profile:", createError);
+          } else if (createdData) {
+            console.log("Profile created successfully:", createdData);
+            const mappedCreatedProfile: UserProfile = {
+              uid: createdData.id,
+              email: createdData.email,
+              displayName: createdData.display_name,
+              photoURL: createdData.photo_url,
+              role: createdData.role as UserRole,
+              createdAt: createdData.created_at,
+              points: createdData.points
+            };
+            setProfile(mappedCreatedProfile);
+            
+            if (createdData.role === 'admin') setViewMode('admin');
+            else if (['host', 'dj', 'instructor', 'media'].includes(createdData.role)) setViewMode('professional');
+            else setViewMode('participant');
+          }
+        } else {
+          console.warn("User has no profile record and no user object available.");
+        }
       }
     } catch (error) {
       console.error("Critical failure in fetchProfile:", error);
@@ -106,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user.id, user);
   };
 
   useEffect(() => {
@@ -126,10 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Session fetched:", session ? "User active" : "No session");
-      setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        setUser(session.user);
+        fetchProfile(session.user.id, session.user);
       } else {
+        setUser(null);
         setLoading(false);
       }
     }).catch(err => {
@@ -140,10 +187,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log("Auth state change event:", _event);
-      setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        setUser(session.user);
+        fetchProfile(session.user.id, session.user);
       } else {
+        setUser(null);
         setProfile(null);
         setLoading(false);
       }

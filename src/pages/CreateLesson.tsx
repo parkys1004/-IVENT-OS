@@ -171,9 +171,39 @@ export default function CreateLesson() {
         }
       }
 
-      const { data, error } = await supabase
+      // 2. Insert into events first (Master table for all bookable items)
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          date: formData.date,
+          time: formData.time,
+          end_date: formData.endDate || formData.date,
+          end_time: formData.endTime || formData.time,
+          location_name: formData.locationName,
+          address: formData.formattedAddress,
+          lat: formData.geoPoint?.lat,
+          lng: formData.geoPoint?.lng,
+          image_url: formData.imageUrl,
+          host_id: user.id,
+          max_attendees: formData.maxAttendees,
+          is_lesson: true,
+          status: initialStatus,
+          price: formData.tickets[0]?.price || 0,
+          ticket_info: formData.tickets // Store all tickets in JSONB
+        })
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      // 3. Insert into classes using the same ID (Specialized metadata)
+      const { error: classError } = await supabase
         .from('classes')
         .insert({
+          id: eventData.id, // Use the same ID!
           title: formData.title,
           instructor_id: user.id,
           level: formData.level,
@@ -186,13 +216,15 @@ export default function CreateLesson() {
           address: formData.formattedAddress,
           lat: formData.geoPoint?.lat,
           lng: formData.geoPoint?.lng
-        })
-        .select()
-        .single();
+        });
 
-      if (error) throw error;
-      if (data) {
-        navigate(`/event/${data.id}`);
+      if (classError) {
+        console.error("Partial failure: Events record created but Classes record failed.", classError);
+        // We continue because even with just events, the lesson will show up
+      }
+
+      if (eventData) {
+        navigate(`/event/${eventData.id}`);
       }
     } catch (error) {
       handleSupabaseError(error, 'create', 'events', user?.id || '');

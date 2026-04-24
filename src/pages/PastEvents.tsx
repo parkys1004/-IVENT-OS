@@ -51,11 +51,14 @@ export default function PastEvents() {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
 
-        const mappedEvents = reallyPassed.map(e => ({
-          ...e,
-          maxAttendees: e.max_attendees || 0,
-          currentAttendees: regCounts[e.id] || 0
-        }));
+        const mappedEvents = reallyPassed.map(e => {
+          const meta = e.metadata || {};
+          return {
+            ...e,
+            maxAttendees: meta.maxAttendees || e.max_attendees || 0,
+            currentAttendees: regCounts[e.id] || 0
+          };
+        });
 
         setEvents(mappedEvents);
       } catch (error) {

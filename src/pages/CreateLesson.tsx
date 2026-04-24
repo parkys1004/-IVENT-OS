@@ -179,11 +179,11 @@ export default function CreateLesson() {
           date: startDateTime.toISOString(),
           location_name: formData.locationName,
           image_url: formData.imageUrl,
-          max_attendees: formData.maxAttendees,
           host_id: user.id,
           status: initialStatus,
           is_lesson: true,
           metadata: {
+            maxAttendees: Number(formData.maxAttendees),
             level: formData.level,
             tickets: formData.tickets,
             paymentMethod: formData.paymentMethod,

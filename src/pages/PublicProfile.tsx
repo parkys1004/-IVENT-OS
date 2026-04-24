@@ -270,8 +270,8 @@ export default function PublicProfile() {
                     locationName: event.location_name,
                     category: event.category,
                     imageUrl: event.image_url,
-                    currentAttendees: event.current_attendees || 0,
-                    maxAttendees: event.max_attendees || 100,
+                    currentAttendees: (event.metadata as any)?.currentAttendees || event.current_attendees || 0,
+                    maxAttendees: (event.metadata as any)?.maxAttendees || event.max_attendees || 100,
                     status: event.status || 'published',
                     isLesson: event.is_lesson
                   }} />

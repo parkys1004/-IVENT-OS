@@ -96,7 +96,7 @@ export default function CategoryExplore() {
           isLesson: e.is_lesson,
           likesCount: e.likes_count,
           createdAt: e.created_at,
-          maxAttendees: e.max_attendees || 0,
+          maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || 0,
           currentAttendees: regCounts[e.id] || 0
         })) as any;
         

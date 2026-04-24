@@ -224,7 +224,7 @@ export default function AdminDashboard() {
         hostName: profileMap[e.host_id] || '알 수 없는 사용자',
         isLesson: e.is_lesson,
         priority: e.priority || 0,
-        maxAttendees: e.max_attendees || 0,
+        maxAttendees: (e.metadata as any)?.maxAttendees || e.max_attendees || 0,
         currentAttendees: regCounts[e.id] || 0
       })));
 

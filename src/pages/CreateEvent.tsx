@@ -293,12 +293,12 @@ export default function CreateEvent() {
           date: startDate.toISOString(),
           location_name: formData.locationName,
           image_url: mainImageUrl, 
-          max_attendees: Number(formData.maxAttendees),
           host_id: user.id,
           status: initialStatus,
           is_lesson: formData.isLesson,
           metadata: {
             endDate: endDateStr,
+            maxAttendees: Number(formData.maxAttendees),
             djs: formData.djs,
             performances: formData.performances,
             media: formData.media,

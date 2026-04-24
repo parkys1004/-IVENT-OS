@@ -42,33 +42,62 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         .select('*')
         .eq('is_lesson', true);
       
-      if (lError) throw new Error(`강습 로드 실패: ${lError.message}`);
-      
       if (legacyLessons && legacyLessons.length > 0) {
         log += `추출된 구 강습 데이터: ${legacyLessons.length}건\n`;
         const lessonEntries = legacyLessons.map(e => ({
           id: e.id,
           title: e.title,
+          description: e.description,
           host_id: e.host_id,
           level: (e.metadata as any)?.level || 'all',
           category: e.category,
           date: e.date,
           end_date: e.end_date || (e.metadata as any)?.endDate || e.date,
           class_time: (e as any).time || '저녁',
-          price: (e.metadata as any)?.tickets?.[0]?.price || 0,
+          price: (e.metadata as any)?.tickets?.[0]?.price || (e as any).price || 0,
           location_name: e.location_name,
           formatted_address: (e.metadata as any)?.formattedAddress || '',
           lat: (e.metadata as any)?.geoPoint?.lat,
           lng: (e.metadata as any)?.geoPoint?.lng,
           status: e.status || 'published',
+          image_url: e.image_url,
           created_at: e.created_at
         }));
 
         const { error: cError } = await supabase.from('lessons').upsert(lessonEntries);
         if (cError) throw new Error(`실제 마이그레이션 실패 (lessons): ${cError.message}`);
         log += `✅ 강습 테이블 마이그레이션 완료\n`;
-      } else {
-        log += `마이그레이션할 강습 데이터가 없습니다.\n`;
+      }
+
+      // 1.1 Migrate Parties (events -> parties)
+      const { data: legacyParties, error: pLimitError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_lesson', false);
+      
+      if (legacyParties && legacyParties.length > 0) {
+        log += `추출된 구 행사 데이터: ${legacyParties.length}건\n`;
+        const partyEntries = legacyParties.map(e => ({
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          host_id: e.host_id,
+          category: e.category,
+          date: e.date,
+          end_date: e.end_date || (e.metadata as any)?.endDate || e.date,
+          price: (e.metadata as any)?.tickets?.[0]?.price || (e as any).price || 0,
+          location_name: e.location_name,
+          formatted_address: (e.metadata as any)?.formattedAddress || '',
+          lat: (e.metadata as any)?.geoPoint?.lat,
+          lng: (e.metadata as any)?.geoPoint?.lng,
+          status: e.status || 'published',
+          image_url: e.image_url,
+          created_at: e.created_at
+        }));
+
+        const { error: pError } = await supabase.from('parties').upsert(partyEntries);
+        if (pError) throw new Error(`실제 마이그레이션 실패 (parties): ${pError.message}`);
+        log += `✅ 파티 테이블 마이그레이션 완료\n`;
       }
 
       // 2. Migrate Professionals (profiles -> specialized tables)

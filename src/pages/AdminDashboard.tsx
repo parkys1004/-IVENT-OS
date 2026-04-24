@@ -155,7 +155,15 @@ export default function AdminDashboard() {
         setPointStats({ totalIssued: issued, totalUsed: used, history: pHistory });
       }
 
-      setDbHealth({ profiles: { status: 'ok' }, parties: { status: 'ok' }, promo_banners: { status: 'ok' }, settings: { status: 'ok' } });
+      const health: Record<string, any> = {};
+      const tables = ['profiles', 'parties', 'lessons', 'registrations', 'promo_banners', 'settings', 'point_history', 'community_posts'];
+      
+      await Promise.all(tables.map(async (table) => {
+        const { error } = await supabase.from(table).select('count', { head: true, count: 'exact' }).limit(1);
+        health[table] = { status: error ? 'error' : 'ok', message: error ? error.message : '정상' };
+      }));
+
+      setDbHealth(health);
     } catch (err: any) {
       setFetchError(err.message || '데이터 로드 실패');
     } finally {

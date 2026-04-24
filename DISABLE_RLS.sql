@@ -13,6 +13,7 @@ ALTER TABLE event_photos DISABLE ROW LEVEL SECURITY;
 ALTER TABLE point_history DISABLE ROW LEVEL SECURITY;
 ALTER TABLE promo_banners DISABLE ROW LEVEL SECURITY;
 ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_ai_configs DISABLE ROW LEVEL SECURITY;
 
 -- 만약 완전히 RLS를 끄고 싶지 않으시다면 아래의 허용 정책(Policy)만 추가하셔도 좋습니다.
 /*

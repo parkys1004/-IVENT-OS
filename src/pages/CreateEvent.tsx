@@ -124,9 +124,23 @@ export default function CreateEvent() {
       const base64Data = dataUrl.split(',')[1];
       const mimeType = 'image/webp';
 
-      const apiKey = process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GEMINI_API_KEY;
+
+      if (user) {
+        const { data: aiConfig } = await supabase
+          .from('user_ai_configs')
+          .select('api_key')
+          .eq('user_id', user.id)
+          .eq('provider', 'google')
+          .maybeSingle();
+
+        if (aiConfig?.api_key) {
+          apiKey = aiConfig.api_key;
+        }
+      }
+
       if (!apiKey) {
-        throw new Error('GEMINI_API_KEY is not configured in environment variables.');
+        throw new Error('GEMINI_API_KEY_MISSING');
       }
 
       const ai = new GoogleGenAI({ apiKey });

@@ -200,8 +200,10 @@ export default function CreateEvent() {
       }
     } catch(err: any) {
       console.error('AI Analysis failed:', err);
-      if (err.message?.includes('GEMINI_API_KEY')) {
-        alert('AI 분석을 위해 GEMINI_API_KEY 설정이 필요합니다. 설정 메뉴에서 API 키를 등록해주세요.');
+      if (err.message?.includes('GEMINI_API_KEY') || err.message?.includes('GEMINI_API_KEY_MISSING')) {
+        alert('AI 분석을 위해 API 키가 필요합니다. 환경설정(AI API 설정)에서 Google API 키를 등록해주세요.');
+      } else if (err.message?.includes('429') || err.message?.includes('RESOURCE_EXHAUSTED') || err.message?.includes('spending cap')) {
+        alert('사용 중인 AI API 키의 한도가 초과되었습니다. (설정 탭)에서 본인의 API 키를 직접 등록하여 사용해주세요.');
       } else {
         alert('AI 분석 중 오류가 발생했습니다: ' + (err.message || '알 수 없는 오류'));
       }

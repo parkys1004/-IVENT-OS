@@ -40,12 +40,15 @@ export async function awardPoints(userId: string, amount: number, reason: string
     const newPoints = (profile.points || 0) + amount;
 
     // 2. Update profile points
-    const { error: uErr } = await supabase
+    const { data: updatedData, error: uErr } = await supabase
       .from('profiles')
       .update({ points: newPoints })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select()
+      .single();
     
     if (uErr) throw uErr;
+    if (!updatedData) throw new Error('업데이트를 거부당했습니다 (Supabase RLS 규칙 확인 필요).');
 
     // 3. Record in history
     try {
@@ -96,12 +99,15 @@ export async function spendPoints(userId: string, amount: number, reason: string
     const newPoints = (profile.points || 0) - amount;
 
     // 2. Update profile points
-    const { error: uErr } = await supabase
+    const { data: updatedData, error: uErr } = await supabase
       .from('profiles')
       .update({ points: newPoints })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select()
+      .single();
     
     if (uErr) throw uErr;
+    if (!updatedData) throw new Error('업데이트를 거부당했습니다 (Supabase RLS 규칙 확인 필요).');
 
     // 3. Record in history
     try {

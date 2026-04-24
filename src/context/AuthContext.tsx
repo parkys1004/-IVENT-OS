@@ -197,6 +197,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else if (createdData) {
             console.log("Profile created successfully:", createdData);
             window.sessionStorage.removeItem('intendedRole');
+
+            // Log initial point grant
+            if (createdData.points === 1000) {
+              await supabase.from('point_history').insert({
+                user_id: createdData.id,
+                amount: 1000,
+                reason: '신규 회원가입 축하 포인트'
+              });
+            }
             
             const mappedCreatedProfile: UserProfile = {
               uid: createdData.id,

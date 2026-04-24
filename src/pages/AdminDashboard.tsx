@@ -73,7 +73,7 @@ interface DashboardConfig {
   sectionOrder: string[];
 }
 
-type MenuKey = 'home' | 'users' | 'events' | 'finance' | 'banners' | 'config' | 'points' | 'settings';
+type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'finance' | 'banners' | 'config' | 'points' | 'settings';
 type TabKey = string;
 
 import TypeBadge from '../components/TypeBadge';
@@ -468,7 +468,8 @@ export default function AdminDashboard() {
   
   // Fake Badges counts
   const pendingUsers = users.filter(u => ['dj', 'instructor', 'media'].includes(u.role)).length; // Just an example
-  const pendingEvents = events.filter(e => e.status === 'draft').length;
+  const pendingRegularEvents = events.filter(e => !e.isLesson && (e.status === 'pending' || e.status === 'draft')).length;
+  const pendingLessons = events.filter(e => e.isLesson && (e.status === 'pending' || e.status === 'draft')).length;
 
   const handleMenuClick = (menu: MenuKey) => {
     setActiveMenu(menu);
@@ -823,8 +824,8 @@ export default function AdminDashboard() {
           <div className="text-3xl font-black text-orange-600">{pendingUsers}<span className="text-sm font-normal text-slate-500 ml-1">명</span></div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-          <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">승인 대기 행사</div>
-          <div className="text-3xl font-black text-emerald-600">{pendingEvents}<span className="text-sm font-normal text-slate-500 ml-1">건</span></div>
+          <div className="text-slate-500 dark:text-slate-400 text-sm font-bold mb-2">승인 대기 행사/강습</div>
+          <div className="text-3xl font-black text-emerald-600">{pendingRegularEvents + pendingLessons}<span className="text-sm font-normal text-slate-500 ml-1">건</span></div>
         </div>
       </div>
       
@@ -1106,7 +1107,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const renderEventsContent = () => (
+  const renderEventsContent = (onlyLessons: boolean = false) => (
     <div className="space-y-6 flex flex-col h-full min-h-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800">
@@ -1115,9 +1116,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => setActiveEventTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors text-sm flex items-center gap-2", activeEventTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
             승인 대기
-            {events.filter(e => e.status === 'pending' || e.status === 'draft').length > 0 && 
-              <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-                {events.filter(e => e.status === 'pending' || e.status === 'draft').length}
+            {events.filter(e => e.isLesson === onlyLessons && (e.status === 'pending' || e.status === 'draft')).length > 0 && 
+              <span className={onlyLessons ? "bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full" : "bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full"}>
+                {events.filter(e => e.isLesson === onlyLessons && (e.status === 'pending' || e.status === 'draft')).length}
               </span>
             }
           </button>
@@ -1155,7 +1156,7 @@ export default function AdminDashboard() {
             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 z-10 shadow-sm">
               <tr className="text-slate-500 dark:text-slate-400 text-[12px] uppercase tracking-wider">
                 <th className="p-4 font-bold">노출 순서</th>
-                <th className="p-4 font-bold">행사명</th>
+                <th className="p-4 font-bold">{onlyLessons ? '강습명' : '행사명'}</th>
                 <th className="p-4 font-bold">주최자</th>
                 <th className="p-4 font-bold">상태</th>
                 <th className="p-4 font-bold">배너</th>
@@ -1165,6 +1166,9 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {events.filter(e => {
+                const matchesType = e.isLesson === onlyLessons;
+                if (!matchesType) return false;
+
                 const isExpired = new Date(e.date) < new Date();
                 if (activeEventTab === 'all') return true;
                 if (activeEventTab === 'pending') return e.status === 'pending' || e.status === 'draft';
@@ -1269,9 +1273,17 @@ export default function AdminDashboard() {
             </button>
             <button 
               onClick={() => handleMenuClick('events')}
-              className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'events' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+              className={clsx("w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'events' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
             >
-               <CalendarDays className="w-5 h-5" /> 행사 관리
+               <div className="flex items-center gap-3"><CalendarDays className="w-5 h-5" /> 행사 관리</div>
+               {pendingRegularEvents > 0 && <div className="w-2 h-2 bg-orange-500 rounded-full" title="승인 대기 존재"></div>}
+            </button>
+            <button 
+              onClick={() => handleMenuClick('lessons')}
+              className={clsx("w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all text-sm", activeMenu === 'lessons' ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+            >
+               <div className="flex items-center gap-3"><GraduationCap className="w-5 h-5" /> 강습 관리</div>
+               {pendingLessons > 0 && <div className="w-2 h-2 bg-emerald-500 rounded-full" title="승인 대기 존재"></div>}
             </button>
             <button 
               onClick={() => handleMenuClick('points')}
@@ -1318,6 +1330,7 @@ export default function AdminDashboard() {
               {activeMenu === 'home' && '종합 대시보드'}
               {activeMenu === 'users' && '회원 관리'}
               {activeMenu === 'events' && '행사 관리'}
+              {activeMenu === 'lessons' && '강습 관리'}
             {activeMenu === 'points' && '포인트 시스템 관리'}
             </span>
           </div>
@@ -1354,7 +1367,8 @@ export default function AdminDashboard() {
           >
             {activeMenu === 'home' && renderHomeContent()}
             {activeMenu === 'users' && renderUsersContent()}
-            {activeMenu === 'events' && renderEventsContent()}
+            {activeMenu === 'events' && renderEventsContent(false)}
+            {activeMenu === 'lessons' && renderEventsContent(true)}
             {activeMenu === 'points' && renderPointsContent()}
             {activeMenu === 'banners' && (
               <div className="space-y-8 flex flex-col h-full min-h-0 overflow-y-auto no-scrollbar pb-10">
@@ -1659,7 +1673,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex-1 overflow-y-auto max-h-[500px]">
                       <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {events.filter(e => e.status === 'published').map(event => (
+                        {events.filter(e => e.status === 'published' && !e.isLesson).map(event => (
                           <div key={event.id} className="p-6 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4 truncate">
                               <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-indigo-600">

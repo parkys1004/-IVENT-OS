@@ -221,23 +221,6 @@ export default function Login() {
             )}
             <span>{loading ? '처리 중...' : t('auth.loginGoogle')}</span>
           </motion.button>
-          
-          <motion.button
-            onClick={() => {
-              if (!isLoginMode && !selectedRole) {
-                setErrorMsg("가입하실 역할을 먼저 선택해주세요!");
-                return;
-              }
-              setErrorMsg("카카오 로그인을 위해서는 외부 연동 절차(API 키 발급, Firebase 공급자 설정 등)가 필요하여 현재 미리보기 환경에선 지원되지 않습니다.");
-            }}
-            disabled={(!isLoginMode && !selectedRole) || loading}
-            className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-black/85 font-bold py-4 px-6 rounded-[14px] hover:bg-[#FEE500]/90 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed border border-transparent"
-          >
-             <svg viewBox="0 0 32 32" className="w-5 h-5">
-                <path fill="currentColor" d="M16 4.64C8.618 4.64 2.632 9.248 2.632 14.934c0 3.655 2.378 6.866 5.922 8.636l-1.503 5.485c-.173.633.543 1.077 1.08.718l6.398-4.22c.484.032.973.05 1.472.05 7.382 0 13.368-4.609 13.368-10.295S23.382 4.64 16 4.64z" />
-             </svg>
-            <span>카카오톡으로 계속하기</span>
-          </motion.button>
         </div>
 
         {errorMsg && (

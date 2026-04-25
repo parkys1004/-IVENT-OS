@@ -24,7 +24,7 @@ import AnimatedBackground from './components/AnimatedBackground';
 import clsx from 'clsx';
 import { useAuth } from './context/AuthContext';
 
-import { AlertCircle, ExternalLink } from 'lucide-react';
+import { AlertCircle, ExternalLink, MessageSquare } from 'lucide-react';
 
 function SupabaseConfigWarning() {
   const url = import.meta.env.VITE_SUPABASE_URL;
@@ -133,6 +133,18 @@ function AppContent() {
       </main>
       {!isDashboardView && <Footer />}
       <ScrollToTop />
+      
+      {/* KakaoTalk Floating Button */}
+      <a 
+        href="https://open.kakao.com/o/gte9aPri" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-[9999] bg-[#FEE500] hover:bg-[#F7E600] text-[#3A1D1D] p-3 rounded-l-2xl shadow-xl transition-all hover:pr-6 flex items-center gap-2 group border-y border-l border-[#E6CF00] ring-4 ring-[#FEE500]/20"
+      >
+        <MessageSquare className="w-5 h-5 fill-[#3A1D1D]" />
+        <span className="text-[10px] font-black hidden group-hover:block whitespace-nowrap uppercase tracking-tighter">Open Chat</span>
+      </a>
+
       <SupabaseConfigWarning />
     </div>
   );

@@ -197,7 +197,7 @@ export default function Community() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-20">
+    <div className="max-w-7xl mx-auto px-4 pb-20">
       {/* Header Section */}
       <div className="mb-10 text-center relative pt-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>

@@ -149,7 +149,7 @@ export default function PostDetail() {
   if (!post) return null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pb-20">
+    <div className="max-w-5xl mx-auto px-4 pb-20">
       <button 
         onClick={() => navigate('/community')}
         className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold mb-8"

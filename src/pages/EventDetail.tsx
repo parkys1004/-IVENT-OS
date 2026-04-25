@@ -1162,7 +1162,10 @@ export default function EventDetail() {
                   >
                     <Heart className={clsx("w-5 h-5", isLiked && "fill-current")} />
                   </button>
-                  <button className="p-2.5 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                  <button 
+                    onClick={() => setShowShareModal(true)}
+                    className="p-2.5 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                  >
                     <Share2 className="w-5 h-5" />
                   </button>
                 </div>

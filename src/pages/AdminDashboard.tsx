@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
-import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout, MessageSquare } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -14,6 +14,7 @@ import { PointsTab } from '../components/admin/PointsTab';
 import { BannersTab } from '../components/admin/BannersTab';
 import { ConfigTab } from '../components/admin/ConfigTab';
 import { SettingsTab } from '../components/admin/SettingsTab';
+import { CommunityTab } from '../components/admin/CommunityTab';
 
 interface EventData {
   id: string;
@@ -45,7 +46,7 @@ interface DashboardConfig {
   sectionOrder: string[];
 }
 
-type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings';
+type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings' | 'community';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -201,6 +202,7 @@ export default function AdminDashboard() {
             <NavItem icon={LayoutGrid} label="강습 관리" active={activeMenu === 'lessons'} onClick={() => handleMenuClick('lessons')} badge={pendingLessons} color="emerald" />
             <NavItem icon={Coins} label="포인트 관리" active={activeMenu === 'points'} onClick={() => handleMenuClick('points')} />
             <NavItem icon={ImageIcon} label="배너 관리" active={activeMenu === 'banners'} onClick={() => handleMenuClick('banners')} />
+            <NavItem icon={MessageSquare} label="게시판 관리" active={activeMenu === 'community'} onClick={() => handleMenuClick('community')} color="indigo" />
             <NavItem icon={Layout} label="홈 화면 설정" active={activeMenu === 'config'} onClick={() => handleMenuClick('config')} />
             <Link to="/ai-settings" className="flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
               <Bot className="w-5 h-5 text-indigo-500" /> AI API 설정
@@ -310,6 +312,9 @@ export default function AdminDashboard() {
                     if (!error) fetchAdminData();
                   }}
                 />
+              )}
+              {activeMenu === 'community' && (
+                <CommunityTab />
               )}
               {activeMenu === 'config' && (
                 <ConfigTab 

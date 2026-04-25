@@ -11,15 +11,18 @@ const GoogleMapsContext = createContext<GoogleMapsContextType | undefined>(undef
 const LIBRARIES: ("places")[] = ["places"];
 
 export const GoogleMapsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+  const isPlaceholder = apiKey === 'MY_GOOGLE_MAPS_API_KEY' || apiKey === '';
+  
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: isPlaceholder ? '' : apiKey,
     libraries: LIBRARIES,
     language: 'ko',
     region: 'KR'
   });
 
   return (
-    <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
+    <GoogleMapsContext.Provider value={{ isLoaded: isPlaceholder ? false : isLoaded, loadError }}>
       {children}
     </GoogleMapsContext.Provider>
   );

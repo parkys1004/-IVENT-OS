@@ -22,7 +22,7 @@ import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap, MarkerF } from '@react-google-maps/api';
 
 interface Review {
   id: string;
@@ -606,7 +606,7 @@ export default function EventDetail() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="max-w-[1200px] w-full mx-auto"
+      className="w-full max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-8"
     >
       <div className="flex justify-between items-center mb-6 px-4 md:px-0">
         <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">
@@ -781,7 +781,7 @@ export default function EventDetail() {
 
           {/* Map Block */}
           <div className="rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm min-h-[300px]">
-            {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
+            {(!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || import.meta.env.VITE_GOOGLE_MAPS_API_KEY === 'MY_GOOGLE_MAPS_API_KEY') || loadError ? (
               <div className="bg-amber-50 dark:bg-amber-900/10 h-full p-8 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 bg-amber-100 dark:bg-amber-800/30 rounded-full flex items-center justify-center mb-4">
                   <MapPin className="w-6 h-6 text-amber-600" />
@@ -802,7 +802,7 @@ export default function EventDetail() {
                   zoom={16}
                   options={{ disableDefaultUI: true, zoomControl: true }}
                 >
-                  <Marker position={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }} />
+                  <MarkerF position={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }} />
                 </GoogleMap>
               </div>
             ) : (

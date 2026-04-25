@@ -608,29 +608,31 @@ export default function EventDetail() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="w-full max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-8"
+      className="w-full max-w-[1400px] mx-auto px-0 md:px-4 lg:px-8 pb-32 md:pb-12"
     >
-      <div className="flex justify-between items-center mb-6 px-4 md:px-0">
-        <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 px-4 md:px-0 mt-4">
+        <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium text-sm">
           <ArrowLeft className="w-4 h-4 mr-2" /> 목록으로 돌아가기
         </button>
 
-        <button 
-          onClick={() => setShowShareModal(true)}
-          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/30 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all ml-auto mr-4"
-        >
-          <Share2 className="w-4 h-4 text-indigo-500" />
-          공유하기
-        </button>
-        
-        {canEdit && (
+        <div className="flex items-center gap-2 w-full sm:w-auto ml-auto">
           <button 
-            onClick={() => navigate(event.isLesson ? `/edit-lesson/${event.id}` : `/edit/${event.id}`)}
-            className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all"
+            onClick={() => setShowShareModal(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/30 px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all"
           >
-            {event.isLesson ? '강습 수정하기' : '행사 수정하기'}
+            <Share2 className="w-4 h-4 text-indigo-500" />
+            공유
           </button>
-        )}
+          
+          {canEdit && (
+            <button 
+              onClick={() => navigate(event.isLesson ? `/edit-lesson/${event.id}` : `/edit/${event.id}`)}
+              className="flex-1 sm:flex-none flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/30 px-4 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all"
+            >
+              {event.isLesson ? '수정' : '수정'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Event Header Image/Gallery - Above Title as requested */}
@@ -699,9 +701,11 @@ export default function EventDetail() {
       </div>
 
       {/* Main Title - Bold and Large below image */}
-      <div className="mb-12 px-4 md:px-0">
-        <h1 className="text-3xl md:text-5xl lg:text-6xl font-[900] text-slate-900 dark:text-white leading-tight tracking-tight flex items-center">
-          <TypeBadge isLesson={event.isLesson} className="!text-[20px] md:!text-[24px] px-3 py-1 mr-4 border-slate-200 dark:border-slate-800" />
+      <div className="mb-10 px-4 md:px-0 flex flex-col gap-3">
+        <div className="flex">
+          <TypeBadge isLesson={event.isLesson} className="!text-[12px] md:!text-[16px] px-3 py-1.5 border-slate-200 dark:border-slate-800" />
+        </div>
+        <h1 className="text-2xl md:text-5xl lg:text-6xl font-[950] text-slate-900 dark:text-white leading-[1.2] tracking-tight">
           {event.title}
         </h1>
       </div>
@@ -711,80 +715,80 @@ export default function EventDetail() {
         <div className="space-y-6">
 
           {/* Date Block */}
-          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 md:p-8 flex items-center shadow-sm">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center mr-6 shrink-0">
-              <Calendar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[24px] md:rounded-[32px] p-5 md:p-8 flex items-center shadow-sm">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center mr-4 md:mr-6 shrink-0">
+              <Calendar className="w-5 h-5 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="flex-1">
-              <p className="text-[18px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100">
+              <p className="text-[16px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100 leading-tight">
                 {format(dateObj, 'yyyy년 M월 d일 (E) a h:mm', { locale: getLocale() })}
               </p>
             </div>
-            <a href={gCalUrl} target="_blank" rel="noopener noreferrer" className="ml-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm whitespace-nowrap">
+            <a href={gCalUrl} target="_blank" rel="noopener noreferrer" className="ml-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm whitespace-nowrap">
               {t('event.calendar.add')}
             </a>
           </div>
 
           {/* Location Block */}
-          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center flex-1">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center mr-6 shrink-0">
-                  <MapPin className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[24px] md:rounded-[32px] p-5 md:p-8 shadow-sm space-y-5 md:space-y-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start flex-1 min-w-0">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center mr-4 md:mr-6 shrink-0">
+                  <MapPin className="w-5 h-5 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <div>
-                  <p className="text-[18px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100 mb-1">{event.locationName}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{event.formattedAddress}</p>
+                <div className="min-w-0">
+                  <p className="text-[17px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100 mb-0.5 leading-tight truncate">{event.locationName}</p>
+                  <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 leading-tight line-clamp-1">{event.formattedAddress}</p>
                 </div>
               </div>
               <button 
                 onClick={handleCopyAddress}
                 className={clsx(
-                  "p-3 rounded-xl transition-all flex items-center gap-2",
+                  "p-2.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0",
                   copied 
-                    ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 font-bold text-sm" 
+                    ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 font-bold text-[10px]" 
                     : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                 )}
                 title="주소 복사"
               >
-                {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 {copied && "복사됨"}
               </button>
             </div>
             
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <a 
                 href={kakaoMapUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="bg-[#FAE100] text-[#3C1E1E] px-4 py-3.5 rounded-2xl font-bold text-sm hover:brightness-95 transition-all shadow-sm flex flex-col items-center justify-center gap-2 group"
+                className="bg-[#FAE100] text-[#3C1E1E] px-2 py-3 rounded-2xl font-bold text-[10px] sm:text-xs hover:brightness-95 transition-all shadow-sm flex flex-col items-center justify-center gap-1.5 group text-center"
               >
-                <div className="w-9 h-9 bg-[#3C1E1E] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Navigation className="w-4 h-4 text-[#FAE100] fill-current" />
+                <div className="w-8 h-8 bg-[#3C1E1E] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <Navigation className="w-3.5 h-3.5 text-[#FAE100] fill-current" />
                 </div>
-                카카오맵 길찾기
+                카카오맵
               </a>
               <a 
                 href={naverMapUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="bg-[#03C75A] text-white px-4 py-3.5 rounded-2xl font-bold text-sm hover:brightness-95 transition-all shadow-sm flex flex-col items-center justify-center gap-2 group"
+                className="bg-[#03C75A] text-white px-2 py-3 rounded-2xl font-bold text-[10px] sm:text-xs hover:brightness-95 transition-all shadow-sm flex flex-col items-center justify-center gap-1.5 group text-center"
               >
-                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Navigation className="w-4 h-4 text-[#03C75A] fill-current" />
+                <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <Navigation className="w-3.5 h-3.5 text-[#03C75A] fill-current" />
                 </div>
-                네이버 지도 길찾기
+                네이버 지도
               </a>
               <a 
                 href={googleMapDirUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm flex flex-col items-center justify-center gap-2 group sm:col-span-1 col-span-2"
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-2 py-3 rounded-2xl font-bold text-[10px] sm:text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm flex flex-col items-center justify-center gap-1.5 group text-center"
               >
-                <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Navigation className="w-4 h-4 text-indigo-600 dark:text-indigo-400 fill-current" />
+                <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <Navigation className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 fill-current" />
                 </div>
-                구글 지도 길찾기
+                구글 지도
               </a>
             </div>
           </div>
@@ -870,20 +874,20 @@ export default function EventDetail() {
           )}
 
           {/* Description Section */}
-          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 md:p-10 shadow-sm">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6">행사 상세 설명</h3>
-            <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-relaxed text-[16px]">
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[24px] md:rounded-[32px] p-6 md:p-10 shadow-sm">
+            <h3 className="text-[18px] md:text-xl font-black text-slate-800 dark:text-white mb-5">행사 상세 설명</h3>
+            <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-[1.7] text-[15px] md:text-[16px] font-medium font-sans">
               {event.description}
             </div>
           </div>
 
           {/* Community Section */}
           <div className="space-y-6">
-            <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 self-start">
+            <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-x-auto no-scrollbar scroll-smooth">
               <button
                 onClick={() => setActiveTab('info')}
                 className={clsx(
-                  "px-6 py-2 rounded-xl text-sm font-black transition-all",
+                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all whitespace-nowrap",
                   activeTab === 'info' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
                 )}
               >
@@ -892,7 +896,7 @@ export default function EventDetail() {
               <button
                 onClick={() => setActiveTab('comments')}
                 className={clsx(
-                  "px-6 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap",
                   activeTab === 'comments' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
                 )}
               >
@@ -901,7 +905,7 @@ export default function EventDetail() {
               <button
                 onClick={() => setActiveTab('reviews')}
                 className={clsx(
-                  "px-6 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap",
                   activeTab === 'reviews' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
                 )}
               >
@@ -910,11 +914,11 @@ export default function EventDetail() {
               <button
                 onClick={() => setActiveTab('gallery')}
                 className={clsx(
-                  "px-6 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2",
+                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap",
                   activeTab === 'gallery' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
                 )}
               >
-                스튜디오/갤러리 <span className="text-[10px] opacity-60 font-black">{photos.length}</span>
+                갤러리 <span className="text-[10px] opacity-60 font-black">{photos.length}</span>
               </button>
             </div>
 
@@ -1147,16 +1151,16 @@ export default function EventDetail() {
         </div>
 
         {/* Right Column: Ticketing/Booking Action Card */}
-        <div className="mt-12 lg:mt-0">
-          <div className="sticky top-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">예매 정보</h2>
+        <div className="mt-8 lg:mt-0">
+          <div className="sticky top-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[28px] md:rounded-[32px] shadow-xl md:shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
+            <div className="p-6 md:p-8">
+              <div className="flex justify-between items-center mb-6 md:mb-8">
+                <h2 className="text-xl md:text-2xl font-[950] text-slate-900 dark:text-white leading-none">예매 정보</h2>
                 <div className="flex gap-2">
                   <button 
                     onClick={toggleLike}
                     className={clsx(
-                      "p-2.5 rounded-full transition-all bg-rose-50 dark:bg-rose-900/20",
+                      "p-2 md:p-2.5 rounded-full transition-all bg-rose-50 dark:bg-rose-900/20",
                       isLiked ? "text-rose-500 scale-110" : "text-rose-300 hover:text-rose-500"
                     )}
                   >
@@ -1164,15 +1168,15 @@ export default function EventDetail() {
                   </button>
                   <button 
                     onClick={() => setShowShareModal(true)}
-                    className="p-2.5 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                    className="p-2 md:p-2.5 rounded-full text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                   >
                     <Share2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <div className="mb-6 px-1">
-                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-300">관심행사 {event.likesCount || 0}</span>
+              <div className="mb-4 md:mb-6 px-1">
+                <span className="text-[12px] md:text-[14px] font-bold text-slate-500 dark:text-slate-400">관심행사 {event.likesCount || 0}</span>
               </div>
 
               {/* Tickets Box */}
@@ -1290,13 +1294,13 @@ export default function EventDetail() {
       </div>
 
       {/* Sticky RSVP Control for Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-30 lg:hidden">
-        <div className="flex items-center gap-4">
+      <div className="fixed bottom-0 left-0 right-0 p-5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-40 lg:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+        <div className="flex items-center gap-3">
           <button 
             onClick={toggleLike}
             className={clsx(
               "p-4 rounded-2xl border transition-all",
-              isLiked ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-500" : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-400"
+              isLiked ? "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-900/30 text-rose-500 shadow-sm" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400"
             )}
           >
             <Heart className={clsx("w-6 h-6", isLiked && "fill-current")} />
@@ -1306,21 +1310,21 @@ export default function EventDetail() {
             <button 
               onClick={handleCancel}
               disabled={processing}
-              className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-4 rounded-2xl font-black tracking-tight hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+              className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-4.5 rounded-2xl font-[950] tracking-tight hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-95 disabled:opacity-50"
             >
               {processing ? '처리 중...' : t('event.cancel')}
             </button>
           ) : isFull ? (
-            <div className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-400 py-4 rounded-2xl font-black text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
+            <div className="flex-1 bg-slate-50 dark:bg-slate-800 text-slate-400 py-4.5 rounded-2xl font-black text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
               {t('event.full')}
             </div>
           ) : (
             <button 
               onClick={handleRegister}
               disabled={processing}
-              className="flex-1 bg-indigo-600 text-white py-4 rounded-2xl font-black tracking-tight hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
+              className="flex-1 bg-indigo-600 text-white py-4.5 rounded-2xl font-[950] tracking-tight hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/30 active:scale-[0.98] disabled:opacity-50"
             >
-              {processing ? '처리 중...' : t('event.register')}
+              {processing ? '처리 중...' : (event.isLesson ? '강습 신청하기' : '참여 신청하기')}
             </button>
           )}
         </div>

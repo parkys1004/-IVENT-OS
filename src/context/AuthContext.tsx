@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 
-export type UserRole = 'participant' | 'host' | 'admin' | 'dj' | 'instructor' | 'media' | 'banned';
+export type UserRole = 'participant' | 'host' | 'admin' | 'dj' | 'instructor' | 'media' | 'banned' | 'unassigned';
 
 export type ViewMode = 'admin' | 'professional' | 'participant';
 
@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("No profile record found. Creating initial profile...");
           
           const storedRole = window.sessionStorage.getItem('intendedRole');
-          const intendedRole = (storedRole as UserRole) || 'participant';
+          const intendedRole = (storedRole as UserRole) || 'unassigned';
           const isAdminEmail = activeUser.email?.toLowerCase() === 'aimaster1004@gmail.com';
           const assignedRole = isAdminEmail ? 'admin' : intendedRole;
 

@@ -25,6 +25,7 @@ import clsx from 'clsx';
 import { useAuth } from './context/AuthContext';
 
 import { AlertCircle, ExternalLink, MessageSquare } from 'lucide-react';
+import { OnboardingModal } from './components/OnboardingModal';
 
 function SupabaseConfigWarning() {
   const url = import.meta.env.VITE_SUPABASE_URL;
@@ -145,6 +146,7 @@ function AppContent() {
         <span className="text-[10px] font-black hidden group-hover:block whitespace-nowrap uppercase tracking-tighter">Open Chat</span>
       </a>
 
+      <OnboardingModal isOpen={profile?.role === 'unassigned'} />
       <SupabaseConfigWarning />
     </div>
   );

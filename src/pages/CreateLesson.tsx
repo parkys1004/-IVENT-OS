@@ -228,366 +228,416 @@ export default function CreateLesson() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+    <div className="min-h-screen bg-white dark:bg-slate-950 pb-24 md:pb-12">
+      <div className="max-w-[800px] mx-auto px-4 py-8 md:py-12">
         {/* Header */}
-        <div className="px-8 py-10 bg-gradient-to-br from-teal-600 to-emerald-700 text-white relative overflow-hidden">
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-              <GraduationCap className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black tracking-tight">강습 만들기</h1>
-              <p className="text-teal-50/80 font-medium mt-1">새로운 강습 정보를 입력하여 수강생을 모집하세요.</p>
+        <div className="flex flex-col gap-6 mb-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+              <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-3">
+                새로운 <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-600">강습 만들기</span>
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">배움의 즐거움을 나누는 새로운 강습을 등록하세요.</p>
             </div>
           </div>
-          
-          {/* Decorative shapes */}
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 -left-10 w-24 h-24 bg-teal-400/20 rounded-full blur-2xl"></div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-12">
-          {/* Basic Info Section */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-8 h-8 bg-teal-100 dark:bg-teal-500/20 rounded-lg flex items-center justify-center">
-                <FileText className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider text-sm">기본 정보</h2>
-            </div>
+        <div className="bg-white dark:bg-slate-900/50 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <form onSubmit={handleSubmit} id="create-lesson-form" className="p-8 md:p-12 space-y-16">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="md:col-span-2 space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">강습 제목</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="예: 초보자를 위한 살사 기초 4주 완성"
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 dark:focus:border-teal-500 outline-none transition-all font-medium"
-                />
+            {/* Basic Info Section */}
+            <section className="space-y-10">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <FileText className="w-5 h-5 text-teal-500" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">강습 기본 정보</h2>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">카테고리</label>
-                <select
-                  value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 outline-none transition-all font-medium"
-                >
-                  <option value="lesson">강습 (일반)</option>
-                  <option value="salsa">살사 강습</option>
-                  <option value="bachata">바차타 강습</option>
-                  <option value="kizomba">키좀바 강습</option>
-                  <option value="salsa_bachata">살사/바차타 강습</option>
-                  <option value="sal_ba_ki">살바키 강습</option>
-                </select>
-              </div>
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">강습 제목</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.title}
+                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full rounded-[24px] border-none bg-slate-50 dark:bg-slate-800/50 px-8 py-6 text-xl md:text-2xl font-black text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-700 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-inner"
+                    placeholder="매력적인 강습 제목을 입력하세요"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">강습 레벨</label>
-                <select
-                  value={formData.level}
-                  onChange={e => setFormData({ ...formData, level: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 outline-none transition-all font-medium"
-                >
-                  <option value="beginner">초급 (입문)</option>
-                  <option value="intermediate">중급</option>
-                  <option value="advanced">고급</option>
-                  <option value="all">모든 레벨</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">강습 설명</label>
-                <textarea
-                  required
-                  rows={6}
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="강습 내용, 커리큘럼, 준비물 등을 자세히 적어주세요."
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 outline-none transition-all font-medium resize-none"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Schedule Section */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-8 h-8 bg-amber-100 dark:bg-amber-500/20 rounded-lg flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider text-sm">일정 정보</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">시작 날짜</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.date}
-                  onChange={e => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-amber-500 outline-none transition-all font-medium"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">시작 시간</label>
-                <input
-                  type="time"
-                  required
-                  value={formData.time}
-                  onChange={e => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-amber-500 outline-none transition-all font-medium"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">종료 날짜</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.endDate}
-                  onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-amber-500 outline-none transition-all font-medium"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">종료 시간</label>
-                <input
-                  type="time"
-                  required
-                  value={formData.endTime}
-                  onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-amber-500 outline-none transition-all font-medium"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Location Section */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider text-sm">장소 정보</h2>
-              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-                <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100 italic">
-                  자동 완성 비활성 (API 키 없음)
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">상세 주소 검색</label>
-                {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
-                  <div className="space-y-3">
-                    <input
-                      required
-                      type="text"
-                      name="locationName"
-                      value={formData.locationName}
-                      onChange={e => setFormData({ ...formData, locationName: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-blue-500 outline-none transition-all font-medium"
-                      placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
-                    />
-                    <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                      {loadError ? (
-                        <div className="text-rose-500 space-y-2">
-                           <p className="font-bold flex items-center gap-1.5"><X className="w-3.5 h-3.5"/> 구글 맵 로드 오류</p>
-                           <p className="font-mono text-[10px] bg-rose-50 dark:bg-rose-900/20 p-2 rounded">{loadError.message}</p>
-                           <p className="text-slate-500 dark:text-slate-400 font-normal">
-                             자동 완성 기능이 일시적으로 비활성화되었습니다. 위 입력창에 장소를 직접 입력해주세요.
-                           </p>
-                        </div>
-                      ) : (
-                        <>
-                          💡 <b>Settings &gt; Secrets</b>에서 <code className="text-blue-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
-                          * <b>필수 활성화 API:</b> Maps JavaScript API, Places API
-                        </>
-                      )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">카테고리</label>
+                    <div className="relative">
+                      <select
+                        value={formData.category}
+                        onChange={e => setFormData({ ...formData, category: e.target.value })}
+                        className="w-full appearance-none rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all cursor-pointer"
+                      >
+                        <option value="lesson">강습 (일반)</option>
+                        <option value="salsa">살사 강습</option>
+                        <option value="bachata">바차타 강습</option>
+                        <option value="kizomba">키좀바 강습</option>
+                        <option value="salsa_bachata">살사/바차타 강습</option>
+                        <option value="sal_ba_ki">살바키 강습</option>
+                      </select>
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <Plus className="w-4 h-4 rotate-45" />
+                      </div>
                     </div>
                   </div>
-                ) : isLoaded ? (
-                  <PlaceSearch 
-                    onPlaceSelect={handlePlaceSelect}
-                    onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
-                    placeholder="주소를 검색하거나 직접 입력하세요"
-                    value={formData.locationName}
-                  />
-                ) : (
-                  <div className="w-full h-14 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl"></div>
-                )}
-                {formData.formattedAddress && (
-                  <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400">
-                    상세주소: {formData.formattedAddress} {formData.city && `(${formData.city}, ${formData.country})`}
-                  </p>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* Pricing Section */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-8 h-8 bg-rose-100 dark:bg-rose-500/20 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider text-sm">참가비 및 결제</h2>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">강습비 설정</label>
-                  <button
-                    type="button"
-                    onClick={addTicket}
-                    className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 hover:underline"
-                  >
-                    <PlusCircle className="w-3 h-3" />
-                    추가하기
-                  </button>
+                  <div className="space-y-2">
+                    <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">난이도</label>
+                    <div className="relative">
+                      <select
+                        value={formData.level}
+                        onChange={e => setFormData({ ...formData, level: e.target.value })}
+                        className="w-full appearance-none rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all cursor-pointer"
+                      >
+                        <option value="beginner">초급 (입문)</option>
+                        <option value="intermediate">중급</option>
+                        <option value="advanced">고급</option>
+                        <option value="all">모든 레벨</option>
+                      </select>
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <Plus className="w-4 h-4 rotate-45" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                
-                {formData.tickets.map((ticket, index) => (
-                  <div key={index} className="flex gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-300">
-                    <input
-                      type="text"
-                      required
-                      value={ticket.name}
-                      onChange={e => updateTicket(index, 'name', e.target.value)}
-                      placeholder="티켓 명칭 (예: 1회권, 4회 패키지)"
-                      className="flex-1 px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-rose-500 outline-none transition-all font-medium"
+              </div>
+            </section>
+
+            {/* Schedule Section */}
+            <section className="space-y-10">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <Calendar className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">강습 일정</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                {/* Start Date/Time */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">강습 시작</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-500 ml-1">날짜</label>
+                      <input
+                        required
+                        type="date"
+                        value={formData.date}
+                        onChange={e => setFormData({ ...formData, date: e.target.value })}
+                        className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-500 ml-1">시간</label>
+                      <input
+                        required
+                        type="time"
+                        value={formData.time}
+                        onChange={e => setFormData({ ...formData, time: e.target.value })}
+                        className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* End Date/Time */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">강습 종료</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-500 ml-1">날짜</label>
+                      <input
+                        required
+                        type="date"
+                        value={formData.endDate}
+                        onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                        className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-500 ml-1">시간</label>
+                      <input
+                        required
+                        type="time"
+                        value={formData.endTime}
+                        onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                        className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-amber-500/10 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Location Section */}
+            <section className="space-y-10">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <MapPin className="w-5 h-5 text-blue-500" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">강습 장소</h2>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+                    <span className="flex items-center"><MapPin className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 장소 검색</span>
+                    {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+                      <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100 italic">
+                        자동 완성 비활성 (API 키 없음)
+                      </span>
+                    )}
+                  </label>
+                  {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || loadError ? (
+                    <div className="space-y-3">
+                      <input
+                        required
+                        type="text"
+                        name="locationName"
+                        value={formData.locationName}
+                        onChange={e => setFormData({ ...formData, locationName: e.target.value })}
+                        className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                        placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
+                      />
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                        {loadError ? (
+                          <div className="text-rose-500 space-y-2">
+                             <p className="font-bold flex items-center gap-1.5"><X className="w-3.5 h-3.5"/> 구글 맵 로드 오류</p>
+                             <p className="font-mono text-[10px] bg-rose-50 dark:bg-rose-900/20 p-2 rounded">{loadError.message}</p>
+                             <p className="text-slate-500 dark:text-slate-400 font-normal">
+                               자동 완성 기능이 일시적으로 비활성화되었습니다. 위 입력창에 장소를 직접 입력해주세요.
+                             </p>
+                          </div>
+                        ) : (
+                          <>
+                            💡 <b>Settings &gt; Secrets</b>에서 <code className="text-blue-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
+                            * <b>필수 활성화 API:</b> Maps JavaScript API, Places API
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : isLoaded ? (
+                    <PlaceSearch 
+                      onPlaceSelect={handlePlaceSelect}
+                      onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
+                      placeholder="주소를 검색하거나 직접 입력하세요"
+                      value={formData.locationName}
                     />
-                    <div className="relative w-40">
+                  ) : (
+                    <div className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-2xl border border-slate-100 dark:border-slate-800"></div>
+                  )}
+                  {formData.formattedAddress && (
+                    <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 px-1 font-medium">
+                      <MapPin className="w-3.5 h-3.5" /> 상세주소: {formData.formattedAddress} {formData.city && `(${formData.city}, ${formData.country})`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Pricing Section */}
+            <section className="space-y-10">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <CreditCard className="w-5 h-5 text-rose-500" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">참가비 및 결제</h2>
+              </div>
+
+              <div className="space-y-10">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest">강습비 (티켓)</label>
+                    <button
+                      type="button"
+                      onClick={addTicket}
+                      className="text-xs font-black text-rose-600 dark:text-rose-400 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/30 px-3 py-1.5 rounded-full hover:bg-rose-100 transition-colors"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" /> 티켓 추가
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {formData.tickets.map((ticket, index) => (
+                      <div key={index} className="group flex gap-4 items-center animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            required
+                            value={ticket.name}
+                            onChange={e => updateTicket(index, 'name', e.target.value)}
+                            placeholder="티켓 명칭 (예: 1회권, 4회 패키지)"
+                            className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="relative w-40 md:w-48">
+                          <input
+                            type="number"
+                            required
+                            value={ticket.price}
+                            onChange={e => updateTicket(index, 'price', parseInt(e.target.value) || 0)}
+                            className="w-full pl-6 pr-12 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-rose-500/10 outline-none transition-all font-black text-right"
+                          />
+                          <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₩</span>
+                        </div>
+                        {formData.tickets.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeTicket(index)}
+                            className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">수강 정원</label>
+                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 inline-flex">
                       <input
                         type="number"
                         required
-                        value={ticket.price}
-                        onChange={e => updateTicket(index, 'price', parseInt(e.target.value) || 0)}
-                        className="w-full pl-5 pr-10 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-rose-500 outline-none transition-all font-medium"
+                        value={formData.maxAttendees}
+                        onChange={e => setFormData({ ...formData, maxAttendees: parseInt(e.target.value) || 0 })}
+                        className="w-24 bg-transparent text-center text-xl font-black text-slate-800 dark:text-slate-100 outline-none"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₩</span>
+                      <span className="text-slate-400 font-bold pr-4 border-l border-slate-200 dark:border-slate-700 pl-4 py-2">명</span>
                     </div>
-                    {formData.tickets.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeTicket(index)}
-                        className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
-                      >
-                        <MinusCircle className="w-5 h-5" />
-                      </button>
-                    )}
                   </div>
-                ))}
-              </div>
+                </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">수강 정원</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="number"
-                    required
-                    value={formData.maxAttendees}
-                    onChange={e => setFormData({ ...formData, maxAttendees: parseInt(e.target.value) || 0 })}
-                    className="w-32 px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-rose-500 outline-none transition-all font-medium"
+                <div className="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-3xl border border-slate-100 dark:border-slate-800/50 space-y-4">
+                  <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 flex items-center">
+                    <CreditCard className="w-4 h-4 mr-2 text-indigo-500"/> 입금 안내 정보
+                  </label>
+                  <textarea
+                    value={formData.paymentMethod}
+                    onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
+                    placeholder="예: 우리은행 1002-XXX-XXXXXX (홍길동), 입금 후 문자로 성함을 남겨주세요."
+                    rows={2}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-4 text-[14px] font-medium text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none shadow-sm"
                   />
-                  <span className="text-slate-500 font-medium">명</span>
+                  <p className="text-[11px] text-slate-400 italic">※ 참여 신청자에게 표시될 결제 방법 또는 계좌 정보를 입력해주세요.</p>
                 </div>
               </div>
+            </section>
 
-              <div className="space-y-4 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">결제/입금 안내</label>
-                <textarea
-                  value={formData.paymentMethod}
-                  onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  placeholder="예: 우리은행 1002-XXX-XXXXXX (홍길동), 입금 후 문자로 성함을 남겨주세요."
-                  rows={3}
-                  className="w-full px-5 py-4 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-xl focus:border-rose-500 outline-none transition-all font-medium resize-none"
-                />
-                <p className="text-xs text-slate-400">참여 신청자에게 표시될 입금 계좌 또는 결제 방법을 입력해주세요.</p>
+            {/* Media Section */}
+            <section className="space-y-10">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <ImageIcon className="w-5 h-5 text-indigo-500" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">강습 포스터</h2>
               </div>
-            </div>
-          </section>
 
-          {/* Media Section */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg flex items-center justify-center">
-                <ImageIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <div className="space-y-6">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className={clsx(
+                    "relative group cursor-pointer aspect-video rounded-[40px] border-4 border-dashed overflow-hidden transition-all duration-500",
+                    formData.imageUrl 
+                      ? "border-teal-500/30 shadow-2xl" 
+                      : "border-slate-200 dark:border-slate-800 hover:border-teal-500/50 hover:bg-teal-50/5 dark:hover:bg-teal-500/5"
+                  )}
+                >
+                  {formData.imageUrl ? (
+                    <>
+                      <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                        <div className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                          <Upload className="w-6 h-6" /> 포스터 변경하기
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6">
+                      <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-[32px] flex items-center justify-center border border-slate-100 dark:border-slate-700 group-hover:scale-110 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/20 group-hover:border-teal-200 transition-all duration-500 shadow-sm">
+                        <Plus className="w-10 h-10 text-slate-400 group-hover:text-teal-500" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xl font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">이미지를 등록하세요</p>
+                        <p className="text-slate-400 font-medium mt-1">강습을 대표하는 멋진 포스터 (권장 16:9)</p>
+                      </div>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleImageUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                </div>
               </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider text-sm">대표 이미지</h2>
-            </div>
+            </section>
 
-            <div className="space-y-4">
-              <input
-                type="hidden"
-                value={formData.imageUrl}
+            {/* Description Section */}
+            <section className="space-y-8">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <FileText className="w-5 h-5 text-slate-400" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">강습 상세 내용</h2>
+              </div>
+              <textarea
+                required
+                name="description"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                rows={12}
+                className="w-full rounded-[32px] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-8 py-8 text-[15px] leading-relaxed text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-teal-500/5 focus:border-teal-500/50 outline-none transition-all resize-none shadow-inner font-medium placeholder:text-slate-300"
+                placeholder="커리큘럼, 강의 대상, 준비물 등 상세 내용을 작성해주세요."
               />
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={clsx(
-                  "relative group cursor-pointer aspect-video rounded-3xl border-3 border-dashed overflow-hidden transition-all",
-                  formData.imageUrl 
-                    ? "border-teal-500/50" 
-                    : "border-slate-200 dark:border-slate-800 hover:border-teal-500/50 hover:bg-teal-50/5 dark:hover:bg-teal-500/5"
-                )}
-              >
-                {formData.imageUrl ? (
-                  <>
-                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <p className="text-white font-bold flex items-center gap-2">
-                        <Upload className="w-5 h-5" />
-                        이미지 변경하기
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 space-y-4">
-                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-teal-100 dark:group-hover:bg-teal-500/20 group-hover:text-teal-600 transition-all">
-                      <Plus className="w-8 h-8" />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-bold text-slate-600 dark:text-slate-300">대표 이미지를 추가해주세요</p>
-                      <p className="text-sm">강습을 대표하는 멋진 포스터나 사진 (추천 16:9)</p>
-                    </div>
-                  </div>
-                )}
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleImageUpload} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
-              </div>
-            </div>
-          </section>
+            </section>
 
-          {/* Form Actions */}
-          <div className="pt-10 flex gap-4">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="px-8 py-5 flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-12 py-5 flex-[2] bg-teal-600 text-white font-black rounded-2xl shadow-lg shadow-teal-600/30 hover:bg-teal-700 hover:-translate-y-1 transition-all disabled:opacity-50 disabled:transform-none"
-            >
-              {loading ? '등록 중...' : '강습 등록하기'}
-            </button>
-          </div>
-        </form>
+            {/* Desktop Actions */}
+            <div className="hidden md:flex gap-6 pt-12 border-t border-slate-100 dark:border-slate-800 justify-end">
+              <button 
+                type="button" 
+                onClick={() => navigate(-1)} 
+                className="px-10 py-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-200 transition-colors"
+              >
+                취소
+              </button>
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="px-16 py-5 bg-teal-600 text-white font-black rounded-2xl shadow-2xl shadow-teal-600/40 hover:bg-teal-700 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {loading ? '등록 중...' : '강습 등록하기'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Sticky Mobile Actions */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl border-t border-slate-100 dark:border-slate-800 z-50 flex gap-3">
+        <button 
+          type="button" 
+          onClick={() => navigate(-1)} 
+          className="w-16 h-16 bg-slate-100 dark:bg-slate-800/50 text-slate-500 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700"
+        >
+          <X className="w-7 h-7" />
+        </button>
+        <button 
+          type="submit" 
+          form="create-lesson-form"
+          disabled={loading}
+          className="flex-1 bg-teal-600 text-white font-black rounded-2xl shadow-xl shadow-teal-600/30 flex items-center justify-center gap-3 disabled:opacity-50"
+        >
+          {loading ? (
+            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <span className="text-lg">강습 등록 완료</span>
+          )}
+        </button>
       </div>
     </div>
   );

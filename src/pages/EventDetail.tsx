@@ -800,10 +800,30 @@ export default function EventDetail() {
                 <div className="w-12 h-12 bg-amber-100 dark:bg-amber-800/30 rounded-full flex items-center justify-center mb-4">
                   <MapPin className="w-6 h-6 text-amber-600" />
                 </div>
-                <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
-                <p className="text-amber-700 dark:text-amber-500 text-sm max-w-sm">
-                  지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.
-                </p>
+                {loadError ? (
+                  <>
+                    <h4 className="text-rose-900 dark:text-rose-400 font-bold mb-2">지도를 불러올 수 없습니다.</h4>
+                    <p className="text-rose-700 dark:text-rose-500 text-sm max-w-sm mb-4">
+                      {loadError.message?.includes('RefererNotAllowedMapError') ? (
+                        <>
+                          <b>RefererNotAllowedMapError</b>가 발생했습니다. 구글 콘솔의 HTTP 리퍼러 목록에 아래 주소를 추가해주세요:
+                          <code className="block mt-2 bg-rose-100 dark:bg-rose-800/30 p-2 rounded break-all whitespace-normal text-[11px] font-mono">
+                            {window.location.origin}/*
+                          </code>
+                        </>
+                      ) : (
+                        loadError.message || 'Google Maps API 로드 중 알 수 없는 오류가 발생했습니다.'
+                      )}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h4 className="text-amber-900 dark:text-amber-400 font-bold mb-2">Google Maps API 키가 설정되지 않았습니다.</h4>
+                    <p className="text-amber-700 dark:text-amber-500 text-sm max-w-sm">
+                      지도를 표시하려면 우측 상단 <b>Settings &gt; Secrets</b> 메뉴에서 <code className="bg-amber-100 dark:bg-amber-800/30 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.
+                    </p>
+                  </>
+                )}
                 <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="mt-4 text-amber-800 dark:text-amber-400 text-xs font-bold underline">
                   구글 클라우드 콘솔에서 키 발급받기
                 </a>

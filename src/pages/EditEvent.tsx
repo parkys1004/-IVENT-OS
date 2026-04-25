@@ -48,23 +48,23 @@ export default function EditEvent() {
     let city = '';
     let country = '';
     
-    if (place.addressComponents) {
-      place.addressComponents.forEach((component: any) => {
-        if (component.types.includes('country')) country = component.shortText || component.short_name;
-        if (component.types.includes('locality')) city = component.longText || component.long_name;
-        else if (component.types.includes('administrative_area_level_1') && !city) city = component.longText || component.long_name;
+    if (place.address_components) {
+      place.address_components.forEach((component: any) => {
+        if (component.types.includes('country')) country = component.short_name;
+        if (component.types.includes('locality')) city = component.long_name;
+        else if (component.types.includes('administrative_area_level_1') && !city) city = component.long_name;
       });
     }
 
     setFormData(prev => ({
       ...prev,
-      locationName: place.displayName || place.name || place.formattedAddress || place.formatted_address || prev.locationName,
-      formattedAddress: place.formattedAddress || place.formatted_address || '',
+      locationName: place.name || place.formatted_address || prev.locationName,
+      formattedAddress: place.formatted_address || '',
       country: country,
       city: city,
-      geoPoint: place.location ? {
-        lat: typeof place.location.lat === 'function' ? place.location.lat() : place.location.lat,
-        lng: typeof place.location.lng === 'function' ? place.location.lng() : place.location.lng
+      geoPoint: place.geometry?.location ? {
+        lat: typeof place.geometry.location.lat === 'function' ? place.geometry.location.lat() : place.geometry.location.lat,
+        lng: typeof place.geometry.location.lng === 'function' ? place.geometry.location.lng() : place.geometry.location.lng
       } : prev.geoPoint
     }));
   };

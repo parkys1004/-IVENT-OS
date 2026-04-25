@@ -54,6 +54,7 @@ interface EventPhoto {
 }
 
 import { awardPoints } from '../lib/points';
+import { ShareModal } from '../components/ShareModal';
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -69,6 +70,7 @@ export default function EventDetail() {
   const [copied, setCopied] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Community States
   const [activeTab, setActiveTab] = useState<'info' | 'comments' | 'reviews' | 'gallery'>('info');
@@ -611,6 +613,14 @@ export default function EventDetail() {
       <div className="flex justify-between items-center mb-6 px-4 md:px-0">
         <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">
           <ArrowLeft className="w-4 h-4 mr-2" /> 목록으로 돌아가기
+        </button>
+
+        <button 
+          onClick={() => setShowShareModal(true)}
+          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/30 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all ml-auto mr-4"
+        >
+          <Share2 className="w-4 h-4 text-indigo-500" />
+          공유하기
         </button>
         
         {canEdit && (
@@ -1378,6 +1388,12 @@ export default function EventDetail() {
           </motion.div>
         )}
       </AnimatePresence>
+      <ShareModal 
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={event.title}
+        url={window.location.href}
+      />
     </motion.div>
   );
 }

@@ -10,8 +10,10 @@ import {
   Send, 
   Trash2, 
   AlertCircle,
-  Hash
+  Hash,
+  Share2
 } from 'lucide-react';
+import { ShareModal } from '../components/ShareModal';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -52,6 +54,7 @@ export default function PostDetail() {
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -157,12 +160,21 @@ export default function PostDetail() {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-8 pb-20">
-      <button 
-        onClick={() => navigate('/community')}
-        className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold mb-8"
-      >
-        <ChevronLeft className="w-5 h-5" /> 목록으로 돌아가기
-      </button>
+      <div className="flex items-center justify-between mb-8">
+        <button 
+          onClick={() => navigate('/community')}
+          className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold"
+        >
+          <ChevronLeft className="w-5 h-5" /> 목록으로 돌아가기
+        </button>
+
+        <button 
+          onClick={() => setShowShareModal(true)}
+          className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold px-4 py-2 border border-slate-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 shadow-sm"
+        >
+          <Share2 className="w-4 h-4 text-indigo-500" /> 공유하기
+        </button>
+      </div>
 
       {/* Post Header */}
       <div className="bg-white dark:bg-slate-900 rounded-[32px] p-4 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm mb-8">
@@ -274,6 +286,12 @@ export default function PostDetail() {
           )}
         </div>
       )}
+      <ShareModal 
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={post.title}
+        url={window.location.href}
+      />
     </div>
   </div>
   );

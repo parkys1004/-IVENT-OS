@@ -184,24 +184,24 @@ export default function PointRecharge() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-      <div className="max-w-6xl mx-auto w-full px-4 py-12 sm:py-20 space-y-16">
+      <div className="max-w-6xl mx-auto w-full px-4 py-8 md:py-20 space-y-12 md:space-y-16">
         
         {/* Header Section */}
-        <div className="flex flex-col items-center text-center space-y-6">
+        <div className="flex flex-col items-center text-center space-y-4 md:space-y-6">
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-3 px-6 py-3 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-500/20 rounded-full"
+            className="inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-500/20 rounded-full"
           >
-            <Zap className="w-5 h-5 text-orange-500" />
-            <span className="text-orange-600 dark:text-orange-500 font-black text-sm tracking-tight">댄스하이브 리듬 포인트</span>
+            <Zap className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+            <span className="text-orange-600 dark:text-orange-500 font-black text-[11px] md:text-sm tracking-tight">댄스하이브 리듬 포인트</span>
           </motion.div>
           
           <motion.h1 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-6xl font-black tracking-tighter"
+            className="text-3xl sm:text-6xl font-black tracking-tighter leading-[1.1]"
           >
             나의 리듬 포인트:<br/>
             <span className="text-orange-600 dark:text-orange-500">{(profile.points || 0).toLocaleString()} P</span>
@@ -211,7 +211,7 @@ export default function PointRecharge() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-slate-500 dark:text-slate-400 font-bold max-w-xl mx-auto"
+            className="text-slate-500 dark:text-slate-400 font-bold text-sm md:text-lg max-w-xl mx-auto leading-relaxed px-2"
           >
             댄스하이브 전용 포인트를 충전하여 행사 예매, 강습 예약,<br className="hidden sm:block" />
             그리고 AI 댄스 분석까지 댄서들을 위한 모든 서비스를 이용하세요.
@@ -219,7 +219,7 @@ export default function PointRecharge() {
         </div>
 
         {/* Tier Cards Grid */}
-        <div id="packages-section" className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
+        <div id="packages-section" className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 pt-4 md:pt-8">
           {packages.map((pkg, idx) => (
             <motion.div
               key={pkg.id}
@@ -227,71 +227,71 @@ export default function PointRecharge() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * idx }}
               className={clsx(
-                "relative group p-8 rounded-[40px] border-2 transition-all flex flex-col h-full overflow-hidden",
+                "relative group p-6 md:p-8 rounded-[32px] md:rounded-[40px] border-2 transition-all flex flex-col h-full overflow-hidden",
                 pkg.isPopular 
                   ? "bg-white dark:bg-slate-800 border-orange-400 dark:border-orange-500 shadow-xl shadow-orange-500/10" 
                   : "bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm"
               )}
             >
               {pkg.isPopular && (
-                <div className="absolute top-6 right-6">
-                  <span className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-md">인기 패키지</span>
+                <div className="absolute top-4 right-4 md:top-6 md:right-6">
+                  <span className="bg-orange-500 text-white text-[9px] md:text-[10px] font-black px-2 md:px-3 py-1 rounded-full uppercase tracking-widest shadow-md">인기 패키지</span>
                 </div>
               )}
 
               {/* Icon & Title */}
               <div className={clsx(
-                "w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-inner",
+                "w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-6 md:mb-8 shadow-inner",
                 pkg.id === 'tier-1' ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300" :
                 pkg.id === 'tier-2' ? "bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-[#F39C12]" :
                 "bg-lime-100 dark:bg-lime-500/20 text-lime-600 dark:text-[#A3E635]"
               )}>
-                {pkg.icon}
+                {React.cloneElement(pkg.icon as React.ReactElement, { className: "w-5 h-5 md:w-6 md:h-6" })}
               </div>
 
-              <div className="flex-1 space-y-6">
+              <div className="flex-1 space-y-4 md:space-y-6">
                 <div>
-                  <h3 className="text-2xl font-black mb-1">{pkg.title}</h3>
+                  <h3 className="text-xl md:text-2xl font-black mb-1">{pkg.title}</h3>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-[1000] tracking-tighter">
+                    <span className="text-3xl md:text-4xl font-[1000] tracking-tighter">
                       {pkg.points.toLocaleString()}
                     </span>
-                    <span className="text-base font-black opacity-40">P</span>
+                    <span className="text-sm md:text-base font-black opacity-40">P</span>
                   </div>
                   {pkg.bonus_points > 0 && (
-                    <div className="mt-2 flex items-center gap-1.5 text-lime-600 dark:text-lime-400 font-black text-xs">
-                      <Star className="w-3.5 h-3.5 fill-current" />
+                    <div className="mt-2 flex items-center gap-1.5 text-lime-600 dark:text-lime-400 font-black text-[11px] md:text-xs">
+                      <Star className="w-3 md:w-3.5 h-3 md:h-3.5 fill-current" />
                       + {pkg.bonus_points.toLocaleString()} 보너스 P
                     </div>
                   )}
                 </div>
 
-                <ul className="space-y-4">
+                <ul className="space-y-3 md:space-y-4">
                   {pkg.features.map((feature, fIdx) => (
-                    <li key={fIdx} className="flex items-start gap-3">
+                    <li key={fIdx} className="flex items-start gap-2.5 md:gap-3">
                       <div className="mt-1 p-0.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
                         <CheckCircle2 className={clsx(
-                          "w-3.5 h-3.5",
+                          "w-3 md:w-3.5 h-3 md:h-3.5",
                           pkg.isPopular ? "text-orange-500" : "text-slate-400 dark:text-slate-500"
                         )} />
                       </div>
-                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300 tracking-tight">{feature}</span>
+                      <span className="text-xs md:text-sm font-bold text-slate-600 dark:text-slate-300 tracking-tight">{feature}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="mt-12 pt-8 border-t border-slate-100 dark:border-white/5 flex flex-col gap-4">
+              <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-slate-100 dark:border-white/5 flex flex-col gap-4">
                  <div className="flex flex-col">
-                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">1회 충전 금액</span>
-                   <span className="text-3xl font-[1000] tracking-tighter">
-                     {pkg.price_amount.toLocaleString()} <span className="text-sm opacity-40 font-black tracking-normal">원</span>
+                   <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">1회 충전 금액</span>
+                   <span className="text-2xl md:text-3xl font-[1000] tracking-tighter">
+                     {pkg.price_amount.toLocaleString()} <span className="text-xs md:text-sm opacity-40 font-black tracking-normal">원</span>
                    </span>
                  </div>
                  <button 
                   onClick={() => setSelectedPackage(pkg)}
                   className={clsx(
-                   "w-full py-5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02] active:scale-95 shadow-md",
+                   "w-full py-4 md:py-5 rounded-2xl font-black text-[13px] md:text-sm transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02] active:scale-95 shadow-md",
                    selectedPackage?.id === pkg.id 
                     ? "bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900"
                     : pkg.isPopular 
@@ -300,7 +300,7 @@ export default function PointRecharge() {
                   )}
                  >
                    {selectedPackage?.id === pkg.id ? '선택됨' : '패키지 선택'}
-                   <ChevronRight className="w-4 h-4" />
+                   <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                  </button>
               </div>
             </motion.div>
@@ -314,44 +314,44 @@ export default function PointRecharge() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="space-y-12"
+              className="space-y-8 md:space-y-12"
             >
               {/* Payment Methods */}
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 <div className="flex items-center justify-center text-center">
-                   <div>
-                     <h2 className="text-2xl font-black mb-2">결제 수단 선택</h2>
-                     <p className="text-slate-500 text-sm font-bold">간편결제로 빠르고 안전하게 충전하세요.</p>
+                   <div className="px-4">
+                     <h2 className="text-xl md:text-2xl font-black mb-1 md:mb-2">결제 수단 선택</h2>
+                     <p className="text-slate-500 text-[13px] md:text-sm font-bold">간편결제로 빠르고 안전하게 충전하세요.</p>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto">
                   {[
-                    { id: 'kakao', name: '카카오페이', icon: <Smartphone className="w-6 h-6" />, color: 'bg-[#FEE500] text-black' },
-                    { id: 'toss', name: '토스페이', icon: <Smartphone className="w-6 h-6" />, color: 'bg-[#0050FF] text-white' },
-                    { id: 'card', name: '신용/체크카드', icon: <CreditCard className="w-6 h-6" />, color: 'bg-white text-black border border-slate-200 dark:border-transparent' },
-                    { id: 'transfer', name: '무통장입금', icon: <Wallet className="w-6 h-6" />, color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-transparent' }
+                    { id: 'kakao', name: '카카오페이', icon: <Smartphone className="w-5 h-5 md:w-6 md:h-6" />, color: 'bg-[#FEE500] text-black' },
+                    { id: 'toss', name: '토스페이', icon: <Smartphone className="w-5 h-5 md:w-6 md:h-6" />, color: 'bg-[#0050FF] text-white' },
+                    { id: 'card', name: '신용/체크카드', icon: <CreditCard className="w-5 h-5 md:w-6 md:h-6" />, color: 'bg-white text-black border border-slate-200 dark:border-transparent' },
+                    { id: 'transfer', name: '무통장입금', icon: <Wallet className="w-5 h-5 md:w-6 md:h-6" />, color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-transparent' }
                   ].map((method) => (
                     <button
                       key={method.id}
                       onClick={() => setPaymentMethod(method.id as any)}
                       className={clsx(
-                        "relative flex flex-col items-center justify-center gap-4 p-8 rounded-[32px] border-2 transition-all group overflow-hidden bg-white dark:bg-slate-900/40",
+                        "relative flex flex-col items-center justify-center gap-3 md:gap-4 p-5 md:p-8 rounded-3xl md:rounded-[32px] border-2 transition-all group overflow-hidden bg-white dark:bg-slate-900/40",
                         paymentMethod === method.id
                           ? "border-orange-500 bg-orange-50 dark:bg-orange-500/5 shadow-md"
                           : "border-slate-200 dark:border-slate-800 hover:border-orange-200 dark:hover:border-slate-700"
                       )}
                     >
                       <div className={clsx(
-                        "w-14 h-14 rounded-2xl flex items-center justify-center shadow-md transition-transform group-hover:scale-110",
+                        "w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center shadow-md transition-transform group-hover:scale-110",
                         method.color
                       )}>
                         {method.icon}
                       </div>
-                      <span className="text-xs font-black tracking-tight">{method.name}</span>
+                      <span className="text-[10px] md:text-xs font-black tracking-tight">{method.name}</span>
                       {paymentMethod === method.id && (
-                        <div className="absolute top-4 right-4 w-5 h-5 bg-orange-500 text-white rounded-full flex items-center justify-center">
-                          <CheckCircle2 className="w-3 h-3 shadow-sm" />
+                        <div className="absolute top-3 right-3 md:top-4 md:right-4 w-4 h-4 md:w-5 md:h-5 bg-orange-500 text-white rounded-full flex items-center justify-center">
+                          <CheckCircle2 className="w-2.5 h-2.5 md:w-3 md:h-3 shadow-sm" />
                         </div>
                       )}
                     </button>
@@ -359,26 +359,26 @@ export default function PointRecharge() {
                 </div>
 
                 {/* Final Checkout */}
-                <div className="max-w-4xl mx-auto mt-10 p-10 bg-white dark:bg-slate-900/50 shadow-sm border border-slate-200 dark:border-slate-800 rounded-[48px] flex flex-col sm:flex-row items-center justify-between gap-8">
+                <div className="max-w-4xl mx-auto mt-6 md:mt-10 p-6 md:p-10 bg-white dark:bg-slate-900/50 shadow-sm border border-slate-200 dark:border-slate-800 rounded-[32px] md:rounded-[48px] flex flex-col sm:flex-row items-center justify-between gap-6 md:gap-8">
                    <div className="text-center sm:text-left">
-                     <p className="text-slate-500 font-bold text-sm mb-1 uppercase tracking-widest">최종 결제 금액</p>
-                     <div className="flex items-baseline gap-2 text-slate-900 dark:text-white">
-                       <span className="text-4xl font-[1000] tracking-tighter">
+                     <p className="text-slate-500 font-bold text-[10px] md:text-sm mb-1 uppercase tracking-widest">최종 결제 금액</p>
+                     <div className="flex items-baseline justify-center sm:justify-start gap-2 text-slate-900 dark:text-white">
+                       <span className="text-3xl md:text-4xl font-[1000] tracking-tighter">
                          {selectedPackage.price_amount.toLocaleString()}
                        </span>
-                       <span className="text-xl font-black opacity-40">원</span>
+                       <span className="text-lg md:text-xl font-black opacity-40">원</span>
                      </div>
-                     <p className="text-xs font-black text-orange-600 dark:text-lime-400 mt-2 uppercase tracking-tight">
+                     <p className="text-[10px] md:text-xs font-black text-orange-600 dark:text-lime-400 mt-2 uppercase tracking-tight">
                        최종 {(selectedPackage.points + selectedPackage.bonus_points).toLocaleString()} 리듬 포인트 충전
                      </p>
                    </div>
                    <button
                      disabled={true}
                      className={clsx(
-                       "w-full sm:w-auto px-16 py-6 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-[24px] font-[950] text-xl shadow-none transition-all flex items-center justify-center gap-4 cursor-not-allowed"
+                       "w-full sm:w-auto px-8 md:px-16 py-4 md:py-6 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl md:rounded-[24px] font-[950] text-base md:text-xl shadow-none transition-all flex items-center justify-center gap-3 md:gap-4 cursor-not-allowed"
                      )}
                    >
-                     <Zap className="w-6 h-6 outline-none" />
+                     <Zap className="w-5 h-5 md:w-6 md:h-6 outline-none" />
                      결제 시스템 연동 중
                    </button>
                 </div>
@@ -388,98 +388,132 @@ export default function PointRecharge() {
         </AnimatePresence>
 
         {/* Footer Link & Usage History */}
-        <div className="pt-20 space-y-12">
-          <div className="flex flex-col items-center justify-center text-center gap-8 border-t border-slate-200 dark:border-slate-800 pt-16">
-             <div className="flex items-center gap-10">
-               <div className="flex flex-col items-center gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
-                 <Smartphone className="w-8 h-8" />
-                 <span className="text-[10px] font-black uppercase text-center">KakaoPay</span>
+        <div className="pt-12 md:pt-20 space-y-10 md:space-y-12">
+          <div className="flex flex-col items-center justify-center text-center gap-6 md:gap-8 border-t border-slate-200 dark:border-slate-800 pt-12 md:pt-16">
+             <div className="flex items-center gap-6 md:gap-10">
+               <div className="flex flex-col items-center gap-1.5 md:gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
+                 <Smartphone className="w-6 h-6 md:w-8 md:h-8" />
+                 <span className="text-[9px] md:text-[10px] font-black uppercase text-center">KakaoPay</span>
                </div>
-               <div className="flex flex-col items-center gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
-                 <Smartphone className="w-8 h-8" />
-                 <span className="text-[10px] font-black uppercase text-center">Toss</span>
+               <div className="flex flex-col items-center gap-1.5 md:gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
+                 <Smartphone className="w-6 h-6 md:w-8 md:h-8" />
+                 <span className="text-[9px] md:text-[10px] font-black uppercase text-center">Toss</span>
                </div>
-               <div className="flex flex-col items-center gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
-                 <CreditCard className="w-8 h-8" />
-                 <span className="text-[10px] font-black uppercase text-center">Cards</span>
+               <div className="flex flex-col items-center gap-1.5 md:gap-2 opacity-40 grayscale group hover:grayscale-0 hover:opacity-100 transition-all">
+                 <CreditCard className="w-6 h-6 md:w-8 md:h-8" />
+                 <span className="text-[9px] md:text-[10px] font-black uppercase text-center">Cards</span>
                </div>
              </div>
 
-             <div className="flex flex-col items-center gap-4">
+             <div className="flex flex-col items-center gap-3 md:gap-4 px-4">
                <button 
                 onClick={() => document.getElementById('history-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="group flex items-center gap-3 text-slate-500 hover:text-orange-500 font-black text-sm tracking-tight transition-colors"
+                className="group flex items-center gap-2 md:gap-3 text-slate-500 hover:text-orange-500 font-black text-[13px] md:text-sm tracking-tight transition-colors"
                >
                  <History className="w-4 h-4 transition-transform group-hover:rotate-[-180deg]" />
                  포인트 이용 내역 보기
                  <ArrowUpRight className="w-4 h-4" />
                </button>
-               <p className="text-[11px] text-slate-500 font-medium max-w-sm">
+               <p className="text-[10px] md:text-[11px] text-slate-500 font-medium max-w-sm leading-relaxed">
                  모든 결제는 256비트 SSL 암호화로 안전하게 보호됩니다. <br className="hidden sm:block" />리듬 포인트는 사용 후 환불되지 않습니다.
                </p>
              </div>
           </div>
 
           {/* Usage History Details */}
-          <div id="history-section" className="scroll-mt-24 space-y-8 pb-20">
-            <h2 className="text-2xl font-black flex items-center gap-3 text-slate-800 dark:text-white">
-              <Award className="w-6 h-6 text-orange-500" />
+          <div id="history-section" className="scroll-mt-24 space-y-6 md:space-y-8 pb-12 md:pb-20">
+            <h2 className="text-xl md:text-2xl font-black flex items-center gap-2.5 md:gap-3 text-slate-800 dark:text-white px-2">
+              <Award className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
               포인트 이용 상세 내역
             </h2>
 
-            <div className="bg-white dark:bg-slate-900/50 rounded-[24px] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl md:rounded-[24px] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
                {history.length > 0 ? (
-                 <div className="overflow-x-auto no-scrollbar">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
-                          <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest whitespace-nowrap">날짜</th>
-                          <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest whitespace-nowrap">분류</th>
-                          <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest">내용</th>
-                          <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest text-right whitespace-nowrap">포인트</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                        {history.map((item) => (
-                           <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                             <td className="px-8 py-6">
-                               <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold text-xs whitespace-nowrap">
-                                 <Clock className="w-3.5 h-3.5" />
-                                 {format(new Date(item.created_at), 'yyyy-MM-dd')}
-                               </div>
-                             </td>
-                             <td className="px-8 py-6">
+                 <>
+                   {/* Desktop Table View */}
+                   <div className="hidden md:block overflow-x-auto no-scrollbar">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
+                            <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest whitespace-nowrap">날짜</th>
+                            <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest whitespace-nowrap">분류</th>
+                            <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest">내용</th>
+                            <th className="px-8 py-6 text-[11px] font-black text-slate-500 tracking-widest text-right whitespace-nowrap">포인트</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                          {history.map((item) => (
+                             <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                               <td className="px-8 py-6">
+                                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold text-xs whitespace-nowrap">
+                                   <Clock className="w-3.5 h-3.5" />
+                                   {format(new Date(item.created_at), 'yyyy-MM-dd')}
+                                 </div>
+                               </td>
+                               <td className="px-8 py-6">
+                                 <span className={clsx(
+                                   "text-[10px] font-black px-2.5 py-1 rounded-md tracking-wider whitespace-nowrap",
+                                   item.amount > 0 
+                                     ? "bg-lime-100 text-lime-700 dark:bg-lime-500/10 dark:text-lime-400" 
+                                     : "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
+                                 )}>
+                                   {item.amount > 0 ? '충전' : '사용'}
+                                 </span>
+                               </td>
+                               <td className="px-8 py-6">
+                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-300 tracking-tight">{item.reason}</p>
+                               </td>
+                               <td className="px-8 py-6 text-right">
+                                 <p className={clsx(
+                                   "text-lg font-[1000] tracking-tighter whitespace-nowrap",
+                                   item.amount > 0 
+                                    ? "text-lime-600 dark:text-lime-400" 
+                                    : "text-slate-700 dark:text-white"
+                                 )}>
+                                   {item.amount > 0 ? `+${item.amount.toLocaleString()}` : item.amount.toLocaleString()}
+                                 </p>
+                               </td>
+                             </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                   </div>
+
+                   {/* Mobile List View */}
+                   <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/50">
+                     {history.map((item) => (
+                       <div key={item.id} className="p-5 flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
                                <span className={clsx(
-                                 "text-[10px] font-black px-2.5 py-1 rounded-md tracking-wider whitespace-nowrap",
+                                 "text-[9px] font-black px-1.5 py-0.5 rounded-md tracking-tighter uppercase",
                                  item.amount > 0 
-                                   ? "bg-lime-100 text-lime-700 dark:bg-lime-500/10 dark:text-lime-400" 
-                                   : "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
+                                   ? "bg-lime-100 text-lime-600 dark:bg-lime-500/10 dark:text-lime-400" 
+                                   : "bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
                                )}>
                                  {item.amount > 0 ? '충전' : '사용'}
                                </span>
-                             </td>
-                             <td className="px-8 py-6">
-                               <p className="text-sm font-bold text-slate-700 dark:text-slate-300 tracking-tight">{item.reason}</p>
-                             </td>
-                             <td className="px-8 py-6 text-right">
-                               <p className={clsx(
-                                 "text-lg font-[1000] tracking-tighter whitespace-nowrap",
-                                 item.amount > 0 
-                                  ? "text-lime-600 dark:text-lime-400" 
-                                  : "text-slate-700 dark:text-white"
-                               )}>
-                                 {item.amount > 0 ? `+${item.amount.toLocaleString()}` : item.amount.toLocaleString()}
-                               </p>
-                             </td>
-                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                 </div>
+                               <span className="text-[10px] font-bold text-slate-400">{format(new Date(item.created_at), 'yy.MM.dd')}</span>
+                            </div>
+                            <p className="text-[13px] font-black text-slate-700 dark:text-slate-200 truncate pr-2">{item.reason}</p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className={clsx(
+                              "text-base font-[1000] tracking-tighter",
+                              item.amount > 0 ? "text-lime-600 dark:text-lime-400" : "text-slate-700 dark:text-white"
+                            )}>
+                              {item.amount > 0 ? `+${item.amount.toLocaleString()}` : item.amount.toLocaleString()}
+                            </p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">Points</p>
+                          </div>
+                       </div>
+                     ))}
+                   </div>
+                 </>
                ) : (
-                 <div className="py-24 text-center">
-                    <History className="w-12 h-12 text-slate-300 dark:text-slate-800 mx-auto mb-4" />
-                    <p className="text-slate-500 font-bold">이용 내역이 존재하지 않습니다.</p>
+                 <div className="py-20 md:py-24 text-center">
+                    <History className="w-10 h-10 md:w-12 md:h-12 text-slate-300 dark:text-slate-800 mx-auto mb-4" />
+                    <p className="text-slate-500 font-bold text-sm">이용 내역이 존재하지 않습니다.</p>
                  </div>
                )}
             </div>

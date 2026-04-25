@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
-import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout, MessageSquare } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout, MessageSquare, Menu, X as CloseIcon } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Shared State
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -181,55 +182,122 @@ export default function AdminDashboard() {
   const handleMenuClick = (menu: MenuKey) => {
     setActiveMenu(menu);
     setActiveTab('all');
+    setIsSidebarOpen(false);
   };
 
-  if (loading) return <div className="flex justify-center py-20"><RefreshCw className="animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><RefreshCw className="animate-spin text-indigo-600" /></div>;
 
   const pendingUsers = users.filter(u => ['dj', 'instructor', 'media'].includes(u.role || '') && !u.isApproved).length;
   const pendingRegularEvents = events.filter(e => !e.isLesson && (e.status === 'pending' || e.status === 'draft')).length;
   const pendingLessons = events.filter(e => e.isLesson && (e.status === 'pending' || e.status === 'draft')).length;
 
+  const menuItems: { key: MenuKey, label: string, icon: any, badge?: number, color?: string }[] = [
+    { key: 'home', label: '대시보드', icon: Home },
+    { key: 'users', label: '회원 관리', icon: Users, badge: pendingUsers },
+    { key: 'events', label: '행사 관리', icon: CalendarDays, badge: pendingRegularEvents },
+    { key: 'lessons', label: '강습 관리', icon: LayoutGrid, badge: pendingLessons, color: 'emerald' },
+    { key: 'points', label: '포인트 관리', icon: Coins },
+    { key: 'banners', label: '배너 관리', icon: ImageIcon },
+    { key: 'community', label: '게시판 관리', icon: MessageSquare, color: 'indigo' },
+    { key: 'config', label: '홈 화면 설정', icon: Layout },
+  ];
+
   return (
-    <div className="flex-1 flex overflow-hidden glass-panel h-full w-full min-h-0 bg-white dark:bg-slate-950">
+    <div className="flex-1 flex overflow-hidden glass-panel h-full w-full min-h-0 bg-white dark:bg-slate-950 relative">
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <div className="w-64 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
-        <div className="p-6">
-          <h2 className="text-xs font-black text-slate-400 tracking-widest uppercase mb-4">Admin Dashboard</h2>
-          <nav className="space-y-1">
-            <NavItem icon={Home} label="대시보드" active={activeMenu === 'home'} onClick={() => handleMenuClick('home')} />
-            <NavItem icon={Users} label="회원 관리" active={activeMenu === 'users'} onClick={() => handleMenuClick('users')} badge={pendingUsers} />
-            <NavItem icon={CalendarDays} label="행사 관리" active={activeMenu === 'events'} onClick={() => handleMenuClick('events')} badge={pendingRegularEvents} />
-            <NavItem icon={LayoutGrid} label="강습 관리" active={activeMenu === 'lessons'} onClick={() => handleMenuClick('lessons')} badge={pendingLessons} color="emerald" />
-            <NavItem icon={Coins} label="포인트 관리" active={activeMenu === 'points'} onClick={() => handleMenuClick('points')} />
-            <NavItem icon={ImageIcon} label="배너 관리" active={activeMenu === 'banners'} onClick={() => handleMenuClick('banners')} />
-            <NavItem icon={MessageSquare} label="게시판 관리" active={activeMenu === 'community'} onClick={() => handleMenuClick('community')} color="indigo" />
-            <NavItem icon={Layout} label="홈 화면 설정" active={activeMenu === 'config'} onClick={() => handleMenuClick('config')} />
-            <Link to="/ai-settings" className="flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
-              <Bot className="w-5 h-5 text-indigo-500" /> AI API 설정
+      <aside className={clsx(
+        "fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 z-[100] transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-0",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-6 h-16 flex items-center justify-between border-b lg:border-none border-slate-200 dark:border-slate-800">
+          <h2 className="text-xs font-black text-slate-400 tracking-widest uppercase">Admin Panel</h2>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:bg-slate-100 rounded-full">
+            <CloseIcon className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-8">
+          <nav className="space-y-1.5">
+            {menuItems.map(item => (
+              <NavItem 
+                key={item.key}
+                icon={item.icon} 
+                label={item.label} 
+                active={activeMenu === item.key} 
+                onClick={() => handleMenuClick(item.key)} 
+                badge={item.badge} 
+                color={item.color as any}
+              />
+            ))}
+            <Link to="/ai-settings" onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all group">
+              <Bot className="w-5 h-5 text-indigo-500 group-hover:scale-110 transition-transform" /> 
+              <span>AI API 설정</span>
             </Link>
           </nav>
         </div>
-        <div className="mt-auto p-6 border-t border-slate-200 dark:border-slate-800">
+
+        <div className="p-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
           <NavItem icon={Settings} label="시스템 설정" active={activeMenu === 'settings'} onClick={() => handleMenuClick('settings')} />
+          <div className="flex items-center gap-3 px-4 py-3">
+             <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+             </div>
+             <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{profile?.displayName || 'Admin'}</p>
+                <p className="text-[10px] text-slate-500 truncate">{profile?.email}</p>
+             </div>
+          </div>
         </div>
-      </div>
+      </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
-            <span>Admin</span> <ChevronRight className="w-4 h-4" /> 
-            <span className="text-slate-900 dark:text-white capitalize">{activeMenu}</span>
+        <header className="h-16 lg:h-20 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 bg-white dark:bg-slate-950 sticky top-0 z-[80]">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200 rounded-xl hover:bg-slate-200 transition-all"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
+              <span className="hidden sm:inline">Admin</span> 
+              <ChevronRight className="w-4 h-4 hidden sm:inline" /> 
+              <span className="text-slate-900 dark:text-white capitalize">{activeMenu}</span>
+            </div>
           </div>
-          <button onClick={fetchAdminData} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all">
-            <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin")} /> 새로고침
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={fetchAdminData} 
+              className={clsx(
+                "flex items-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200 rounded-xl text-xs lg:text-sm font-bold hover:bg-slate-200 transition-all shadow-sm",
+                isRefreshing && "opacity-80"
+              )}
+            >
+              <RefreshCw className={clsx("w-3.5 h-3.5", isRefreshing && "animate-spin")} /> 
+              <span className="hidden sm:inline">새로고침</span>
+            </button>
+          </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-8 no-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 no-scrollbar bg-slate-50/30 dark:bg-slate-950">
           {fetchError && (
-            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-600">
-              <AlertCircle className="w-5 h-5" /> <span>{fetchError}</span>
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-600 shadow-sm animate-in fade-in slide-in-from-top-4">
+              <AlertCircle className="w-5 h-5 shrink-0" /> <span className="font-bold text-sm">{fetchError}</span>
             </div>
           )}
 
@@ -240,7 +308,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="h-full"
+              className="max-w-7xl mx-auto"
             >
               {activeMenu === 'home' && (
                 <HomeTab 
@@ -337,21 +405,52 @@ export default function AdminDashboard() {
 }
 
 function NavItem({ icon: Icon, label, active, onClick, badge, color = 'orange' }: any) {
+  const colorMap: any = {
+    orange: {
+      bg: 'bg-orange-50 dark:bg-orange-900/20',
+      text: 'text-orange-600 dark:text-orange-400',
+      icon: 'text-orange-500',
+      badge: 'bg-orange-500'
+    },
+    emerald: {
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      text: 'text-emerald-600 dark:text-emerald-400',
+      icon: 'text-emerald-500',
+      badge: 'bg-emerald-500'
+    },
+    indigo: {
+      bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+      text: 'text-indigo-600 dark:text-indigo-400',
+      icon: 'text-indigo-500',
+      badge: 'bg-indigo-500'
+    }
+  };
+
+  const colors = colorMap[color] || colorMap.orange;
+
   return (
     <button 
       onClick={onClick}
       className={clsx(
-        "w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all text-sm",
+        "w-full flex items-center justify-between px-5 py-3.5 rounded-2xl font-bold transition-all text-sm group",
         active 
-          ? `bg-${color}-50 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400 shadow-sm` 
+          ? `${colors.bg} ${colors.text} shadow-sm` 
           : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
       )}
     >
-      <div className="flex items-center gap-3">
-        <Icon className={clsx("w-5 h-5", active && `text-${color}-500`)} />
-        {label}
+      <div className="flex items-center gap-3.5">
+        <Icon className={clsx("w-5.5 h-5.5 transition-transform group-hover:scale-110", active && colors.icon)} />
+        <span className="tracking-tight">{label}</span>
       </div>
-      {badge > 0 && <span className={`bg-${color}-500 text-white text-[10px] px-1.5 py-0.5 rounded-full`}>{badge}</span>}
+      {badge > 0 && (
+        <span className={clsx(
+          "text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse",
+          colors.badge
+        )}>
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
+

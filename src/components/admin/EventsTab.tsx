@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import TypeBadge from '../TypeBadge';
 import { supabase } from '../../supabase';
 
@@ -151,19 +152,20 @@ export const EventsTab: React.FC<EventsTabProps> = ({
         </div>
       </div>
       
-      {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex-1 relative min-h-0">
-        <div className="absolute inset-0 overflow-auto">
+      {/* Table Section: Responsive Layout */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex-1 relative min-h-0 overflow-hidden">
+        {/* Desktop Table View */}
+        <div className="hidden lg:block absolute inset-0 overflow-auto no-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 z-10 shadow-sm">
-              <tr className="text-slate-500 dark:text-slate-400 text-[12px] uppercase tracking-wider">
-                <th className="p-4 font-bold">노출 순서</th>
-                <th className="p-4 font-bold">{onlyLessons ? '강습명' : '행사명'}</th>
-                <th className="p-4 font-bold">주최자</th>
-                <th className="p-4 font-bold">상태</th>
-                <th className="p-4 font-bold">배너</th>
-                <th className="p-4 font-bold">일시</th>
-                <th className="p-4 font-bold text-right">관리</th>
+            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800 z-10 shadow-sm border-b border-slate-200 dark:border-slate-700">
+              <tr className="text-slate-500 dark:text-slate-400 text-[11px] font-black uppercase tracking-widest">
+                <th className="p-5">노출 순서</th>
+                <th className="p-5">{onlyLessons ? '강습명' : '행사명'}</th>
+                <th className="p-5">주최자</th>
+                <th className="p-5">상태</th>
+                <th className="p-5">배너</th>
+                <th className="p-5">일시</th>
+                <th className="p-5 text-right">관리</th>
               </tr>
             </thead>
             <tbody>
@@ -187,31 +189,33 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       <div className="flex items-center gap-1">
                         <button 
                           onClick={() => handlePriorityChange(event.id, (event.priority || 0) + 1)}
-                          className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-indigo-600"
+                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
                         >
-                          <ArrowUp className="w-3 h-3" />
+                          <ArrowUp className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-6 text-center font-bold text-indigo-600 text-xs">
+                        <span className="w-7 text-center font-black text-indigo-600 dark:text-indigo-400 text-xs shadow-sm bg-indigo-50 dark:bg-indigo-900/20 py-1 rounded-md">
                           {event.priority || 0}
                         </span>
                         <button 
                           onClick={() => handlePriorityChange(event.id, Math.max(0, (event.priority || 0) - 1))}
-                          className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-rose-600"
+                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
                         >
-                          <ArrowDown className="w-3 h-3" />
+                          <ArrowDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
-                    <td className="p-4 font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2">
-                      <TypeBadge isLesson={event.isLesson} />
-                      <span className="truncate max-w-[200px]">{event.title}</span>
-                    </td>
-                    <td className="p-4 text-slate-600 dark:text-slate-400 text-sm font-medium">{event.hostName}</td>
                     <td className="p-4">
-                      <span className={clsx("px-2 py-1 rounded-md text-[10px] font-bold",
-                        event.status === 'published' && !isExpired ? 'bg-emerald-100 text-emerald-700' :
-                        isPendingApproval ? 'bg-amber-100 text-amber-700' :
-                        'bg-slate-100 text-slate-600'
+                      <div className="flex items-center gap-3">
+                         <TypeBadge isLesson={event.isLesson} className="!text-[10px] px-2 py-0.5" />
+                         <span className="font-black text-slate-800 dark:text-white text-sm truncate max-w-[200px]">{event.title}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-slate-600 dark:text-slate-400 text-sm font-bold">{event.hostName}</td>
+                    <td className="p-4">
+                      <span className={clsx("px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight",
+                        event.status === 'published' && !isExpired ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' :
+                        isPendingApproval ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30' :
+                        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                       )}>
                         {isPendingApproval ? '승인 대기' : isExpired ? '기간 만료' : '진행 중'}
                       </span>
@@ -220,43 +224,45 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       <button 
                         onClick={() => handleBannerToggle(event.id, !!event.isBanner)}
                         className={clsx(
-                          "px-2 py-1 rounded-md text-[10px] font-bold transition-colors",
+                          "w-12 py-1 rounded-lg text-[10px] font-black transition-all shadow-sm border",
                           event.isBanner 
-                            ? "bg-indigo-600 text-white" 
-                            : "bg-slate-100 text-slate-400 dark:bg-slate-800 hover:bg-slate-200 shadow-sm"
+                            ? "bg-indigo-600 text-white border-indigo-600" 
+                            : "bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
                         )}
                       >
                         {event.isBanner ? "ON" : "OFF"}
                       </button>
                     </td>
-                    <td className="p-4 text-slate-500 text-[11px] font-mono whitespace-nowrap">
-                      {format(dateObj, 'yy.MM.dd', { locale: ko })}
+                    <td className="p-4 text-slate-500 dark:text-slate-400 text-[11px] font-bold leading-tight">
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-400">시작</span> {format(dateObj, 'yy.MM.dd', { locale: ko })}
+                      </div>
                       {event.endDate && (
-                        <>
-                          <br />
-                          ~ {format(new Date(event.endDate), 'yy.MM.dd', { locale: ko })}
-                        </>
+                        <div className="flex items-center gap-1 mt-1 font-medium">
+                          <span className="text-slate-400">종료</span> {format(new Date(event.endDate), 'yy.MM.dd', { locale: ko })}
+                        </div>
                       )}
                     </td>
-                    <td className="p-4 text-right flex items-center justify-end gap-2">
-                      {isPendingApproval && (
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {isPendingApproval && (
+                          <button 
+                            onClick={() => handleApproveEvent(event.id)}
+                            className="text-white font-black text-[11px] px-3 py-2 bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
+                          >
+                            승인하기
+                          </button>
+                        )}
+                        <Link to={`/event/${event.id}`} className="text-indigo-600 font-black text-[11px] px-3 py-2 border border-indigo-100 dark:border-indigo-900/40 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all">
+                          보기
+                        </Link>
                         <button 
-                          onClick={() => handleApproveEvent(event.id)}
-                          className="text-white font-black text-[11px] px-3 py-1.5 bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
+                          onClick={() => handleDeleteEvent(event.id)}
+                          className="text-slate-400 hover:text-rose-600 p-2 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
                         >
-                          승인하기
+                          <Trash2 className="w-4 h-4" />
                         </button>
-                      )}
-                      <Link to={`/event/${event.id}`} className="text-indigo-600 font-bold hover:text-white text-xs px-3 py-1.5 border border-indigo-200 hover:bg-indigo-600 rounded-lg transition-all">
-                        보기
-                      </Link>
-                      <button 
-                        onClick={() => handleDeleteEvent(event.id)}
-                        className="text-rose-600 hover:text-white p-1.5 border border-rose-200 hover:bg-rose-600 rounded-lg transition-all"
-                        title="삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -264,7 +270,101 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card View */}
+        <div className="lg:hidden absolute inset-0 overflow-y-auto p-4 space-y-4 no-scrollbar">
+          {events.filter(e => {
+            const matchesType = e.isLesson === onlyLessons;
+            if (!matchesType) return false;
+
+            const isExpired = new Date(e.date) < new Date();
+            if (activeEventTab === 'all') return true;
+            if (activeEventTab === 'pending') return e.status === 'pending' || e.status === 'draft';
+            if (activeEventTab === 'expired') return isExpired || e.status === 'expired';
+            return true;
+          }).map(event => {
+            const dateObj = safeDate(event.date);
+            const isPendingApproval = event.status === 'pending' || event.status === 'draft';
+            const isExpired = new Date(event.date) < new Date();
+
+            return (
+              <motion.div 
+                layout
+                key={event.id}
+                className="bg-white dark:bg-slate-900 rounded-[24px] p-5 border border-slate-100 dark:border-slate-800 shadow-sm"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex flex-col gap-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                       <TypeBadge isLesson={event.isLesson} className="!text-[10px] px-2" />
+                       <span className={clsx("px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter",
+                         event.status === 'published' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                       )}>
+                         {event.status}
+                       </span>
+                    </div>
+                    <h4 className="font-black text-slate-800 dark:text-white text-base leading-tight truncate">{event.title}</h4>
+                    <p className="text-xs text-slate-500 font-bold flex items-center gap-1">
+                      <span className="text-slate-400">Host:</span> {event.hostName}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1 bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700 ml-3">
+                     <button onClick={() => handlePriorityChange(event.id, (event.priority || 0) + 1)} className="p-1 hover:text-indigo-600"><ArrowUp className="w-3 h-3" /></button>
+                     <span className="text-[11px] font-black text-indigo-600">{event.priority || 0}</span>
+                     <button onClick={() => handlePriorityChange(event.id, Math.max(0, (event.priority || 0) - 1))} className="p-1 hover:text-rose-600"><ArrowDown className="w-3 h-3" /></button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                   <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">일시</p>
+                      <p className="text-xs font-black text-slate-700 dark:text-slate-200">{format(dateObj, 'yy.MM.dd', { locale: ko })}</p>
+                   </div>
+                   <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">배너 노출</p>
+                      <button 
+                        onClick={() => handleBannerToggle(event.id, !!event.isBanner)}
+                        className={clsx(
+                          "w-full py-1 rounded-lg text-[9px] font-black transition-all border",
+                          event.isBanner ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-slate-800 text-slate-400"
+                        )}
+                      >
+                        {event.isBanner ? "ON" : "OFF"}
+                      </button>
+                   </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {isPendingApproval && (
+                    <button 
+                      onClick={() => handleApproveEvent(event.id)}
+                      className="flex-1 py-3 bg-emerald-600 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                    >
+                      승인 완료하기
+                    </button>
+                  )}
+                  <Link 
+                    to={`/event/${event.id}`}
+                    className={clsx(
+                      "flex-1 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-black text-xs rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center shadow-sm",
+                      !isPendingApproval && "flex-[2]"
+                    )}
+                  >
+                    내용 확인
+                  </Link>
+                  <button 
+                    onClick={() => handleDeleteEvent(event.id)}
+                    className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
       </div>
+
     </div>
   );
 };

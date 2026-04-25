@@ -201,11 +201,13 @@ export const PointsTab: React.FC<PointsTabProps> = ({
 
       {/* 3. Point History Log */}
       <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
+        <div className="p-6 md:p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/30">
           <h3 className="text-xl font-black text-slate-900 dark:text-white">최근 포인트 변동 내역</h3>
-          <p className="text-sm text-slate-500 font-medium">플랫폼 전체 유저의 포인트 흐름입니다.</p>
+          <p className="text-xs md:text-sm text-slate-500 font-medium">플랫폼 전체 유저의 포인트 흐름입니다.</p>
         </div>
-        <div className="overflow-x-auto">
+        
+        {/* Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 dark:bg-slate-800">
               <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -227,7 +229,7 @@ export const PointsTab: React.FC<PointsTabProps> = ({
                     <td className={clsx("p-6 text-sm font-black", h.amount > 0 ? "text-emerald-600" : "text-rose-600")}>
                       {h.amount > 0 ? `+${h.amount}` : h.amount} P
                     </td>
-                    <td className="p-6 text-sm text-slate-600 dark:text-slate-400">{h.reason}</td>
+                    <td className="p-6 text-sm text-slate-600 dark:text-slate-400 font-medium">{h.reason}</td>
                   </tr>
                 );
               })}
@@ -239,7 +241,32 @@ export const PointsTab: React.FC<PointsTabProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Mobile List View */}
+        <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
+           {pointStats.history.map((h) => {
+             const userEmail = users.find(u => u.uid === h.user_id)?.email || '알 수 없음';
+             return (
+               <div key={h.id} className="p-5 space-y-2">
+                 <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">
+                      {h.created_at ? format(new Date(h.created_at), 'MM.dd HH:mm') : '-'}
+                    </span>
+                    <span className={clsx("text-sm font-black", h.amount > 0 ? "text-emerald-600" : "text-rose-600")}>
+                      {h.amount > 0 ? `+${h.amount}` : h.amount} P
+                    </span>
+                 </div>
+                 <p className="text-xs font-black text-slate-700 dark:text-slate-200 truncate">{userEmail}</p>
+                 <p className="text-[11px] text-slate-500 font-medium leading-tight">{h.reason}</p>
+               </div>
+             );
+           })}
+           {pointStats.history.length === 0 && (
+             <div className="p-12 text-center text-slate-400 font-bold italic text-sm">내역이 없습니다.</div>
+           )}
+        </div>
       </div>
+
     </div>
   );
 };

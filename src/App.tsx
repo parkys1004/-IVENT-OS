@@ -105,7 +105,7 @@ function AppContent() {
         "w-full mx-auto flex-1 flex flex-col relative",
         isDashboardView ? "px-0 py-0 overflow-hidden min-h-0" : 
         isHomePath ? "px-0 py-0 overflow-x-hidden" :
-        "px-4 sm:px-6 lg:px-12 xl:px-20 py-8 lg:py-12 overflow-x-hidden"
+        "px-2 sm:px-4 lg:px-6 py-8 lg:py-12 overflow-x-hidden"
       )}>
         <Routes>
           <Route path="/" element={<DashboardSwitcher forceExplore />} />

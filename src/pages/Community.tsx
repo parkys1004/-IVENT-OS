@@ -37,6 +37,7 @@ interface Post {
   rating?: number; // For reviews
   event_title?: string; // For reviews
   event_id?: string; // For reviews
+  is_private?: boolean;
 }
 
 import { awardPoints } from '../lib/points';
@@ -53,6 +54,7 @@ export default function Community() {
   // New Post State
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
+  const [isPrivate, setIsPrivate] = useState(true); // Default to true for inquiries
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -174,7 +176,8 @@ export default function Community() {
         title: newTitle,
         content: newContent,
         category: activeCategory,
-        author_id: user.id
+        author_id: user.id,
+        is_private: activeCategory === 'inquiry' ? isPrivate : false
       });
 
       if (error) throw error;
@@ -197,7 +200,7 @@ export default function Community() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-20">
+    <div className="w-full max-w-full px-2 sm:px-6 lg:px-10 pb-20">
       {/* Header Section */}
       <div className="mb-10 text-center relative pt-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -314,12 +317,22 @@ export default function Community() {
                         {post.author_name} • {format(new Date(post.created_at), 'yyyy.MM.dd', { locale: ko })}
                       </span>
                     </div>
-                    <h3 className="text-lg font-black text-slate-800 dark:text-white group-hover:text-indigo-600 transition-colors mb-2 truncate">
-                      {post.title}
-                    </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
-                      {post.content}
-                    </p>
+                    <h3 className="text-lg font-black text-slate-800 dark:text-white group-hover:text-indigo-600 transition-colors mb-2 truncate flex items-center gap-2">
+                       {post.is_private && (post.author_id !== user?.id && profile?.role !== 'admin') ? (
+                         <>
+                           <Hash className="w-4 h-4 text-slate-400" />
+                           비밀글입니다.
+                         </>
+                       ) : (
+                         <>
+                           {post.is_private && <Hash className="w-4 h-4 text-indigo-600" />}
+                           {post.title}
+                         </>
+                       )}
+                     </h3>
+                     <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed">
+                       {post.is_private && (post.author_id !== user?.id && profile?.role !== 'admin') ? '작성자와 관리자만 볼 수 있는 비밀글입니다.' : post.content}
+                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     {post.category !== 'review' && (
@@ -392,6 +405,38 @@ export default function Community() {
                     required
                   />
                 </div>
+
+                {activeCategory === 'inquiry' && (
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className={clsx(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                        isPrivate ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600"
+                      )}>
+                        {isPrivate ? <Hash className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <p className="font-black text-slate-800 dark:text-white text-sm">비밀글 설정</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          {isPrivate ? 'ADMIN & AUTHOR ONLY' : 'PUBLIC VIEW'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsPrivate(!isPrivate)}
+                      className={clsx(
+                        "w-14 h-8 rounded-full relative transition-colors duration-300 outline-none",
+                        isPrivate ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700"
+                      )}
+                    >
+                      <div className={clsx(
+                        "absolute top-1 w-6 h-6 bg-white rounded-full transition-all duration-300",
+                        isPrivate ? "left-7" : "left-1"
+                      )} />
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex gap-4 pt-2">
                   <button 

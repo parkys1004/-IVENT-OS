@@ -44,7 +44,7 @@ import { awardPoints } from '../lib/points';
 export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -149,7 +149,7 @@ export default function PostDetail() {
   if (!post) return null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 pb-20">
+    <div className="w-full max-w-full px-2 sm:px-6 lg:px-10 pb-20">
       <button 
         onClick={() => navigate('/community')}
         className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold mb-8"
@@ -172,8 +172,9 @@ export default function PostDetail() {
           </span>
         </div>
 
-        <h1 className="text-3xl font-[950] text-slate-900 dark:text-white mb-8 tracking-tighter leading-tight">
-          {post.title}
+        <h1 className="text-3xl font-[950] text-slate-900 dark:text-white mb-8 tracking-tighter leading-tight flex items-center gap-3">
+          {post.is_private && <Hash className="w-6 h-6 text-indigo-600 shrink-0" />}
+          {post.is_private && user?.id !== post.author_id && profile?.role !== 'admin' ? '비밀글입니다.' : post.title}
         </h1>
 
         <div className="flex items-center justify-between border-y border-slate-50 dark:border-slate-800 py-6 mb-8">
@@ -200,9 +201,9 @@ export default function PostDetail() {
           )}
         </div>
 
-        <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap min-h-[200px]">
-          {post.content}
-        </div>
+          <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap min-h-[200px]">
+            {post.is_private && user?.id !== post.author_id && profile?.role !== 'admin' ? '작성자와 관리자만 볼 수 있는 비밀글입니다.' : post.content}
+          </div>
       </div>
 
       {/* Comments Section */}
@@ -212,24 +213,34 @@ export default function PostDetail() {
         </h3>
 
         {/* Comment Form */}
-        <form onSubmit={handleCommentSubmit} className="relative group">
-          <textarea 
-            rows={3}
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="따뜻한 댓글을 남겨주세요..."
-            className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[24px] p-6 pr-16 outline-none focus:border-indigo-600 transition-all font-medium resize-none shadow-sm"
-          />
-          <button 
-            type="submit"
-            disabled={submitting || !newComment.trim()}
-            className="absolute bottom-4 right-4 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
+        {!post.is_private || user?.id === post.author_id || profile?.role === 'admin' ? (
+          <form onSubmit={handleCommentSubmit} className="relative group">
+            <textarea 
+              rows={3}
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="따뜻한 댓글을 남겨주세요..."
+              className="w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[24px] p-6 pr-16 outline-none focus:border-indigo-600 transition-all font-medium resize-none shadow-sm"
+            />
+            <button 
+              type="submit"
+              disabled={submitting || !newComment.trim()}
+              className="absolute bottom-4 right-4 p-3 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+        ) : null}
 
-        {/* Comments List */}
+        {/* Access Denied for Private Posts */}
+        {post.is_private && user?.id !== post.author_id && profile?.role !== 'admin' ? (
+        <div className="bg-slate-50 dark:bg-slate-900/30 rounded-[32px] p-20 text-center border-2 border-dashed border-slate-100 dark:border-slate-800">
+          <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">비밀글입니다</h3>
+          <p className="text-slate-400">작성자와 관리자만 확인할 수 있습니다.</p>
+        </div>
+      ) : (
+        /* Comments List */
         <div className="space-y-4">
           {comments.map((comment) => (
             <div key={comment.id} className="bg-white/50 dark:bg-slate-900/50 rounded-[24px] p-6 border border-slate-100 dark:border-slate-800">
@@ -255,7 +266,8 @@ export default function PostDetail() {
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
+  </div>
   );
 }

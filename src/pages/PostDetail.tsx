@@ -9,7 +9,8 @@ import {
   ChevronLeft, 
   Send, 
   Trash2, 
-  AlertCircle 
+  AlertCircle,
+  Hash
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -37,6 +38,7 @@ interface Post {
     display_name: string;
     photo_url: string;
   };
+  is_private?: boolean;
 }
 
 import { awardPoints } from '../lib/points';
@@ -147,9 +149,14 @@ export default function PostDetail() {
   }
 
   if (!post) return null;
+  
+  // Is this post private and the current user is not the author/admin?
+  const isAccessRestricted = post.is_private && user?.id !== post.author_id && profile?.role !== 'admin';
+  const displayTitle = isAccessRestricted ? '비밀글입니다.' : post.title;
+  const displayContent = isAccessRestricted ? '작성자와 관리자만 볼 수 있는 비밀글입니다.' : post.content;
 
   return (
-    <div className="w-full max-w-full px-2 sm:px-6 lg:px-10 pb-20">
+    <div className="max-w-[1200px] mx-auto px-4 pb-20">
       <button 
         onClick={() => navigate('/community')}
         className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold mb-8"
@@ -174,7 +181,7 @@ export default function PostDetail() {
 
         <h1 className="text-3xl font-[950] text-slate-900 dark:text-white mb-8 tracking-tighter leading-tight flex items-center gap-3">
           {post.is_private && <Hash className="w-6 h-6 text-indigo-600 shrink-0" />}
-          {post.is_private && user?.id !== post.author_id && profile?.role !== 'admin' ? '비밀글입니다.' : post.title}
+          {displayTitle}
         </h1>
 
         <div className="flex items-center justify-between border-y border-slate-50 dark:border-slate-800 py-6 mb-8">
@@ -201,9 +208,9 @@ export default function PostDetail() {
           )}
         </div>
 
-          <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap min-h-[200px]">
-            {post.is_private && user?.id !== post.author_id && profile?.role !== 'admin' ? '작성자와 관리자만 볼 수 있는 비밀글입니다.' : post.content}
-          </div>
+        <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap min-h-[200px]">
+          {displayContent}
+        </div>
       </div>
 
       {/* Comments Section */}
@@ -233,7 +240,7 @@ export default function PostDetail() {
         ) : null}
 
         {/* Access Denied for Private Posts */}
-        {post.is_private && user?.id !== post.author_id && profile?.role !== 'admin' ? (
+        {isAccessRestricted ? (
         <div className="bg-slate-50 dark:bg-slate-900/30 rounded-[32px] p-20 text-center border-2 border-dashed border-slate-100 dark:border-slate-800">
           <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">비밀글입니다</h3>

@@ -67,7 +67,7 @@ export default function Community() {
       if (activeCategory === 'review') {
         let query = supabase
           .from('event_reviews')
-          .select('*, author:profiles(display_name, photo_url), event:parties(title)')
+          .select('*, author:profiles(display_name, photo_url)')
           .order('created_at', { ascending: false });
 
         if (currentSearch) {
@@ -76,9 +76,30 @@ export default function Community() {
 
         const { data, error } = await query;
         if (error) throw error;
-        setPosts((data || []).map(r => ({
+
+        // Fetch event titles manually since multiple tables are involved and FKs might be missing
+        const reviewData = data || [];
+        const eventIds = [...new Set(reviewData.map(r => r.event_id))];
+        
+        let eventTitles: Record<string, string> = {};
+        
+        if (eventIds.length > 0) {
+          const [partiesRes, lessonsRes] = await Promise.all([
+            supabase.from('parties').select('id, title').in('id', eventIds),
+            supabase.from('lessons').select('id, title').in('id', eventIds)
+          ]);
+
+          if (partiesRes.data) {
+            partiesRes.data.forEach(p => { eventTitles[p.id] = p.title; });
+          }
+          if (lessonsRes.data) {
+            lessonsRes.data.forEach(l => { eventTitles[l.id] = l.title; });
+          }
+        }
+
+        setPosts(reviewData.map(r => ({
           id: r.id,
-          title: `[${r.event?.title || '행사'}] 참여 후기`,
+          title: `[${eventTitles[r.event_id] || '행사'}] 참여 후기`,
           content: r.content,
           category: 'review',
           author_id: r.author_id,
@@ -86,7 +107,7 @@ export default function Community() {
           author_name: r.author?.display_name || '알 수 없는 사용자',
           author_photo: r.author?.photo_url || '',
           rating: r.rating,
-          event_title: r.event?.title,
+          event_title: eventTitles[r.event_id],
           event_id: r.event_id,
           comment_count: 0
         })));

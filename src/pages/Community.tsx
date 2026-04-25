@@ -44,7 +44,7 @@ import { awardPoints } from '../lib/points';
 export default function Community() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [activeCategory, setActiveCategory] = useState<PostCategory>('free');
+  const [activeCategory, setActiveCategory] = useState<PostCategory>('review');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -213,15 +213,6 @@ export default function Community() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-[20px] border border-slate-200 dark:border-slate-800 self-start overflow-x-auto max-w-full">
           <button
-            onClick={() => setActiveCategory('free')}
-            className={clsx(
-              "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 shrink-0",
-              activeCategory === 'free' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md" : "text-slate-500 hover:text-slate-700"
-            )}
-          >
-            <MessageSquare className="w-4 h-4" /> 자유게시판
-          </button>
-          <button
             onClick={() => setActiveCategory('review')}
             className={clsx(
               "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 shrink-0",
@@ -229,6 +220,15 @@ export default function Community() {
             )}
           >
             <Star className="w-4 h-4" /> 행사리뷰
+          </button>
+          <button
+            onClick={() => setActiveCategory('free')}
+            className={clsx(
+              "px-6 py-2.5 rounded-2xl text-sm font-black transition-all flex items-center gap-2 shrink-0",
+              activeCategory === 'free' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-md" : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <MessageSquare className="w-4 h-4" /> 자유게시판
           </button>
           <button
             onClick={() => setActiveCategory('inquiry')}

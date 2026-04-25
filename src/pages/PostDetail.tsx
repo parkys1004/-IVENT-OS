@@ -156,7 +156,7 @@ export default function PostDetail() {
   const displayContent = isAccessRestricted ? '작성자와 관리자만 볼 수 있는 비밀글입니다.' : post.content;
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 pb-20">
+    <div className="w-full max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-8 pb-20">
       <button 
         onClick={() => navigate('/community')}
         className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors font-bold mb-8"
@@ -165,7 +165,7 @@ export default function PostDetail() {
       </button>
 
       {/* Post Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-[32px] p-8 border border-slate-100 dark:border-slate-800 shadow-sm mb-8">
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] p-4 sm:p-8 border border-slate-100 dark:border-slate-800 shadow-sm mb-8">
         <div className="flex items-center gap-3 mb-6">
           <span className={clsx(
             "text-[10px] font-[950] uppercase tracking-widest px-3 py-1 rounded-full",

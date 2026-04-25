@@ -87,6 +87,7 @@ function AppContent() {
 
   const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin';
   const isHomePath = location.pathname === '/';
+  const isCommunityPath = location.pathname.startsWith('/community');
   const isDashboardView = isDashboardPath && profile; // Apply to any logged-in user on dashboard path
 
   return (
@@ -105,6 +106,7 @@ function AppContent() {
         "w-full mx-auto flex-1 flex flex-col relative",
         isDashboardView ? "px-0 py-0 overflow-hidden min-h-0" : 
         isHomePath ? "px-0 py-0 overflow-x-hidden" :
+        isCommunityPath ? "px-0 py-8 overflow-x-hidden" :
         "px-2 sm:px-4 lg:px-6 py-8 lg:py-12 overflow-x-hidden"
       )}>
         <Routes>

@@ -6,6 +6,7 @@ import EventDetail from './pages/EventDetail';
 import CreateEvent from './pages/CreateEvent';
 import CreateLesson from './pages/CreateLesson';
 import EditEvent from './pages/EditEvent';
+import EditLesson from './pages/EditLesson';
 import CategoryExplore from './pages/CategoryExplore';
 import Community from './pages/Community';
 import PostDetail from './pages/PostDetail';
@@ -118,6 +119,7 @@ function AppContent() {
           <Route path="/create" element={<CreateEvent />} />
           <Route path="/create-lesson" element={<CreateLesson />} />
           <Route path="/edit/:id" element={<EditEvent />} />
+          <Route path="/edit-lesson/:id" element={<EditLesson />} />
           <Route path="/past-events" element={<PastEvents />} />
           <Route path="/login" element={<Login />} />
           <Route path="/mypage" element={<MyPage />} />

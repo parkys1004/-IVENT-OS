@@ -615,10 +615,10 @@ export default function EventDetail() {
         
         {canEdit && (
           <button 
-            onClick={() => navigate(`/edit/${event.id}`)}
+            onClick={() => navigate(event.isLesson ? `/edit-lesson/${event.id}` : `/edit/${event.id}`)}
             className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all"
           >
-            행사 수정하기
+            {event.isLesson ? '강습 수정하기' : '행사 수정하기'}
           </button>
         )}
       </div>
@@ -1268,7 +1268,7 @@ export default function EventDetail() {
                     processing && "opacity-75 cursor-wait"
                   )}
                 >
-                  {isFull ? '모집 마감' : '참여 신청하기'}
+                  {isFull ? '모집 마감' : (event.isLesson ? '강습 신청하기' : '참여 신청하기')}
                 </button>
               )}
             </div>

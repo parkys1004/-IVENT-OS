@@ -22,7 +22,7 @@ export default function Login() {
     }
   }, [user, navigate]);
 
-  const handleLogin = async () => {
+  const handleLogin = async (provider: 'google' | 'kakao') => {
     if (!isLoginMode && !selectedRole) {
       setErrorMsg("가입하실 역할을 먼저 선택해주세요!");
       return;
@@ -37,19 +37,15 @@ export default function Login() {
     }
 
     try {
-      // 사용자가 요청한 리다이렉트 방식의 로그인 적용
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: provider,
         options: {
           redirectTo: window.location.origin,
-          skipBrowserRedirect: false, // 팝업이 아닌 페이지 이동 방식
+          skipBrowserRedirect: false,
         }
       });
       
       if (error) throw error;
-      
-      // skipBrowserRedirect: false 인 경우 supabase가 자동으로 페이지를 리다이렉트합니다.
-      // 따라서 별도의 팝업 처리나 후속 로직이 필요하지 않습니다.
 
     } catch (error: any) {
       setErrorMsg(`로그인 처리 중 문제가 발생했습니다. (${error.message || '오류'})`);
@@ -204,7 +200,7 @@ export default function Login() {
 
         <div className="flex flex-col gap-3">
           <motion.button
-            onClick={handleLogin}
+            onClick={() => handleLogin('google')}
             disabled={(!isLoginMode && !selectedRole) || loading}
             className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 font-bold py-4 px-6 rounded-[14px] hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -220,6 +216,20 @@ export default function Login() {
               </svg>
             )}
             <span>{loading ? '처리 중...' : t('auth.loginGoogle')}</span>
+          </motion.button>
+          <motion.button
+            onClick={() => handleLogin('kakao')}
+            disabled={(!isLoginMode && !selectedRole) || loading}
+            className="w-full flex items-center justify-center gap-3 bg-[#FEE500] text-[#3c1e1e] font-bold py-4 px-6 rounded-[14px] hover:opacity-90 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-[#3c1e1e]/20 border-t-[#3c1e1e] rounded-full animate-spin" />
+            ) : (
+                <div className="w-5 h-5 rounded-sm bg-[#3c1e1e] flex items-center justify-center">
+                    <span className="text-[10px] text-[#FEE500] font-black">K</span>
+                </div>
+            )}
+            <span>{loading ? '처리 중...' : '카카오톡으로 시작하기'}</span>
           </motion.button>
         </div>
 

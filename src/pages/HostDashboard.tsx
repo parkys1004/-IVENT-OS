@@ -113,8 +113,8 @@ export default function HostDashboard() {
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-center gap-2">
-           <Link to="/scan-tickets" className="flex items-center justify-center gap-2 bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-black transition active:scale-95 shadow-lg shadow-slate-200">
-             <Camera className="w-5 h-5 text-indigo-400"/>
+           <Link to="/scan-tickets" className="flex items-center justify-center gap-3 bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-700 transition active:scale-95 shadow-xl shadow-indigo-300 border-2 border-indigo-400">
+             <Camera className="w-6 h-6"/>
              입장 스캐너 열기
            </Link>
            <Link to="/create" className="flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition active:scale-95 shadow-lg shadow-indigo-100">

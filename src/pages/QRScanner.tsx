@@ -26,6 +26,7 @@ export default function QRScanner() {
   const navigate = useNavigate();
   const [scanResult, setScanResult] = useState<ParticipantInfo | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
+  const [lastScannedText, setLastScannedText] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
   const [loading, setLoading] = useState(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
@@ -66,6 +67,8 @@ export default function QRScanner() {
     }
 
     try {
+      setLastScannedText(decodedText);
+      console.log("Scanning decoded text:", decodedText);
       // 1. Fetch registration details
       const { data: reg, error: regError } = await supabase
         .from('event_registrations')
@@ -79,7 +82,15 @@ export default function QRScanner() {
         .eq('id', decodedText)
         .single();
 
-      if (regError || !reg) {
+      if (regError) {
+        console.error("Supabase query error:", regError);
+        setErrorStatus(`유효하지 않은 티켓입니다. (DB 오류: ${regError.message})`);
+        setLoading(false);
+        return;
+      }
+
+      if (!reg) {
+        console.log("No registration found for ID:", decodedText);
         setErrorStatus("유효하지 않은 티켓입니다. (ID를 찾을 수 없음)");
         setLoading(false);
         return;
@@ -274,7 +285,7 @@ export default function QRScanner() {
                 <div className="text-center py-20 text-white">
                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
                    <h3 className="text-xl font-black mb-2 uppercase tracking-tight">{errorStatus || "오류 발생"}</h3>
-                   <p className="text-slate-500 text-sm font-bold mb-8">티켓 정보를 확인할 수 없습니다.</p>
+                   <p className="text-slate-500 text-sm font-bold mb-8">티켓 정보를 확인할 수 없습니다. 스캔한 값: {lastScannedText || "알 수 없음"}</p>
                    <button 
                     onClick={resetScanner}
                     className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest"

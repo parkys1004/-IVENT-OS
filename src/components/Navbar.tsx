@@ -257,13 +257,6 @@ export default function Navbar() {
                   {profile?.role === 'instructor' && viewMode !== 'admin' && (
                     <div className="flex items-center gap-2">
                       <Link
-                        to="/dashboard"
-                        className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-slate-200 dark:border-slate-800 text-[13px] font-black rounded-xl shadow-sm text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all hover:translate-y-[-1px] active:scale-95"
-                      >
-                        <User className="h-5 w-5 sm:mr-1.5 text-indigo-500" />
-                        <span className="hidden sm:inline">강사프로필 만들기</span>
-                      </Link>
-                      <Link
                         to="/create-lesson"
                         className="inline-flex items-center p-2.5 sm:px-4 sm:py-2 border border-transparent text-[13px] font-black rounded-xl shadow-sm text-white bg-teal-600 hover:bg-teal-700 transition-all hover:translate-y-[-1px] active:scale-95"
                       >

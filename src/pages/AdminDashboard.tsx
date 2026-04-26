@@ -100,67 +100,78 @@ export default function AdminDashboard() {
       ] = fetchResults;
 
       const profileMap: Record<string, string> = {};
-      
+      const localErrors: string[] = [];
+
       // 1. Profiles
-      if (profilesRes.status === 'fulfilled' && profilesRes.value.data) {
-        const profiles = profilesRes.value.data;
-        console.log(`AdminDashboard: Loaded ${profiles.length} profiles`);
-        profiles.forEach(p => profileMap[p.id] = p.display_name || p.email?.split('@')[0] || '이름 없음');
-        setUsers(profiles.map(u => ({
-          uid: u.id, 
-          email: u.email || '', 
-          displayName: u.display_name || u.email?.split('@')[0] || '이름 없음', 
-          photoURL: u.photo_url || '', 
-          role: u.role as any,
-          isApproved: u.is_approved,
-          createdAt: u.created_at, 
-          priority: u.priority || 0, 
-          points: u.points || 0
-        })));
-      } else {
-        console.error("AdminDashboard: profiles fetch failed", profilesRes);
+      if (profilesRes.status === 'fulfilled') {
+        if (profilesRes.value.error) {
+          localErrors.push(`Profiles Fetch: ${profilesRes.value.error.message}`);
+        } else if (profilesRes.value.data) {
+          const profiles = profilesRes.value.data;
+          console.log(`AdminDashboard: Loaded ${profiles.length} profiles`);
+          profiles.forEach(p => profileMap[p.id] = p.display_name || p.email?.split('@')[0] || '이름 없음');
+          setUsers(profiles.map(u => ({
+            uid: u.id, 
+            email: u.email || '', 
+            displayName: u.display_name || u.email?.split('@')[0] || '이름 없음', 
+            photoURL: u.photo_url || '', 
+            role: u.role as any,
+            isApproved: u.is_approved,
+            createdAt: u.created_at, 
+            priority: u.priority || 0, 
+            points: u.points || 0
+          })));
+        }
       }
 
       // 2. Parties
       let mappedParties: any[] = [];
-      if (partyListRes.status === 'fulfilled' && partyListRes.value.data) {
-        const partyList = partyListRes.value.data;
-        console.log(`AdminDashboard: Loaded ${partyList.length} parties`);
-        mappedParties = partyList.map(p => ({
-          id: p.id, 
-          title: p.title || '제목 없음', 
-          category: p.category || 'party', 
-          date: p.date || (p as any).start_date, 
-          status: p.status,
-          isBanner: p.is_banner, 
-          host_id: p.host_id, 
-          hostName: profileMap[p.host_id] || '알 수 없는 사용자',
-          isLesson: false, 
-          priority: p.priority || 0,
-          endDate: p.end_date,
-          maxAttendees: p.max_attendees || 100
-        }));
+      if (partyListRes.status === 'fulfilled') {
+        if (partyListRes.value.error) {
+          localErrors.push(`Parties Fetch: ${partyListRes.value.error.message}`);
+        } else if (partyListRes.value.data) {
+          const partyList = partyListRes.value.data;
+          console.log(`AdminDashboard: Loaded ${partyList.length} parties`);
+          mappedParties = partyList.map(p => ({
+            id: p.id, 
+            title: p.title || '제목 없음', 
+            category: p.category || 'party', 
+            date: p.date || (p as any).start_date, 
+            status: p.status,
+            isBanner: p.is_banner, 
+            host_id: p.host_id, 
+            hostName: profileMap[p.host_id] || '알 수 없는 사용자',
+            isLesson: false, 
+            priority: p.priority || 0,
+            endDate: p.end_date,
+            maxAttendees: p.max_attendees || 100
+          }));
+        }
       }
 
       // 3. Lessons
       let mappedLessons: any[] = [];
-      if (lessonListRes.status === 'fulfilled' && lessonListRes.value.data) {
-        const lessonList = lessonListRes.value.data;
-        console.log(`AdminDashboard: Loaded ${lessonList.length} lessons`);
-        mappedLessons = lessonList.map(l => ({
-          id: l.id, 
-          title: l.title || '제목 없음', 
-          category: l.category || 'lesson', 
-          date: l.date || (l as any).start_date, 
-          status: l.status,
-          isBanner: l.is_banner, 
-          host_id: l.host_id, 
-          hostName: profileMap[l.host_id] || '알 수 없는 강사',
-          isLesson: true, 
-          priority: l.priority || 0,
-          endDate: l.end_date,
-          maxAttendees: l.max_attendees || 50
-        }));
+      if (lessonListRes.status === 'fulfilled') {
+        if (lessonListRes.value.error) {
+          localErrors.push(`Lessons Fetch: ${lessonListRes.value.error.message}`);
+        } else if (lessonListRes.value.data) {
+          const lessonList = lessonListRes.value.data;
+          console.log(`AdminDashboard: Loaded ${lessonList.length} lessons`);
+          mappedLessons = lessonList.map(l => ({
+            id: l.id, 
+            title: l.title || '제목 없음', 
+            category: l.category || 'lesson', 
+            date: l.date || (l as any).start_date, 
+            status: l.status,
+            isBanner: l.is_banner, 
+            host_id: l.host_id, 
+            hostName: profileMap[l.host_id] || '알 수 없는 강사',
+            isLesson: true, 
+            priority: l.priority || 0,
+            endDate: l.end_date,
+            maxAttendees: l.max_attendees || 50
+          }));
+        }
       }
 
       setEvents([...mappedParties, ...mappedLessons].map(e => ({
@@ -169,8 +180,11 @@ export default function AdminDashboard() {
       })));
 
       // 4. Other Configs
-      if (bannersRes.status === 'fulfilled' && bannersRes.value.data) {
-        setPromoBanners(bannersRes.value.data.map(b => ({ id: b.id, imageUrl: b.image_url, linkUrl: b.link_url, isActive: b.is_active })));
+      if (bannersRes.status === 'fulfilled') {
+        if (bannersRes.value.error) localErrors.push(`Banners Fetch: ${bannersRes.value.error.message}`);
+        else if (bannersRes.value.data) {
+          setPromoBanners(bannersRes.value.data.map(b => ({ id: b.id, imageUrl: b.image_url, linkUrl: b.link_url, isActive: b.is_active })));
+        }
       }
       
       if (dashConfigRes.status === 'fulfilled' && dashConfigRes.value.data) {
@@ -185,11 +199,18 @@ export default function AdminDashboard() {
         setApprovalMode((appConfigRes.value.data.value as any).approvalMode || 'manual');
       }
 
-      if (pHistoryRes.status === 'fulfilled' && pHistoryRes.value.data) {
-        const pHistory = pHistoryRes.value.data;
-        const issued = pHistory.filter(h => h.amount > 0).reduce((acc: number, curr: any) => acc + curr.amount, 0);
-        const used = Math.abs(pHistory.filter(h => h.amount < 0).reduce((acc: number, curr: any) => acc + curr.amount, 0));
-        setPointStats({ totalIssued: issued, totalUsed: used, history: pHistory });
+      if (pHistoryRes.status === 'fulfilled') {
+        if (pHistoryRes.value.error) localErrors.push(`Point History Fetch: ${pHistoryRes.value.error.message}`);
+        else if (pHistoryRes.value.data) {
+          const pHistory = pHistoryRes.value.data;
+          const issued = pHistory.filter(h => h.amount > 0).reduce((acc: number, curr: any) => acc + curr.amount, 0);
+          const used = Math.abs(pHistory.filter(h => h.amount < 0).reduce((acc: number, curr: any) => acc + curr.amount, 0));
+          setPointStats({ totalIssued: issued, totalUsed: used, history: pHistory });
+        }
+      }
+
+      if (localErrors.length > 0) {
+        setFetchError('데이터 불러오기 문제: ' + localErrors.join(' / '));
       }
 
       // 5. Health checks

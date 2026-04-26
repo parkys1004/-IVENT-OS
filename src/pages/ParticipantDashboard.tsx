@@ -8,7 +8,7 @@ import {
   Search, MapPin, Users, CalendarDays, Clock, Flame, Ticket, Heart, MessageSquare, 
   Settings, ChevronRight, Lock, ArrowUpDown, Camera, User, Plus, BarChart3, 
   Award, Trophy, Zap, LayoutGrid, List, QrCode, TrendingUp, Archive, Gift, Compass, Coins, Bot,
-  CheckCircle2, AlertCircle, Info, Star, Music, Filter, Sparkles
+  CheckCircle2, AlertCircle, Info, Star, Music, Filter, Sparkles, Download
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
@@ -54,6 +54,24 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [showQR, setShowQR] = useState<string | null>(null);
+
+  const downloadQR = async (regId: string, eventTitle: string) => {
+    try {
+      const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${regId}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `QR_${eventTitle.replace(/\s+/g, '_')}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("QR Download failed:", error);
+      alert("QR 코드 다운로드에 실패했습니다.");
+    }
+  };
   
   // Gamification Metrics
   const [points] = useState(1250);
@@ -1201,11 +1219,24 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                          <button onClick={() => setShowQR(null)} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
                            <Plus className="w-5 h-5 rotate-45" />
                          </button>
-                         <div className="bg-white p-4 rounded-3xl shadow-2xl mb-4">
+                         <div className="bg-white p-4 rounded-3xl shadow-2xl mb-4 relative group/qr">
                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${reg.id}`} alt="QR Code" className="w-32 h-32" />
+                           <button 
+                             onClick={() => downloadQR(reg.id, reg.event.title)}
+                             className="absolute inset-0 bg-indigo-600/80 opacity-0 group-hover/qr:opacity-100 transition-opacity flex flex-col items-center justify-center text-white rounded-3xl"
+                           >
+                             <Download className="w-8 h-8 mb-1" />
+                             <span className="text-[10px] font-black uppercase">Download</span>
+                           </button>
                          </div>
                          <p className="text-xs font-black text-slate-800 dark:text-white mb-1">전자 입장권 (QR)</p>
-                         <p className="text-[10px] text-slate-500 font-bold">행사 입장 시 스태프에게 제시해주세요.</p>
+                         <p className="text-[10px] text-slate-500 font-bold mb-4">행사 입장 시 스태프에게 제시해주세요.</p>
+                         <button 
+                           onClick={() => downloadQR(reg.id, reg.event.title)}
+                           className="lg:hidden flex items-center gap-2 px-6 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-[11px] font-black uppercase"
+                         >
+                           <Download className="w-4 h-4" /> 이미지 저장하기
+                         </button>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1382,10 +1413,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden flex flex-col p-4 lg:p-10 min-h-0">
+      <div className="flex-1 overflow-hidden flex flex-col p-2 lg:p-10 min-h-0">
         
         {/* Mobile Navigation */}
-        <div className="lg:hidden w-full mb-6 max-w-full overflow-x-auto flex gap-2 shrink-0 no-scrollbar pb-2">
+        <div className="lg:hidden w-full mb-4 max-w-full overflow-x-auto flex gap-2 shrink-0 no-scrollbar py-2 px-2">
            {['bookings', 'find', 'records', 'favorites', 'community', 'rewards', 'settings'].map((menu) => (
               <button 
                 key={menu}

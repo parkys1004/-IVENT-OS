@@ -36,7 +36,8 @@ export function PlacesTab() {
     return places.filter(place => 
       place.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       place.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      place.type?.toLowerCase().includes(searchTerm.toLowerCase())
+      place.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.country.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [places, searchTerm]);
 
@@ -61,7 +62,7 @@ export function PlacesTab() {
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/>
-          <input placeholder="검색 (이름, 주소, 지역...)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-2xl dark:bg-slate-800 dark:border-slate-700"/>
+          <input placeholder="검색 (이름, 국가, 유형, 주소...)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-2xl dark:bg-slate-800 dark:border-slate-700"/>
         </div>
         {selectedIds.length > 0 && (
           <button onClick={() => deletePlaces(selectedIds)} className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-3 rounded-2xl font-bold hover:bg-red-100">

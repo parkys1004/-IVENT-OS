@@ -31,14 +31,17 @@ export default function QRScanner() {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
-    if (!scannerRef.current && isScanning) {
+    if (isScanning && !scannerRef.current) {
       scannerRef.current = new Html5QrcodeScanner(
         "qr-reader",
         { fps: 10, qrbox: { width: 250, height: 250 } },
         /* verbose= */ false
       );
 
-      scannerRef.current.render(onScanSuccess, onScanFailure);
+      scannerRef.current.render(onScanSuccess, (err) => {
+          // Log errors for debugging purposes but don't show to UI
+          console.debug("Scanner error:", err);
+      });
     }
 
     return () => {

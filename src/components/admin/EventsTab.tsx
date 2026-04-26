@@ -165,6 +165,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 <th className="p-5">상태</th>
                 <th className="p-5">배너</th>
                 <th className="p-5">일시</th>
+                <th className="p-5">참석</th>
                 <th className="p-5 text-right">관리</th>
               </tr>
             </thead>
@@ -180,7 +181,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                 return true;
               }).length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-20 text-center text-slate-400 font-bold">
+                  <td colSpan={8} className="p-20 text-center text-slate-400 font-bold">
                     표시할 {onlyLessons ? '강습' : '행사'}이 없습니다.
                   </td>
                 </tr>
@@ -258,6 +259,11 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                             <span className="text-slate-400">종료</span> {format(new Date(event.endDate), 'yy.MM.dd', { locale: ko })}
                           </div>
                         )}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+                          {event.currentAttendees || 0} / {event.maxAttendees || 0}
+                        </span>
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -351,12 +357,16 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">일시</p>
                         <p className="text-xs font-black text-slate-700 dark:text-slate-200">{format(dateObj, 'yy.MM.dd', { locale: ko })}</p>
                      </div>
-                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">참석</p>
+                        <p className="text-xs font-black text-slate-700 dark:text-slate-200">{event.currentAttendees || 0} / {event.maxAttendees || 0}</p>
+                     </div>
+                     <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between col-span-2">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">배너 노출</p>
                         <button 
                           onClick={() => handleBannerToggle(event.id, !!event.isBanner)}
                           className={clsx(
-                            "w-full py-1 rounded-lg text-[9px] font-black transition-all border",
+                            "w-full py-2 rounded-lg text-[10px] font-black transition-all border",
                             event.isBanner ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-slate-800 text-slate-400"
                           )}
                         >

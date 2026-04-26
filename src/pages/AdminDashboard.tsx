@@ -84,10 +84,38 @@ export default function AdminDashboard() {
     setFetchError(null);
     console.log("AdminDashboard: Starting data fetch...");
     try {
+      // 1. Fetch profiles first to build profileMap
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const profileMap: Record<string, string> = {};
+      const localErrors: string[] = [];
+
+      if (profilesError) {
+        localErrors.push(`Profiles Fetch: ${profilesError.message}`);
+      } else if (profilesData) {
+        console.log(`AdminDashboard: Loaded ${profilesData.length} profiles`);
+        profilesData.forEach(p => profileMap[p.id] = p.display_name || p.email?.split('@')[0] || '이름 없음');
+        setUsers(profilesData.map(u => ({
+          uid: u.id, 
+          email: u.email || '', 
+          displayName: u.display_name || u.email?.split('@')[0] || '이름 없음', 
+          photoURL: u.photo_url || '', 
+          role: u.role as any,
+          isApproved: u.is_approved,
+          createdAt: u.created_at, 
+          priority: u.priority || 0, 
+          points: u.points || 0
+        })));
+      }
+
+      // 2. Fetch the rest in parallel
       const fetchResults = await Promise.allSettled([
-        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('parties').select('*').order('priority', { ascending: false }),
         supabase.from('lessons').select('*').order('priority', { ascending: false }),
+        supabase.from('registrations').select('event_id, status'), // Fetch all registrations to compute currentAttendees
         supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle(),
@@ -96,35 +124,22 @@ export default function AdminDashboard() {
       ]);
 
       const [
-        profilesRes, partyListRes, lessonListRes, bannersRes, dashConfigRes, pConfigRes, pHistoryRes, appConfigRes
+        partyListRes, lessonListRes, regsRes, bannersRes, dashConfigRes, pConfigRes, pHistoryRes, appConfigRes
       ] = fetchResults;
 
-      const profileMap: Record<string, string> = {};
-      const localErrors: string[] = [];
-
-      // 1. Profiles
-      if (profilesRes.status === 'fulfilled') {
-        if (profilesRes.value.error) {
-          localErrors.push(`Profiles Fetch: ${profilesRes.value.error.message}`);
-        } else if (profilesRes.value.data) {
-          const profiles = profilesRes.value.data;
-          console.log(`AdminDashboard: Loaded ${profiles.length} profiles`);
-          profiles.forEach(p => profileMap[p.id] = p.display_name || p.email?.split('@')[0] || '이름 없음');
-          setUsers(profiles.map(u => ({
-            uid: u.id, 
-            email: u.email || '', 
-            displayName: u.display_name || u.email?.split('@')[0] || '이름 없음', 
-            photoURL: u.photo_url || '', 
-            role: u.role as any,
-            isApproved: u.is_approved,
-            createdAt: u.created_at, 
-            priority: u.priority || 0, 
-            points: u.points || 0
-          })));
-        }
+      // Map registrations count
+      const attendanceMap: Record<string, number> = {};
+      if (regsRes.status === 'fulfilled' && regsRes.value.data) {
+        regsRes.value.data.forEach((r: any) => {
+          if (r.status !== 'cancelled') {
+            attendanceMap[r.event_id] = (attendanceMap[r.event_id] || 0) + 1;
+          }
+        });
+      } else if (regsRes.status === 'fulfilled' && regsRes.value.error) {
+        localErrors.push(`Registrations Fetch: ${regsRes.value.error.message}`);
       }
 
-      // 2. Parties
+      // Parties
       let mappedParties: any[] = [];
       if (partyListRes.status === 'fulfilled') {
         if (partyListRes.value.error) {
@@ -144,12 +159,13 @@ export default function AdminDashboard() {
             isLesson: false, 
             priority: p.priority || 0,
             endDate: p.end_date,
-            maxAttendees: p.max_attendees || 100
+            maxAttendees: p.max_attendees || 100,
+            currentAttendees: attendanceMap[p.id] || 0
           }));
         }
       }
 
-      // 3. Lessons
+      // Lessons
       let mappedLessons: any[] = [];
       if (lessonListRes.status === 'fulfilled') {
         if (lessonListRes.value.error) {
@@ -169,17 +185,15 @@ export default function AdminDashboard() {
             isLesson: true, 
             priority: l.priority || 0,
             endDate: l.end_date,
-            maxAttendees: l.max_attendees || 50
+            maxAttendees: l.max_attendees || 50,
+            currentAttendees: attendanceMap[l.id] || 0
           }));
         }
       }
 
-      setEvents([...mappedParties, ...mappedLessons].map(e => ({
-        ...e,
-        currentAttendees: 0
-      })));
+      setEvents([...mappedParties, ...mappedLessons]);
 
-      // 4. Other Configs
+      // Other Configs
       if (bannersRes.status === 'fulfilled') {
         if (bannersRes.value.error) localErrors.push(`Banners Fetch: ${bannersRes.value.error.message}`);
         else if (bannersRes.value.data) {

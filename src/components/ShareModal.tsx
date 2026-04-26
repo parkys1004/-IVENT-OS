@@ -39,9 +39,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
   };
 
   const shareToKakao = () => {
-     // Kakao SDK가 설정되어 있다면 SDK를 사용할 수 있지만, 기본적으로는 피드 공유 링크를 사용합니다.
-     // 여기서는 일반적인 커스텀 스킴이나 웹 링크를 사용한 공유 방식을 제안합니다.
-     window.open(`https://sharer.kakao.com/talk/friends/picker/link?app_key=${import.meta.env.VITE_KAKAO_JS_KEY || ''}&short_url=${encodeURIComponent(url)}`, '_blank');
+     const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
+     // If the key is not defined, we cannot proceed with the restricted sharer link
+     if (!kakaoKey) {
+       console.error("VITE_KAKAO_JS_KEY is not defined in environment variables.");
+       alert("카카오톡 공유 기능을 사용하려면 카카오 앱 키 설정이 필요합니다.");
+       return;
+     }
+     
+     // Use the officially documented sharer URL that requires a registered App Key
+     window.open(`https://sharer.kakao.com/talk/friends/picker/link?app_key=${kakaoKey}&url=${encodeURIComponent(url)}`, '_blank');
   };
 
   return (

@@ -39,16 +39,47 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
   };
 
   const shareToKakao = () => {
-     const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
-     // If the key is not defined, we cannot proceed with the restricted sharer link
-     if (!kakaoKey) {
-       console.error("VITE_KAKAO_JS_KEY is not defined in environment variables.");
-       alert("카카오톡 공유 기능을 사용하려면 카카오 앱 키 설정이 필요합니다.");
-       return;
-     }
-     
-     // Use the officially documented sharer URL that requires a registered App Key
-     window.open(`https://sharer.kakao.com/talk/friends/picker/link?app_key=${kakaoKey}&url=${encodeURIComponent(url)}`, '_blank');
+    const Kakao = (window as any).Kakao;
+
+    if (!Kakao) {
+      console.error("Kakao SDK not loaded.");
+      alert("카카오톡 공유 기능을 사용할 수 없습니다.");
+      return;
+    }
+
+    // 1. 초기화
+    if (!Kakao.isInitialized()) {
+      const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
+      if (!kakaoKey) {
+        console.error("VITE_KAKAO_JS_KEY is not defined.");
+        alert("카카오 앱 키 설정이 필요합니다.");
+        return;
+      }
+      Kakao.init(kakaoKey);
+    }
+
+    // 2. 메시지 보내기
+    Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: title, 
+        description: '강습 공지', 
+        imageUrl: 'https://dancehive.app/logo.png', // 사용자가 요청한 로고 주소
+        link: {
+          mobileWebUrl: url, 
+          webUrl: url,
+        },
+      },
+      buttons: [
+        {
+          title: '상세보기',
+          link: {
+            mobileWebUrl: url,
+            webUrl: url,
+          },
+        },
+      ],
+    });
   };
 
   return (

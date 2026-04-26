@@ -1211,31 +1211,50 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                   <AnimatePresence>
                     {showQR === reg.id && (
                       <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-white/95 dark:bg-slate-900/95 z-30 flex flex-col items-center justify-center p-4"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 30 }}
+                        className="fixed inset-0 lg:absolute bg-white dark:bg-slate-950 lg:bg-white/95 lg:dark:bg-slate-900/95 z-[100] lg:z-30 flex flex-col items-center justify-start lg:justify-center p-8 pt-24 lg:pt-8 backdrop-blur-3xl lg:rounded-3xl"
                       >
-                         <button onClick={() => setShowQR(null)} className="absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 rounded-full">
-                           <Plus className="w-5 h-5 rotate-45" />
+                         <button onClick={() => setShowQR(null)} className="absolute top-8 right-8 lg:top-4 lg:right-4 p-3 bg-slate-100 dark:bg-slate-800 rounded-full shadow-lg z-[110]">
+                           <Plus className="w-6 h-6 rotate-45" />
                          </button>
-                         <div className="bg-white p-4 rounded-3xl shadow-2xl mb-4 relative group/qr">
-                           <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${reg.id}`} alt="QR Code" className="w-32 h-32" />
+
+                         <div className="w-full max-w-xs mb-10 text-center">
+                           <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block">
+                             Ticket Valid
+                           </span>
+                           <h4 className="text-xl font-[1000] text-slate-900 dark:text-white mb-2 line-clamp-2 leading-tight">
+                             {reg.event.title}
+                           </h4>
+                           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                             {reg.event.locationName} • {format(new Date(reg.event.date), 'MM.dd(eee)', { locale: ko })}
+                           </p>
+                         </div>
+
+                         <div className="bg-white p-6 rounded-[2.5rem] shadow-2xl mb-8 relative group/qr scale-125 lg:scale-100 border-8 border-indigo-50">
+                           <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${reg.id}`} alt="QR Code" className="w-40 h-40" />
                            <button 
                              onClick={() => downloadQR(reg.id, reg.event.title)}
-                             className="absolute inset-0 bg-indigo-600/80 opacity-0 group-hover/qr:opacity-100 transition-opacity flex flex-col items-center justify-center text-white rounded-3xl"
+                             className="absolute inset-0 bg-indigo-600/90 opacity-0 group-hover/qr:opacity-100 transition-opacity flex flex-col items-center justify-center text-white rounded-[2rem]"
                            >
-                             <Download className="w-8 h-8 mb-1" />
-                             <span className="text-[10px] font-black uppercase">Download</span>
+                             <Download className="w-10 h-10 mb-1" />
+                             <span className="text-[11px] font-black uppercase">Save Ticket</span>
                            </button>
                          </div>
-                         <p className="text-xs font-black text-slate-800 dark:text-white mb-1">전자 입장권 (QR)</p>
-                         <p className="text-[10px] text-slate-500 font-bold mb-4">행사 입장 시 스태프에게 제시해주세요.</p>
+                         
+                         <div className="text-center space-y-2">
+                           <p className="text-base font-black text-slate-900 dark:text-white">Quick Pass QR</p>
+                           <p className="text-xs text-slate-500 font-bold max-w-[200px] leading-relaxed">
+                             행사 입장 시 스태프에게 <br/> 이 화면을 제시해주세요.
+                           </p>
+                         </div>
+
                          <button 
                            onClick={() => downloadQR(reg.id, reg.event.title)}
-                           className="lg:hidden flex items-center gap-2 px-6 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-[11px] font-black uppercase"
+                           className="lg:hidden mt-auto mb-10 flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black uppercase shadow-xl shadow-indigo-200 dark:shadow-none"
                          >
-                           <Download className="w-4 h-4" /> 이미지 저장하기
+                           <Download className="w-5 h-5" /> 이미지 다운로드
                          </button>
                       </motion.div>
                     )}

@@ -105,6 +105,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
       setUsers(prev => prev.filter(u => u.uid !== userToKick.userId));
       alert("회원 삭제 완료");
       setUserToKick(null);
+      fetchAdminData();
     } catch (error: any) {
       alert("삭제 실패");
     } finally {

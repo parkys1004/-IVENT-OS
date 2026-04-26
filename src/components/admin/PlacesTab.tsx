@@ -64,7 +64,7 @@ export function PlacesTab() {
           <input placeholder="검색 (이름, 주소, 지역...)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-2xl dark:bg-slate-800 dark:border-slate-700"/>
         </div>
         {selectedIds.length > 0 && (
-          <button onClick={() => deleteBars(selectedIds)} className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-3 rounded-2xl font-bold hover:bg-red-100">
+          <button onClick={() => deletePlaces(selectedIds)} className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-3 rounded-2xl font-bold hover:bg-red-100">
             <Trash2 className="w-5 h-5"/> 일괄 삭제 ({selectedIds.length})
           </button>
         )}
@@ -74,7 +74,7 @@ export function PlacesTab() {
         <table className="w-full">
           <thead className="bg-slate-50 dark:bg-slate-800/50">
             <tr>
-              <th className="p-4 w-10"><button onClick={toggleSelectAll}>{selectedIds.length === filteredBars.length && filteredBars.length > 0 ? <CheckSquare className="w-5 h-5 text-indigo-600"/> : <Square className="w-5 h-5 text-slate-400"/>}</button></th>
+              <th className="p-4 w-10"><button onClick={toggleSelectAll}>{selectedIds.length === filteredPlaces.length && filteredPlaces.length > 0 ? <CheckSquare className="w-5 h-5 text-indigo-600"/> : <Square className="w-5 h-5 text-slate-400"/>}</button></th>
               <th className="p-4 text-left font-bold text-slate-600 dark:text-slate-300">이름</th>
               <th className="p-4 text-left font-bold text-slate-600 dark:text-slate-300">지역/주소</th>
               <th className="p-4 text-center font-bold text-slate-600 dark:text-slate-300">작업</th>

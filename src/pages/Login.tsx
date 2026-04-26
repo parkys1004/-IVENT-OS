@@ -217,6 +217,7 @@ export default function Login() {
             )}
             <span>{loading ? '처리 중...' : t('auth.loginGoogle')}</span>
           </motion.button>
+          {/*
           <motion.button
             onClick={() => handleLogin('kakao')}
             disabled={(!isLoginMode && !selectedRole) || loading}
@@ -231,6 +232,7 @@ export default function Login() {
             )}
             <span>{loading ? '처리 중...' : '카카오톡으로 시작하기'}</span>
           </motion.button>
+          */}
         </div>
 
         {errorMsg && (

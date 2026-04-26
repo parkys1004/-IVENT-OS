@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import MyPage from './pages/MyPage';
 import PlaceSearch from './pages/PlaceSearch';
 import PlaceDetail from './pages/PlaceDetail';
+import QRScanner from './pages/QRScanner';
 import PointRecharge from './pages/PointRecharge';
 import AISettings from './pages/AISettings';
 import PublicProfile from './pages/PublicProfile';
@@ -131,6 +132,7 @@ function AppContent() {
           <Route path="/places" element={<PlaceSearch />} />
           <Route path="/places/:id" element={<PlaceDetail />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/scan-tickets" element={<QRScanner />} />
           <Route path="/points" element={<PointRecharge />} />
           <Route path="/ai-settings" element={<AISettings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

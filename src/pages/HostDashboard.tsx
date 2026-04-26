@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'motion/react';
-import { CalendarDays, Users, BarChart3, PlusCircle } from 'lucide-react';
+import { CalendarDays, Users, BarChart3, PlusCircle, Camera } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface EventData {
@@ -113,7 +113,11 @@ export default function HostDashboard() {
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-center gap-2">
-           <Link to="/create" className="flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 transition">
+           <Link to="/scan-tickets" className="flex items-center justify-center gap-2 bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-black transition active:scale-95 shadow-lg shadow-slate-200">
+             <Camera className="w-5 h-5 text-indigo-400"/>
+             입장 스캐너 열기
+           </Link>
+           <Link to="/create" className="flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition active:scale-95 shadow-lg shadow-indigo-100">
              <PlusCircle className="w-5 h-5"/>
              새 행사 만들기
            </Link>

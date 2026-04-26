@@ -182,19 +182,27 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                 <div key={table} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                    <div className="flex items-center gap-3">
                      <div className={clsx(
-                       "w-2 h-2 rounded-full animate-pulse",
-                       health.status === 'ok' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-none' : 
-                       health.status === 'error' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-amber-500'
+                       "w-2 h-2 rounded-full",
+                       health.status === 'ok' ? 'bg-emerald-500' : 
+                       health.status === 'error' ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'
                      )}></div>
-                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{table === 'promo_banners' ? 'banners' : table} table</span>
+                     <div className="flex flex-col">
+                       <span className="text-sm font-black text-slate-700 dark:text-slate-300 capitalize">{table}</span>
+                       {health.status === 'ok' && (
+                         <span className="text-[10px] text-slate-400 font-bold">건수: {health.count || 0}개</span>
+                       )}
+                     </div>
                    </div>
                    <div className="flex items-center gap-2">
                      {health.status === 'ok' ? (
-                       <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">정상 연결됨</span>
-                     ) : health.status === 'error' ? (
-                       <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded" title={health.message}>연결 실패 (SQL 필요)</span>
+                       <span className={clsx(
+                         "text-[10px] font-black px-2 py-1 rounded",
+                         health.count > 0 ? "text-emerald-600 bg-emerald-50" : "text-amber-600 bg-amber-50"
+                       )}>
+                         {health.count > 0 ? "활성" : "데이터 없음"}
+                       </span>
                      ) : (
-                       <span className="text-[10px] font-black text-slate-400 italic">Cheking...</span>
+                       <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded">오류</span>
                      )}
                    </div>
                 </div>

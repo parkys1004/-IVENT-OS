@@ -376,6 +376,9 @@ export default function AdminDashboard() {
               <AlertCircle className="w-5 h-5 shrink-0" /> <span className="font-bold text-sm">{fetchError}</span>
             </div>
           )}
+          <div className="mb-4 text-xs font-mono text-slate-500">
+            DEBUG INFO: users={users.length}, events={events.length}, dbHealth={Object.keys(dbHealth).length}
+          </div>
 
           <AnimatePresence mode="wait">
             <motion.div

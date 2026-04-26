@@ -142,9 +142,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setProfile(mappedProfile);
         
-        if (data.role === 'admin') setViewMode('admin');
-        else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) setViewMode('professional');
-        else setViewMode('participant');
+        if (data.role === 'admin') {
+          setViewMode('admin');
+        } else if (['host', 'dj', 'instructor', 'media'].includes(data.role)) {
+          setViewMode('professional');
+        } else if (data.role !== 'unassigned') {
+          setViewMode('participant');
+        }
+        // If unassigned, we don't set a default viewMode here; OnboardingModal handles it
       } else {
         if (activeUser) {
           console.log("No profile record found. Creating initial profile...");

@@ -202,9 +202,11 @@ export default function EventDetail() {
           date: data.date || (data as any).start_date,
           endDate: data.end_date,
           category: data.category,
-          locationName: data.location_name,
-          formattedAddress: data.formatted_address || data.location_name,
-          geoPoint: (data.lat && data.lng) ? { lat: data.lat, lng: data.lng } : null,
+          locationName: data.location_name || data.location || '정보 없음',
+          formattedAddress: data.formatted_address || data.address || data.location_name || '주소 정보가 없습니다.',
+          geoPoint: (data.lat !== null && data.lng !== null && data.lat !== undefined && data.lng !== undefined) 
+            ? { lat: Number(data.lat), lng: Number(data.lng) } 
+            : null,
           city: data.city || '',
           country: data.country || '',
           status: data.status,

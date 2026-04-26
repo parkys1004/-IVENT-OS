@@ -4,7 +4,15 @@ import { Plus, Trash2, Search, CheckSquare, Square } from 'lucide-react';
 
 export function PlacesTab() {
   const [places, setPlaces] = useState<any[]>([]);
-  const [newPlace, setNewPlace] = useState({ name: '', country: '', type: '', address: '', kakaoMapUrl: '', naverMapUrl: '', googleMapUrl: '' });
+  const [newPlace, setNewPlace] = useState({ 
+    name: '', 
+    country: '', 
+    type: '', 
+    address: '', 
+    kakao_map_url: '', 
+    naver_map_url: '', 
+    google_map_url: '' 
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -13,14 +21,30 @@ export function PlacesTab() {
   }, []);
 
   async function fetchPlaces() {
-    const { data } = await supabase.from('places').select('*');
+    const { data } = await supabase.from('places').select('*').order('created_at', { ascending: false });
     if (data) setPlaces(data);
   }
 
   async function addPlace() {
-    if (!newPlace.name) return;
-    await supabase.from('places').insert(newPlace);
-    setNewPlace({ name: '', country: '', type: '', address: '', kakaoMapUrl: '', naverMapUrl: '', googleMapUrl: '' });
+    if (!newPlace.name || !newPlace.address) {
+      alert('장소 이름과 주소는 필수입니다.');
+      return;
+    }
+    const { error } = await supabase.from('places').insert(newPlace);
+    if (error) {
+      console.error('Error adding place:', error);
+      alert('장소 추가 중 오류가 발생했습니다.');
+      return;
+    }
+    setNewPlace({ 
+      name: '', 
+      country: '', 
+      type: '', 
+      address: '', 
+      kakao_map_url: '', 
+      naver_map_url: '', 
+      google_map_url: '' 
+    });
     fetchPlaces();
   }
 
@@ -54,10 +78,18 @@ export function PlacesTab() {
         <input placeholder="장소 이름" value={newPlace.name} onChange={e => setNewPlace({...newPlace, name: e.target.value})} className="p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700"/>
         <input placeholder="국가" value={newPlace.country} onChange={e => setNewPlace({...newPlace, country: e.target.value})} className="p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700"/>
         <input placeholder="유형" value={newPlace.type} onChange={e => setNewPlace({...newPlace, type: e.target.value})} className="p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700"/>
-        <input placeholder="주소" value={newPlace.address} onChange={e => setNewPlace({...newPlace, address: e.target.value})} className="col-span-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700"/>
-        <button onClick={addPlace} className="col-span-full bg-indigo-600 text-white p-3 rounded-xl font-bold flex items-center justify-center hover:bg-indigo-700"><Plus className="w-5 h-5 mr-2"/> 장소 추가하기</button>
+        <input placeholder="주소" value={newPlace.address} onChange={e => setNewPlace({...newPlace, address: e.target.value})} className="col-span-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 font-semibold"/>
+        
+        <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input placeholder="카카오맵 URL (선택)" value={newPlace.kakao_map_url} onChange={e => setNewPlace({...newPlace, kakao_map_url: e.target.value})} className="p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 text-xs"/>
+          <input placeholder="네이버맵 URL (선택)" value={newPlace.naver_map_url} onChange={e => setNewPlace({...newPlace, naver_map_url: e.target.value})} className="p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 text-xs"/>
+          <input placeholder="구글맵 URL (선택)" value={newPlace.google_map_url} onChange={e => setNewPlace({...newPlace, google_map_url: e.target.value})} className="p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 text-xs"/>
+        </div>
+
+        <button onClick={addPlace} className="col-span-full bg-indigo-600 text-white p-4 rounded-2xl font-black flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-200 dark:shadow-none mt-2">
+          <Plus className="w-5 h-5 mr-2"/> 새로운 장소 등록하기
+        </button>
       </div>
-...
 
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="relative flex-1">

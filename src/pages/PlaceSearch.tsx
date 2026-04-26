@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { MapPin, Navigation, ExternalLink, Info } from 'lucide-react';
 import clsx from 'clsx';
@@ -152,12 +153,12 @@ export default function PlaceSearch() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="group relative bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300"
+                className="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300"
               >
-                <div className="flex flex-col h-full">
-                  <div className="mb-4">
+                <div className="flex flex-col h-full p-6">
+                  <Link to={`/places/${place.id}`} className="mb-4">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                      <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight hover:text-indigo-600 transition-colors">
                         {place.name}
                       </h3>
                       <span className="shrink-0 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-500 dark:text-slate-400 rounded-lg uppercase tracking-tighter">
@@ -170,9 +171,9 @@ export default function PlaceSearch() {
                         {place.address}
                       </p>
                     </div>
-                  </div>
+                  </Link>
 
-                  <div className="mt-auto pt-6 flex flex-wrap gap-2">
+                  <div className="mt-auto pt-6 flex flex-wrap gap-2 relative z-10">
                     <a 
                       href={`https://map.kakao.com/?q=${encodeURIComponent(place.address)}`} 
                       target="_blank" 

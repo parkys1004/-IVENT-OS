@@ -148,6 +148,23 @@
         "createdAt": { "type": "timestamp" }
       },
       "required": ["eventId", "authorId", "rating", "content", "createdAt"]
+    },
+    "Bar": {
+      "title": "Bar",
+      "description": "Details of a dance bar",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "country": { "type": "string" },
+        "region": { "type": "string" },
+        "address": { "type": "string" },
+        "kakaoMapUrl": { "type": "string" },
+        "naverMapUrl": { "type": "string" },
+        "googleMapUrl": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" }
+      },
+      "required": ["name", "country", "region", "address"]
     }
   },
   "firestore": {
@@ -190,6 +207,10 @@
     "/eventReviews/{reviewId}": {
       "schema": { "$ref": "#/entities/EventReview" },
       "description": "Stores event reviews and ratings"
+    },
+    "/bars/{barId}": {
+      "schema": { "$ref": "#/entities/Bar" },
+      "description": "Stores bar information"
     }
   }
 }

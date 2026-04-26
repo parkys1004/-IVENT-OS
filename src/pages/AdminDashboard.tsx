@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
-import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout, MessageSquare, Menu, X as CloseIcon } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout, MessageSquare, Menu, X as CloseIcon, MapPin } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -15,6 +15,7 @@ import { BannersTab } from '../components/admin/BannersTab';
 import { ConfigTab } from '../components/admin/ConfigTab';
 import { SettingsTab } from '../components/admin/SettingsTab';
 import { CommunityTab } from '../components/admin/CommunityTab';
+import { BarsTab } from '../components/admin/BarsTab';
 
 interface EventData {
   id: string;
@@ -46,7 +47,7 @@ interface DashboardConfig {
   sectionOrder: string[];
 }
 
-type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings' | 'community';
+type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings' | 'community' | 'bars';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -275,6 +276,7 @@ export default function AdminDashboard() {
     { key: 'points', label: '포인트 관리', icon: Coins },
     { key: 'banners', label: '배너 관리', icon: ImageIcon },
     { key: 'community', label: '게시판 관리', icon: MessageSquare, color: 'indigo' },
+    { key: 'bars', label: '바 관리', icon: MapPin, color: 'indigo' },
     { key: 'config', label: '홈 화면 설정', icon: Layout },
   ];
 
@@ -462,6 +464,9 @@ export default function AdminDashboard() {
               )}
               {activeMenu === 'community' && (
                 <CommunityTab />
+              )}
+              {activeMenu === 'bars' && (
+                <BarsTab />
               )}
               {activeMenu === 'config' && (
                 <ConfigTab 

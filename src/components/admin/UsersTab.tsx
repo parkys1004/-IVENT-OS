@@ -36,6 +36,8 @@ export const UsersTab: React.FC<UsersTabProps> = ({
   const [adjustmentAmount, setAdjustmentAmount] = useState(0);
   const [adjustmentReason, setAdjustmentReason] = useState('');
 
+  const [userToKick, setUserToKick] = useState<{ userId: string, name: string } | null>(null);
+
   const safeDate = (val: any) => {
     if (!val) return new Date();
     try {
@@ -94,14 +96,15 @@ export const UsersTab: React.FC<UsersTabProps> = ({
     await handleRoleChange(uid, 'banned');
   };
 
-  const handleKickUser = async (uid: string) => {
-    if (!window.confirm('정말 이 회원을 강퇴(삭제)하시겠습니까?')) return;
+  const confirmKick = async () => {
+    if (!userToKick) return;
     try {
       setIsSaving(true);
-      const { error } = await supabase.from('profiles').delete().eq('id', uid);
+      const { error } = await supabase.from('profiles').delete().eq('id', userToKick.userId);
       if (error) throw error;
-      setUsers(prev => prev.filter(u => u.uid !== uid));
+      setUsers(prev => prev.filter(u => u.uid !== userToKick.userId));
       alert("회원 삭제 완료");
+      setUserToKick(null);
     } catch (error: any) {
       alert("삭제 실패");
     } finally {
@@ -278,7 +281,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                                 블랙
                               </button>
                               <button 
-                                onClick={() => handleKickUser(u.uid)}
+                                onClick={() => setUserToKick({ userId: u.uid, name: u.displayName || '이름 없음' })}
                                 className="bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-lg transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -380,10 +383,10 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                   )}
                   {u.role !== 'admin' && (
                     <button 
-                      onClick={() => handleBlacklistUser(u.uid)}
+                      onClick={() => setUserToKick({ userId: u.uid, name: u.displayName || '이름 없음' })}
                       className="col-span-2 py-2.5 text-rose-600 font-bold text-xs hover:bg-rose-50 rounded-xl transition-colors"
                     >
-                      블랙리스트로 지정
+                      강퇴하기
                     </button>
                   )}
                 </div>
@@ -506,6 +509,23 @@ export const UsersTab: React.FC<UsersTabProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {userToKick && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setUserToKick(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-2xl">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">회원 강퇴</h3>
+              <p className="text-sm text-slate-500 mb-6 font-bold">{userToKick.name} 님을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setUserToKick(null)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl">취소</button>
+                <button onClick={confirmKick} className="flex-1 py-3 bg-rose-600 text-white font-black rounded-xl">삭제하기</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
+

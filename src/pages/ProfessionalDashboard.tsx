@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { supabase } from '../supabase';
 
-type MenuKey = 'activities' | 'events' | 'profile' | 'participants' | 'community' | 'students' | 'curriculum' | 'playlist' | 'bookings' | 'equipment' | 'gallery';
+type MenuKey = 'activities' | 'events' | 'profile' | 'participants' | 'community' | 'students' | 'curriculum' | 'playlist' | 'bookings' | 'equipment' | 'gallery' | 'scanner';
 type TabKey = string;
 
 export default function ProfessionalDashboard() {

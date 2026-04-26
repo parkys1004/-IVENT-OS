@@ -6,6 +6,7 @@ import {
   MapPin, CalendarDays, User, QrCode, ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { format } from 'date-fns';
@@ -101,12 +102,12 @@ export default function QRScanner() {
 
       const info: ParticipantInfo = {
         registration_id: reg.id,
-        user_name: reg.profiles.full_name,
-        user_email: reg.profiles.email,
-        event_title: reg.events.title,
-        event_date: reg.events.date,
-        status: reg.status,
-        payment_status: reg.payment_status
+        user_name: (reg.profiles as any).full_name,
+        user_email: (reg.profiles as any).email,
+        event_title: (reg.events as any).title,
+        event_date: (reg.events as any).date,
+        status: (reg as any).status,
+        payment_status: (reg as any).payment_status
       };
 
       setScanResult(info);

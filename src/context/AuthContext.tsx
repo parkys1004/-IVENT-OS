@@ -175,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             display_name: activeUser.user_metadata?.full_name || activeUser.email?.split('@')[0] || 'User',
             photo_url: activeUser.user_metadata?.avatar_url || '',
             role: assignedRole,
-            is_approved: true
+            points: signupPoints
           };
 
           const { data: createdData, error: createError } = await supabase

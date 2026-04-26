@@ -28,6 +28,7 @@ export default function ProfessionalDashboard() {
       { key: 'activities', label: '활동 스케줄', icon: <CalendarDays className="w-5 h-5" /> },
       { key: 'events', label: '내 행사 관리', icon: <Star className="w-5 h-5" /> },
       { key: 'participants', label: '참가자 명단', icon: <Users className="w-5 h-5" /> },
+      { key: 'scanner', label: '입장 스캐너', icon: <Camera className="w-5 h-5" /> },
       { key: 'community', label: '커뮤니티 소통', icon: <MessageSquare className="w-5 h-5" /> },
     ],
     instructor: [
@@ -331,6 +332,10 @@ export default function ProfessionalDashboard() {
   
   // Handlers
   const handleMenuClick = (menu: MenuKey) => {
+    if (menu === 'scanner') {
+      navigate('/scan-tickets');
+      return;
+    }
     setActiveMenu(menu);
     setActiveTab('all');
   };

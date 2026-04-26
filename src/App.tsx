@@ -12,7 +12,7 @@ import Community from './pages/Community';
 import PostDetail from './pages/PostDetail';
 import Login from './pages/Login';
 import MyPage from './pages/MyPage';
-import BarSearch from './pages/BarSearch';
+import PlaceSearch from './pages/PlaceSearch';
 import PointRecharge from './pages/PointRecharge';
 import AISettings from './pages/AISettings';
 import PublicProfile from './pages/PublicProfile';
@@ -126,7 +126,7 @@ function AppContent() {
           <Route path="/edit-lesson/:id" element={<EditLesson />} />
           <Route path="/past-events" element={<PastEvents />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/bar-search" element={<BarSearch />} />
+          <Route path="/places" element={<PlaceSearch />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/points" element={<PointRecharge />} />
           <Route path="/ai-settings" element={<AISettings />} />

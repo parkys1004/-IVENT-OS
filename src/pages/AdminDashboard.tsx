@@ -15,7 +15,7 @@ import { BannersTab } from '../components/admin/BannersTab';
 import { ConfigTab } from '../components/admin/ConfigTab';
 import { SettingsTab } from '../components/admin/SettingsTab';
 import { CommunityTab } from '../components/admin/CommunityTab';
-import { BarsTab } from '../components/admin/BarsTab';
+import { PlacesTab } from '../components/admin/PlacesTab';
 
 interface EventData {
   id: string;
@@ -47,7 +47,7 @@ interface DashboardConfig {
   sectionOrder: string[];
 }
 
-type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings' | 'community' | 'bars';
+type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings' | 'community' | 'places';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
     { key: 'points', label: '포인트 관리', icon: Coins },
     { key: 'banners', label: '배너 관리', icon: ImageIcon },
     { key: 'community', label: '게시판 관리', icon: MessageSquare, color: 'indigo' },
-    { key: 'bars', label: '바 관리', icon: MapPin, color: 'indigo' },
+    { key: 'places', label: '장소 관리', icon: MapPin, color: 'indigo' },
     { key: 'config', label: '홈 화면 설정', icon: Layout },
   ];
 
@@ -465,8 +465,8 @@ export default function AdminDashboard() {
               {activeMenu === 'community' && (
                 <CommunityTab />
               )}
-              {activeMenu === 'bars' && (
-                <BarsTab />
+              {activeMenu === 'places' && (
+                <PlacesTab />
               )}
               {activeMenu === 'config' && (
                 <ConfigTab 

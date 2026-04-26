@@ -67,7 +67,7 @@ export default function Navbar() {
     { to: '/explore/instructor', icon: <Users className="w-4 h-4" />, label: t('search.category.instructor') },
     { to: '/explore/dj', icon: <Disc className="w-4 h-4" />, label: t('search.category.dj') },
     { to: '/explore/media', icon: <Camera className="w-4 h-4" />, label: t('search.category.media') },
-    { to: '/bar-search', icon: <MapPin className="w-4 h-4" />, label: '바검색' },
+    { to: '/places', icon: <MapPin className="w-4 h-4" />, label: '장소' },
     { to: '/community', icon: <MessageSquare className="w-4 h-4" />, label: '커뮤니티' },
   ];
 

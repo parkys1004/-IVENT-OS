@@ -370,13 +370,13 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 no-scrollbar bg-slate-50/30 dark:bg-slate-950">
+        <main className="flex-1 flex flex-col relative overflow-y-auto p-4 lg:p-8 no-scrollbar bg-slate-50/30 dark:bg-slate-950">
           {fetchError && (
-            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-600 shadow-sm animate-in fade-in slide-in-from-top-4">
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-600 shadow-sm animate-in fade-in slide-in-from-top-4 shrink-0">
               <AlertCircle className="w-5 h-5 shrink-0" /> <span className="font-bold text-sm">{fetchError}</span>
             </div>
           )}
-          <div className="mb-4 text-xs font-mono text-slate-500">
+          <div className="mb-4 shrink-0 text-xs font-mono text-slate-500 hidden">
             DEBUG INFO: users={users.length}, events={events.length}, dbHealth={Object.keys(dbHealth).length}
           </div>
 
@@ -387,7 +387,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="max-w-7xl mx-auto"
+              className="max-w-7xl mx-auto w-full flex-1 flex flex-col min-h-[600px] relative"
             >
               {activeMenu === 'home' && (
                 <HomeTab 

@@ -175,9 +175,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             display_name: activeUser.user_metadata?.full_name || activeUser.email?.split('@')[0] || 'User',
             photo_url: activeUser.user_metadata?.avatar_url || '',
             role: assignedRole,
-            points: signupPoints
+            points: signupPoints,
+            is_approved: true
           };
 
+          console.log("Attempting to insert profile:", newProfile);
           const { data: createdData, error: createError } = await supabase
             .from('profiles')
             .insert(newProfile)
@@ -185,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
 
           if (createError) {
+            console.error("Full createError object:", JSON.stringify(createError, null, 2));                
             setAuthError(`Creation failed: ${createError.message}`);
             if (createError.code === '23505') {
               const { data: reFetch } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();

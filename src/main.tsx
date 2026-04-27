@@ -31,3 +31,8 @@ try {
 } catch (error) {
   console.error("Critical mounting error:", error);
 }
+// main.tsx
+const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
+if (kakaoKey && (window as any).Kakao && !(window as any).Kakao.isInitialized()) {
+  (window as any).Kakao.init(kakaoKey);
+}

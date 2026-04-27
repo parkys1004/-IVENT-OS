@@ -15,9 +15,10 @@ interface ShareModalProps {
   onClose: () => void;
   title: string;
   url: string;
+   imageUrl?: string;   // ← 추가
+  description?: string; // ← 추가
 }
-
-export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, url }) => {
+export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, url, imageUrl, description }) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopyLink = async () => {
@@ -63,8 +64,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
       objectType: 'feed',
       content: {
         title: title, 
-        description: '강습 공지', 
-        imageUrl: 'https://dancehive.app/logo.png', // 사용자가 요청한 로고 주소
+        description: description || '강습 공지', 
+        imageUrl: imageUrl || 'https://dancehive.app/logo.png',
         link: {
           mobileWebUrl: url, 
           webUrl: url,

@@ -309,7 +309,7 @@ export default function EditEvent() {
             price: formData.tickets[0]?.price || 0,
             djs: formData.djs.filter(d => d.trim()),
             performances: formData.performances.filter(p => p.trim()),
-            media: formData.media.filter(m => m.trim()),
+            media: images,
             tickets: formData.tickets.filter(t => t.name.trim()),
             payment_method: formData.paymentMethod
           })

@@ -34,9 +34,10 @@ export async function awardPoints(userId: string, amount: number, reason: string
       .from('profiles')
       .select('points')
       .eq('id', userId)
-      .single();
+      .maybeSingle();  // ✅ single() → maybeSingle()
     
     if (pErr) throw pErr;
+    if (!profile) throw new Error(`유저를 찾을 수 없습니다. (id: ${userId})`);
 
     const newPoints = (profile.points || 0) + amount;
 
@@ -46,7 +47,7 @@ export async function awardPoints(userId: string, amount: number, reason: string
       .update({ points: newPoints })
       .eq('id', userId)
       .select()
-      .single();
+      .maybeSingle();  // ✅ single() → maybeSingle()
     
     if (uErr) throw uErr;
     if (!updatedData) throw new Error('업데이트를 거부당했습니다 (Supabase RLS 규칙 확인 필요).');

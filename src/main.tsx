@@ -14,7 +14,11 @@ if (kakaoKey && (window as any).Kakao && !(window as any).Kakao.isInitialized())
   (window as any).Kakao.init(kakaoKey);
 }
 
-class ErrorBoundary extends React.Component<any, {hasError: boolean}> {
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, {hasError: boolean}> {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
   componentDidCatch(error: any) { console.error("App crash:", error); }
@@ -27,7 +31,7 @@ class ErrorBoundary extends React.Component<any, {hasError: boolean}> {
         </div>
       );
     }
-    return this.props.children;
+    return (this as any).props.children;
   }
 }
 

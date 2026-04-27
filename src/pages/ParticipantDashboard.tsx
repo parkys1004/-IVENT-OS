@@ -74,8 +74,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   };
   
   // Gamification Metrics
-  const [points] = useState(1250);
-  const [rankPercentile] = useState(15);
+  const [points, setPoints] = useState(0);
+  const [rankPercentile, setRankPercentile] = useState(0);
   const [monthlyGoal, setMonthlyGoal] = useState(10);
   const [currentMonthVisits, setCurrentMonthVisits] = useState(0);
 
@@ -135,8 +135,29 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     }
   };
 
+  const fetchGamificationData = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('points, rank_percentile')
+        .eq('id', user.id)
+        .single();
+      
+      if (!error && data) {
+        setPoints(data.points);
+        setRankPercentile(data.rank_percentile);
+      }
+    } catch (e) {
+      console.error("Error fetching gamification data", e);
+    }
+  };
+
   useEffect(() => {
-    if (user) fetchGoalMetrics();
+    if (user) {
+      fetchGoalMetrics();
+      fetchGamificationData();
+    }
   }, [user]);
 
   const [dashboardConfig, setDashboardConfig] = useState({
@@ -1164,8 +1185,19 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           </div>
 
           {/* Points & Rank Card */}
-          <div className="bg-indigo-600 dark:bg-slate-900 rounded-3xl p-6 shadow-xl shadow-indigo-500/10 border border-indigo-500/10 dark:border-slate-800 flex flex-col justify-between text-white">
-            <div className="flex justify-between items-start mb-4">
+            <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative bg-gradient-to-br from-indigo-600 to-violet-700 dark:from-slate-900 dark:to-slate-800 rounded-3xl p-6 shadow-xl shadow-indigo-500/10 border border-white/10 flex flex-col justify-between text-white overflow-hidden"
+          >
+            {/* Animated Shimmer background */}
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+            />
+
+            <div className="flex justify-between items-start mb-4 relative z-10">
               <div>
                 <p className="text-indigo-200 dark:text-slate-400 text-[11px] font-black uppercase tracking-wider mb-1">Activity Reward</p>
                 <h4 className="text-xl font-black">댄스 활동 점수</h4>
@@ -1174,17 +1206,32 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 <Trophy className="w-5 h-5" />
               </div>
             </div>
-            <div>
-              <div className="space-y-1">
+            
+            <div className="relative z-10">
+              <div className="space-y-1 mb-4">
                 <p className="text-3xl font-black tracking-tighter">{points.toLocaleString()} <span className="text-sm font-bold opacity-80">Point</span></p>
-                <p className="text-indigo-100 dark:text-amber-400 font-bold text-sm">현재 커뮤니티 상위 {rankPercentile}%</p>
+                <div className="flex justify-between items-center text-sm font-bold">
+                    <p className="text-indigo-100 dark:text-amber-400">현재 커뮤니티 상위 {rankPercentile}%</p>
+                    <p className="opacity-80">Next: 2,000 P</p>
+                </div>
               </div>
-              <div className="mt-4 flex gap-2">
-                 <div className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase">Level. Pro</div>
-                 <div className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase">Bachata Master</div>
+              
+              {/* Progress Bar */}
+              <div className="w-full h-1.5 bg-black/20 rounded-full overflow-hidden mb-4">
+                <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (points / 2000) * 100)}%` }}
+                    transition={{ duration: 1, delay: 0.5 }}
+                    className="h-full bg-amber-400 rounded-full"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                 <button onClick={() => alert("Level. Pro: 2026-03-01 달성 (조건: 1000점 달성)")} className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase hover:bg-white/20 transition-all active:scale-95">Level. Pro</button>
+                 <button onClick={() => alert("Bachata Master: 2026-04-15 달성 (조건: 바차타 행사 5회 참여)")} className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase hover:bg-white/20 transition-all active:scale-95">Bachata Master</button>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Quick Banner / D-Day Card */}
           {nextEvent ? (

@@ -687,42 +687,19 @@ export default function EventDetail() {
             )}
           </div>
 
+          {/* 행사 사진 리스트 (메인 제외) */}
           {images.length > 1 && (
-            <div className="p-4 border-t border-slate-50 dark:border-slate-800/50 flex gap-3 overflow-x-auto no-scrollbar">
-              {images.map((img: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={clsx(
-                    "relative shrink-0 w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all",
-                    idx === currentImageIndex 
-                      ? "border-indigo-600 ring-2 ring-indigo-600/20" 
-                      : "border-transparent opacity-60 hover:opacity-100"
-                  )}
-                >
-                  <img 
-                    src={img} 
-                    alt={`${event.title} thumbnail ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-          {videoId && (
-            <div className="p-4 border-t border-slate-50 dark:border-slate-800/50">
-              <div className="aspect-video bg-black rounded-[24px] overflow-hidden">
-                <iframe 
-                    width="100%" 
-                    height="100%" 
-                    src={`https://www.youtube.com/embed/${videoId}`} 
-                    title="YouTube video player" 
-                    frameBorder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowFullScreen>
-                </iframe>
-              </div>
+            <div className="mt-8 px-4 md:px-0">
+               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 px-1">행사 사진</h3>
+               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                 {images.filter((_, idx) => idx !== currentImageIndex).map((img: string, idx: number) => (
+                    <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer"
+                      onClick={() => setFullscreenImage(img)}
+                    >
+                      <img src={img} alt={`event-${idx}`} className="w-full h-full object-cover"/>
+                    </div>
+                 ))}
+               </div>
             </div>
           )}
             </div>
@@ -925,6 +902,22 @@ export default function EventDetail() {
             <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-[1.7] text-[15px] md:text-[16px] font-medium font-sans">
               {event.description}
             </div>
+            
+            {videoId && (
+              <div className="mt-8">
+                <div className="aspect-video bg-black rounded-[24px] overflow-hidden">
+                  <iframe 
+                      width="100%" 
+                      height="100%" 
+                      src={`https://www.youtube.com/embed/${videoId}`} 
+                      title="YouTube video player" 
+                      frameBorder="0" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowFullScreen>
+                  </iframe>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Community Section */}

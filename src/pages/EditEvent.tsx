@@ -810,7 +810,7 @@ export default function EditEvent() {
                       </div>
                       <div className="space-y-1">
                         <p className="text-slate-700 dark:text-slate-200 font-bold text-lg">이미지 추가하기</p>
-                        <p className="text-slate-400 text-sm">최대 5장까지 등록 가능합니다.</p>
+                        <p className="text-slate-400 text-sm">최대 5장까지 (각 이미지당 최대 1MB)</p>
                       </div>
                     </div>
                   </div>

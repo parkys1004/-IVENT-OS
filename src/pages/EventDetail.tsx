@@ -687,21 +687,7 @@ export default function EventDetail() {
             )}
           </div>
 
-          {/* 행사 사진 리스트 (메인 제외) */}
-          {images.length > 1 && (
-            <div className="mt-8 px-4 md:px-0 hidden">
-               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 px-1">행사 사진</h3>
-               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                 {images.filter((_, idx) => idx !== currentImageIndex).map((img: string, idx: number) => (
-                    <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer"
-                      onClick={() => setFullscreenImage(img)}
-                    >
-                      <img src={img} alt={`event-${idx}`} className="w-full h-full object-cover"/>
-                    </div>
-                 ))}
-               </div>
-            </div>
-          )}
+
             </div>
           </div>
       <div className="mb-10 px-4 md:px-0 flex flex-col gap-3">
@@ -900,7 +886,7 @@ export default function EventDetail() {
           <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[24px] md:rounded-[32px] p-6 md:p-10 shadow-sm">
             <h3 className="text-[18px] md:text-xl font-black text-slate-800 dark:text-white mb-5">행사 상세 설명</h3>
             <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-[1.7] text-[15px] md:text-[16px] font-medium font-sans">
-              {event.description}
+              {event.description?.replace(/(https?:\/\/\S+|data:image\/[^>\s]+)/g, '')}
             </div>
             
             {videoId && (

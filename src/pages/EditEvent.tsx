@@ -132,9 +132,10 @@ export default function EditEvent() {
             tickets: data.tickets || [],
           });
 
+          const media = data.media && Array.isArray(data.media) ? data.media : [];
           const loadedImages = [
-            ...(data.image_url ? [data.image_url] : []),
-            ...(data.media && Array.isArray(data.media) ? data.media : [])
+            ...(data.image_url && !media.includes(data.image_url) ? [data.image_url] : []),
+            ...media
           ];
           setImages(loadedImages);
           setCoverImageIndex(0);

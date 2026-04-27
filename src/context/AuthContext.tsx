@@ -60,7 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchProfile = async (userId: string, currentUser?: User) => {
-    console.count("fetchProfile called");
     console.log("Fetching profile for user:", userId);
     setAuthError(null);
     try {
@@ -305,10 +304,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log("Auth state change event:", _event);
-      if (session?.user) {
-        setUser(session.user);
-        fetchProfile(session.user.id, session.user);
-      } else {
+      if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED' || _event === 'USER_UPDATED') {
+        if (session?.user) {
+          setUser(session.user);
+          fetchProfile(session.user.id, session.user);
+        }
+      } else if (_event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         setLoading(false);

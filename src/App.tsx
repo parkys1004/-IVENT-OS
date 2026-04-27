@@ -63,7 +63,7 @@ function SupabaseConfigWarning() {
 }
 
 function AppContent() {
-  const { profile, viewMode, authError } = useAuth();
+  const { profile, viewMode, authError, loading } = useAuth(); // loading 추가
   const location = useLocation();
 
   // Handle OAuth Redirect and Popup Closing
@@ -89,6 +89,18 @@ function AppContent() {
       }
     }
   }, []);
+
+  // loading 중 스피너 표시 (흰 화면 방지)
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin" />
+          <p className="text-sm text-slate-400 font-bold">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin';
   const isHomePath = location.pathname === '/';

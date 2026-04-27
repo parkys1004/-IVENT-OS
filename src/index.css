@@ -1,4 +1,11 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+/* 폰트 로드 실패 시 즉시 시스템 폰트 사용 */
+@layer base {
+  html {
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  }
+}
 @import "tailwindcss";
 
 /* Allow manual toggling of dark mode via class on html */

@@ -25,22 +25,25 @@
    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js" 
         integrity="sha384-l+xbElFSnPZ2rOaPrU//2FF5B4LB8FiX5q4fXYTlfcG4PGpMkE1vcL7kNXI6Cci0" 
         crossorigin="anonymous"></script>
-    <script>
-      // 카카오톡 인앱 브러우저에서 외부 브라우저(크롬, 사파리 등)로 실행 유도
-      var userAgent = navigator.userAgent.toLowerCase();
-      var targetUrl = location.href;
+  <script>
+  // 카카오톡 인앱 브라우저에서만 외부 브라우저로 유도
+  (function() {
+    var ua = navigator.userAgent.toLowerCase();
+    if (!ua.match(/kakaotalk/i)) return; // 카카오 인앱이 아니면 즉시 종료
 
-      if (userAgent.match(/kakaotalk/i)) {
-        // 안드로이드
-        if (userAgent.match(/android/i)) {
-          location.href = 'intent://' + targetUrl.replace(/https?:\/\//i, '') + '#Intent;scheme=http;package=com.android.chrome;end';
-        } 
-        // iOS
-        else if (userAgent.match(/iphone|ipad|ipod/i)) {
-          location.href = 'kakaotalk://web/openExternalApp?url=' + encodeURIComponent(targetUrl);
-        }
-      }
-    </script>
+    var targetUrl = location.href;
+    if (ua.match(/android/i)) {
+      location.href = 'intent://' + targetUrl.replace(/https?:\/\//i, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+    } else if (ua.match(/iphone|ipad|ipod/i)) {
+      // iOS: 딥링크 실패 시 그냥 현재 페이지에 남도록 fallback 처리
+      var fallbackTimer = setTimeout(function() {
+        // 딥링크가 열리지 않으면 아무것도 하지 않음 (현재 페이지 유지)
+      }, 2000);
+      location.href = 'kakaotalk://web/openExternalApp?url=' + encodeURIComponent(targetUrl);
+      clearTimeout(fallbackTimer);
+    }
+  })();
+</script>
   </head>
   <body>
     <div id="root" translate="no"></div>

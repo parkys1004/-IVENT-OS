@@ -280,6 +280,24 @@ export default function CreateEvent() {
         setLoading(false);
         return;
       }
+
+      // Check if place exists, if not add as pending
+      const { data: existingPlaces } = await supabase
+        .from('places')
+        .select('*')
+        .eq('name', formData.locationName)
+        .eq('address', formData.formattedAddress)
+        .maybeSingle();
+
+      if (!existingPlaces) {
+        await supabase.from('places').insert({
+          name: formData.locationName,
+          address: formData.formattedAddress,
+          country: formData.country,
+          is_approved: false // New place is not approved until admin approval
+        });
+      }
+
       const startDate = new Date(`${formData.date}T${formData.time}`);
       const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 

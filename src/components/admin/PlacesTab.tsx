@@ -21,8 +21,18 @@ export function PlacesTab() {
   }, []);
 
   async function fetchPlaces() {
-    const { data } = await supabase.from('places').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('places').select('*').order('is_approved', { ascending: true }).order('created_at', { ascending: false });
     if (data) setPlaces(data);
+  }
+
+  async function updatePlaceStatus(id: string, is_approved: boolean) {
+    const { error } = await supabase.from('places').update({ is_approved }).eq('id', id);
+    if (error) {
+      console.error('Error updating place:', error);
+      alert('상태 변경 중 오류가 발생했습니다.');
+      return;
+    }
+    fetchPlaces();
   }
 
   async function addPlace() {
@@ -30,7 +40,7 @@ export function PlacesTab() {
       alert('장소 이름과 주소는 필수입니다.');
       return;
     }
-    const { error } = await supabase.from('places').insert(newPlace);
+    const { error } = await supabase.from('places').insert({ ...newPlace, is_approved: true });
     if (error) {
       console.error('Error adding place:', error);
       alert('장소 추가 중 오류가 발생했습니다.');
@@ -59,9 +69,9 @@ export function PlacesTab() {
   const filteredPlaces = useMemo(() => {
     return places.filter(place => 
       place.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      place.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      place.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       place.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      place.country.toLowerCase().includes(searchTerm.toLowerCase())
+      place.country?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [places, searchTerm]);
 
@@ -110,6 +120,7 @@ export function PlacesTab() {
               <th className="p-4 w-10"><button onClick={toggleSelectAll}>{selectedIds.length === filteredPlaces.length && filteredPlaces.length > 0 ? <CheckSquare className="w-5 h-5 text-indigo-600"/> : <Square className="w-5 h-5 text-slate-400"/>}</button></th>
               <th className="p-4 text-left font-bold text-slate-600 dark:text-slate-300">이름</th>
               <th className="p-4 text-left font-bold text-slate-600 dark:text-slate-300">지역/주소</th>
+              <th className="p-4 text-center font-bold text-slate-600 dark:text-slate-300">상태</th>
               <th className="p-4 text-center font-bold text-slate-600 dark:text-slate-300">작업</th>
             </tr>
           </thead>
@@ -119,7 +130,13 @@ export function PlacesTab() {
                 <td className="p-4"><button onClick={() => setSelectedIds(prev => prev.includes(place.id) ? prev.filter(id => id !== place.id) : [...prev, place.id])}>{selectedIds.includes(place.id) ? <CheckSquare className="w-5 h-5 text-indigo-600"/> : <Square className="w-5 h-5 text-slate-400"/>}</button></td>
                 <td className="p-4 font-bold">{place.name}</td>
                 <td className="p-4 text-sm text-slate-500">{place.country} {place.type} / {place.address}</td>
-                <td className="p-4 text-center"><button onClick={() => deletePlaces([place.id])} className="text-red-500 hover:text-red-700"><Trash2 className="w-5 h-5"/></button></td>
+                <td className="p-4 text-center text-xs font-bold">{place.is_approved ? <span className="text-emerald-600">등록완료</span> : <span className="text-amber-600">승인대기</span>}</td>
+                <td className="p-4 text-center flex items-center justify-center gap-2">
+                  {!place.is_approved && (
+                    <button onClick={() => updatePlaceStatus(place.id, true)} className="text-emerald-500 hover:text-emerald-700 text-xs font-bold bg-emerald-50 p-2 rounded-lg">승인</button>
+                  )}
+                  <button onClick={() => deletePlaces([place.id])} className="text-red-500 hover:text-red-700 p-2"><Trash2 className="w-4 h-4"/></button>
+                </td>
               </tr>
             ))}
           </tbody>

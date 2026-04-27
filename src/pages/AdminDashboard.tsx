@@ -79,6 +79,7 @@ export default function AdminDashboard() {
   const [activeEventTab, setActiveEventTab] = useState('all');
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [approvalMode, setApprovalMode] = useState<'auto' | 'manual'>('manual');
+  const [pendingPlacesCount, setPendingPlacesCount] = useState(0);
 
   const fetchAdminData = async () => {
     setIsRefreshing(true);
@@ -121,11 +122,12 @@ export default function AdminDashboard() {
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle(),
         supabase.from('point_history').select('*').order('created_at', { ascending: false }).limit(100),
-        supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle()
+        supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle(),
+        supabase.from('places').select('id').eq('is_approved', false)
       ]);
 
       const [
-        partyListRes, lessonListRes, regsRes, bannersRes, dashConfigRes, pConfigRes, pHistoryRes, appConfigRes
+        partyListRes, lessonListRes, regsRes, bannersRes, dashConfigRes, pConfigRes, pHistoryRes, appConfigRes, placesRes
       ] = fetchResults;
 
       // Map registrations count
@@ -214,6 +216,10 @@ export default function AdminDashboard() {
         setApprovalMode((appConfigRes.value.data.value as any).approvalMode || 'manual');
       }
 
+      if (placesRes.status === 'fulfilled' && placesRes.value.data) {
+        setPendingPlacesCount(placesRes.value.data.length);
+      }
+
       if (pHistoryRes.status === 'fulfilled') {
         if (pHistoryRes.value.error) localErrors.push(`Point History Fetch: ${pHistoryRes.value.error.message}`);
         else if (pHistoryRes.value.data) {
@@ -276,7 +282,7 @@ export default function AdminDashboard() {
     { key: 'points', label: '포인트 관리', icon: Coins },
     { key: 'banners', label: '배너 관리', icon: ImageIcon },
     { key: 'community', label: '게시판 관리', icon: MessageSquare, color: 'indigo' },
-    { key: 'places', label: '장소 관리', icon: MapPin, color: 'indigo' },
+    { key: 'places', label: '장소 관리', icon: MapPin, color: 'indigo', badge: pendingPlacesCount },
     { key: 'config', label: '홈 화면 설정', icon: Layout },
   ];
 

@@ -65,7 +65,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
       content: {
         title: title, 
         description: description || '강습 공지', 
-        imageUrl: imageUrl || window.location.origin + '/hivesns.png',
+        imageUrl: imageUrl || 'https://github.com/parkys1004/img/blob/main/dancehive/hivesns.png?raw=true',
         link: {
           mobileWebUrl: url, 
           webUrl: url,

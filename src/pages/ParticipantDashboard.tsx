@@ -1133,9 +1133,9 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                          if (!isNaN(num)) updateGoal(num);
                        }
                      }}
-                     className="text-xs text-indigo-500 hover:text-indigo-700 underline font-bold"
+                     className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 font-bold text-xs rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-100 dark:border-indigo-800"
                    >
-                     수정
+                     목표 수정
                    </button>
                 </h4>
               </div>

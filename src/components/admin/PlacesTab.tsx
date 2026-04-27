@@ -15,6 +15,12 @@ export function PlacesTab() {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState('전체');
+  const [selectedType, setSelectedType] = useState('전체');
+
+  // 독특한 국가/유형 목록 추출
+  const countries = useMemo(() => ['전체', ...Array.from(new Set(places.map(p => p.country).filter(Boolean)))], [places]);
+  const types = useMemo(() => ['전체', ...Array.from(new Set(places.map(p => p.type).filter(Boolean)))], [places]);
 
   useEffect(() => {
     fetchPlaces();
@@ -68,12 +74,14 @@ export function PlacesTab() {
 
   const filteredPlaces = useMemo(() => {
     return places.filter(place => 
-      place.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (selectedCountry === '전체' || place.country === selectedCountry) &&
+      (selectedType === '전체' || place.type === selectedType) &&
+      (place.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       place.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       place.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      place.country?.toLowerCase().includes(searchTerm.toLowerCase())
+      place.country?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [places, searchTerm]);
+  }, [places, searchTerm, selectedCountry, selectedType]);
 
   const toggleSelectAll = () => {
     if (selectedIds.length === filteredPlaces.length) setSelectedIds([]);
@@ -102,9 +110,17 @@ export function PlacesTab() {
       </div>
 
       <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex gap-2">
+          <select value={selectedCountry} onChange={e => setSelectedCountry(e.target.value)} className="p-3 border rounded-2xl dark:bg-slate-800 dark:border-slate-700">
+            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={selectedType} onChange={e => setSelectedType(e.target.value)} className="p-3 border rounded-2xl dark:bg-slate-800 dark:border-slate-700">
+            {types.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"/>
-          <input placeholder="검색 (이름, 국가, 유형, 주소...)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-2xl dark:bg-slate-800 dark:border-slate-700"/>
+          <input placeholder="검색 (이름, 주소...)" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-2xl dark:bg-slate-800 dark:border-slate-700"/>
         </div>
         {selectedIds.length > 0 && (
           <button onClick={() => deletePlaces(selectedIds)} className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-3 rounded-2xl font-bold hover:bg-red-100">

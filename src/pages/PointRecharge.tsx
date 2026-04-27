@@ -18,13 +18,15 @@ import {
   Flame,
   Zap,
   Star,
-  Award
+  Award,
+  ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import clsx from 'clsx';
+import { useNavigate } from 'react-router-dom';
 
 interface PointPackage {
   id: string;
@@ -42,6 +44,7 @@ interface PointPackage {
 
 export default function PointRecharge() {
   const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPackage, setSelectedPackage] = useState<PointPackage | null>(null);
@@ -185,6 +188,13 @@ export default function PointRecharge() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
       <div className="max-w-6xl mx-auto w-full px-4 py-8 md:py-20 space-y-12 md:space-y-16">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white font-bold transition-colors mb-4"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          뒤로가기
+        </button>
         
         {/* Header Section */}
         <div className="flex flex-col items-center text-center space-y-4 md:space-y-6">

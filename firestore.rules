@@ -111,6 +111,13 @@ service cloud.firestore {
         (!('linkUrl' in data) || (data.linkUrl is string && data.linkUrl.size() <= 2000));
     }
 
+    function isValidEventImage(data) {
+      return data.keys().hasAll(['eventId', 'url', 'createdAt']) &&
+        data.eventId is string && data.eventId.size() <= 128 &&
+        data.url is string && data.url.size() <= 1000000 &&
+        data.createdAt is timestamp;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -172,6 +179,12 @@ service cloud.firestore {
                     ));
                     
       allow delete: if isAdmin() || (isOwner(existing().hostId) && existing().status == 'draft');
+    }
+
+    match /eventImages/{imageId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidEventImage(incoming()) && exists(/databases/$(database)/documents/events/$(incoming().eventId));
+      allow delete: if isSignedIn() && exists(/databases/$(database)/documents/events/$(resource.data.eventId)) && isOwner(get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.hostId);
     }
 
     match /registrations/{registrationId} {

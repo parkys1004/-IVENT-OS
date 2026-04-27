@@ -37,7 +37,6 @@
         "locationName": { "type": "string" },
         "locationAddress": { "type": "string" },
         "imageUrl": { "type": "string" },
-        "imageUrls": { "type": "array" },
         "djs": { "type": "array" },
         "performances": { "type": "array" },
         "tickets": { "type": "array" },
@@ -51,6 +50,17 @@
         "priority": { "type": "number", "description": "Display priority for events" }
       },
       "required": ["title", "description", "category", "date", "endDate", "locationName", "maxAttendees", "currentAttendees", "hostId", "hostName", "status", "createdAt"]
+    },
+    "EventImage": {
+      "title": "Event Image",
+      "description": "An image associated with an event",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "url": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["eventId", "url", "createdAt"]
     },
     "Registration": {
       "title": "Registration",
@@ -175,6 +185,10 @@
     "/events/{eventId}": {
       "schema": { "$ref": "#/entities/Event" },
       "description": "Stores event information"
+    },
+    "/eventImages/{imageId}": {
+      "schema": { "$ref": "#/entities/EventImage" },
+      "description": "Stores images associated with events"
     },
     "/registrations/{registrationId}": {
       "schema": { "$ref": "#/entities/Registration" },

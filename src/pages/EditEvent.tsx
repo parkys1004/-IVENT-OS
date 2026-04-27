@@ -36,6 +36,7 @@ export default function EditEvent() {
     djs: [] as string[],
     performances: [] as string[],
     media: [] as string[],
+    mediaExperts: [] as string[],
     paymentMethod: '',
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
@@ -128,14 +129,24 @@ export default function EditEvent() {
             djs: data.djs || [],
             performances: data.performances || [],
             media: data.media || [],
+            mediaExperts: data.media_experts || [],
             paymentMethod: data.payment_method || '',
             tickets: data.tickets || [],
           });
 
-          const media = data.media && Array.isArray(data.media) ? data.media : [];
+          const media_experts = data.media_experts && Array.isArray(data.media_experts) ? data.media_experts : [];
+          
+          // Fetch photos from event_photos table
+          const { data: photos } = await supabase
+            .from('event_photos')
+            .select('image_url')
+            .eq('event_id', id);
+            
+          const photoUrls = photos ? photos.map(p => p.image_url) : [];
+
           const loadedImages = [
-            ...(data.image_url && !media.includes(data.image_url) ? [data.image_url] : []),
-            ...media
+            ...(data.image_url && !photoUrls.includes(data.image_url) ? [data.image_url] : []),
+            ...photoUrls
           ];
           setImages(loadedImages);
           setCoverImageIndex(0);
@@ -311,7 +322,7 @@ export default function EditEvent() {
             price: formData.tickets[0]?.price || 0,
             djs: formData.djs.filter(d => d.trim()),
             performances: formData.performances.filter(p => p.trim()),
-            media: images,
+            media_experts: formData.mediaExperts.filter(m => m.trim()),
             tickets: formData.tickets.filter(t => t.name.trim()),
             payment_method: formData.paymentMethod
           })
@@ -320,6 +331,20 @@ export default function EditEvent() {
       }
 
       if (updateError) throw updateError;
+      
+      // Update photos in event_photos table
+      await supabase.from('event_photos').delete().eq('event_id', id);
+      
+      if (images.length > 0) {
+        const { error: photoError } = await supabase
+          .from('event_photos')
+          .insert(images.map(url => ({
+            event_id: id,
+            image_url: url,
+            user_id: user.id
+          })));
+        if (photoError) throw photoError;
+      }
       
       alert(`${sourceTable === 'parties' ? '행사' : '강습'}가 성공적으로 수정되었습니다.`);
       navigate(`/event/${id}`);
@@ -351,12 +376,12 @@ export default function EditEvent() {
     setFormData(prev => ({ ...prev, performances: newPerformances }));
   };
 
-  const addMedia = () => setFormData(prev => ({ ...prev, media: [...prev.media, ''] }));
-  const removeMedia = (index: number) => setFormData(prev => ({ ...prev, media: prev.media.filter((_, i) => i !== index) }));
+  const addMedia = () => setFormData(prev => ({ ...prev, mediaExperts: [...prev.mediaExperts, ''] }));
+  const removeMedia = (index: number) => setFormData(prev => ({ ...prev, mediaExperts: prev.mediaExperts.filter((_, i) => i !== index) }));
   const updateMedia = (index: number, value: string) => {
-    const newMedia = [...formData.media];
-    newMedia[index] = value;
-    setFormData(prev => ({ ...prev, media: newMedia }));
+    const newMediaExperts = [...formData.mediaExperts];
+    newMediaExperts[index] = value;
+    setFormData(prev => ({ ...prev, mediaExperts: newMediaExperts }));
   };
 
   const addTicket = () => setFormData(prev => ({ ...prev, tickets: [...prev.tickets, { name: '', price: 0 }] }));
@@ -645,7 +670,7 @@ export default function EditEvent() {
                     </button>
                   </div>
                   <div className="space-y-3">
-                    {formData.media.map((person, idx) => (
+                    {formData.mediaExperts.map((person, idx) => (
                       <div key={idx} className="group flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                         <input
                           type="text"
@@ -659,10 +684,10 @@ export default function EditEvent() {
                         </button>
                       </div>
                     ))}
-                    {formData.media.length === 0 && (
+                    {formData.mediaExperts.length === 0 && (
                       <div className="py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400">
                         <Upload className="w-8 h-8 mb-2 opacity-20" />
-                        <p className="text-xs font-bold italic tracking-tighter">등록된 미디어 정보가 없습니다.</p>
+                        <p className="text-xs font-bold italic tracking-tighter">등록된 전문가 정보가 없습니다.</p>
                       </div>
                     )}
                   </div>

@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS parties (
   likes_count INTEGER DEFAULT 0,
   djs TEXT[],
   performances TEXT[],
-  media TEXT[],
+  media_experts TEXT[],
   tickets JSONB DEFAULT '[]',
   payment_method TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),

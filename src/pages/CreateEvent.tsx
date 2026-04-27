@@ -971,7 +971,11 @@ export default function CreateEvent() {
                 required
                 name="description"
                 value={formData.description}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
                 rows={12}
                 className="w-full rounded-[32px] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-8 py-8 text-[15px] leading-relaxed text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500/50 outline-none transition-all resize-none shadow-inner font-medium placeholder:text-slate-300"
                 placeholder="일정, 프로그램, 특별 혜택 등 행사에 대해 자세히 알려주세요."

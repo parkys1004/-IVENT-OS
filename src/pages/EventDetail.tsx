@@ -553,7 +553,18 @@ export default function EventDetail() {
   const isFull = maxAttendees > 0 && currentAttendees >= maxAttendees;
 
   // Handle images array fallback
-  const images = event.imageUrls && event.imageUrls.length > 0 ? event.imageUrls : (event.imageUrl ? [event.imageUrl] : []);
+  const images = event.media && event.media.length > 0 
+    ? event.media 
+    : (event.imageUrl ? [event.imageUrl] : []);
+
+  // Detect YouTube video
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const videoId = getYouTubeId(event.description || '');
 
   const openFullscreen = (index: number) => {
     setCurrentImageIndex(index);
@@ -699,10 +710,23 @@ export default function EventDetail() {
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Main Title - Bold and Large below image */}
+          {videoId && (
+            <div className="p-4 border-t border-slate-50 dark:border-slate-800/50">
+              <div className="aspect-video bg-black rounded-[24px] overflow-hidden">
+                <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src={`https://www.youtube.com/embed/${videoId}`} 
+                    title="YouTube video player" 
+                    frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen>
+                </iframe>
+              </div>
+            </div>
+          )}
+            </div>
+          </div>
       <div className="mb-10 px-4 md:px-0 flex flex-col gap-3">
         <div className="flex">
           <TypeBadge isLesson={event.isLesson} className="!text-[12px] md:!text-[16px] px-3 py-1.5 border-slate-200 dark:border-slate-800" />

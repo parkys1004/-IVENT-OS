@@ -222,9 +222,9 @@ export default function CreateEvent() {
 
   const handleImageUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    const availableSlots = 3 - images.length;
+    const availableSlots = 5 - images.length;
     if (availableSlots <= 0) {
-      alert("최대 3장의 이미지만 등록할 수 있습니다.");
+      alert("최대 5장의 이미지만 등록할 수 있습니다.");
       return;
     }
 
@@ -242,6 +242,8 @@ export default function CreateEvent() {
       if (multiFileInputRef.current) multiFileInputRef.current.value = '';
     }
   };
+
+  const [videoUrl, setVideoUrl] = useState('');
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -345,14 +347,16 @@ export default function CreateEvent() {
           country: formData.country,
           lat: formData.geoPoint?.lat,
           lng: formData.geoPoint?.lng,
-          image_url: mainImageUrl, 
+          image_url: mainImageUrl,
+          // video_url needs to be added to DB, for now we will skip and inform user
+          // video_url: videoUrl,
           host_id: user.id,
           status: initialStatus,
           max_attendees: Number(formData.maxAttendees),
           price: formData.tickets[0]?.price || 0,
           djs: formData.djs.filter(d => d.trim()),
           performances: formData.performances.filter(p => p.trim()),
-          media: formData.media.filter(m => m.trim()),
+          media: images, // Use images here
           tickets: formData.tickets.filter(t => t.name.trim()),
           payment_method: formData.paymentMethod
         });
@@ -483,6 +487,68 @@ export default function CreateEvent() {
         <div className="bg-white dark:bg-slate-900/50 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <form onSubmit={handleSubmit} id="create-event-form" className="p-8 md:p-12 space-y-16">
             
+            {/* Multimedia Section */}
+            <section className="space-y-10">
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <ImageIcon className="w-5 h-5 text-purple-500" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">미디어 (사진 & 영상)</h2>
+              </div>
+
+              {/* Video URL */}
+              <div className="space-y-4">
+                <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">유튜브 영상 링크</label>
+                <input
+                  type="url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                />
+              </div>
+
+              {/* Image Upload */}
+              <div className="space-y-4">
+                <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">행사 사진 (최대 5장)</label>
+                
+                <div 
+                  className={clsx(
+                    "border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center gap-3 transition-colors",
+                    dragActive ? "border-indigo-500 bg-indigo-50/50" : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30"
+                  )}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <Upload className="w-10 h-10 text-slate-400" />
+                  <p className="text-sm font-bold text-slate-600 dark:text-slate-400">클릭하거나 드래그하여 사진을 업로드하세요.</p>
+                  <button 
+                    type="button" 
+                    onClick={() => multiFileInputRef.current?.click()}
+                    className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    파일 선택
+                  </button>
+                  <input ref={multiFileInputRef} type="file" multiple accept="image/*" className="hidden" onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border-2 border-white dark:border-slate-800">
+                      <img src={img} alt={`upload-${idx}`} className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
             {/* Basic Info Section */}
             <section className="space-y-10">
               <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">

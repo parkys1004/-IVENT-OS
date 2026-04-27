@@ -197,6 +197,11 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     }
   }, [user, activeMenu]);
   const [isSaving, setIsSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    displayName: '',
+    phone: '',
+    photoURL: ''
+  });
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
 
   const resizeAndCompressImage = (file: File): Promise<string> => {

@@ -168,13 +168,34 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     sectionOrder: ['parties', 'lessons', 'instructors', 'djMedia']
   });
 
-  const [registrations, setRegistrations] = useState<{id: string, event: EventData, status: string, registeredAt: any}[]>([]);
-  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
-  const [profileForm, setProfileForm] = useState({
-    displayName: '',
-    phone: '',
-    photoURL: ''
-  });
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [follows, setFollows] = useState<any[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+
+  useEffect(() => {
+    if (user && activeMenu === 'favorites') {
+      const fetchFavorites = async () => {
+        setLoadingFavorites(true);
+        // Fetch Bookmarks
+        const { data: bData } = await supabase
+          .from('event_bookmarks')
+          .select('*, parties(*), lessons(*)')
+          .eq('user_id', user.id);
+        
+        // Fetch Follows
+        const { data: fData } = await supabase
+          .from('artist_follows')
+          .select('*, profiles(*)')
+          .eq('user_id', user.id);
+
+        setBookmarks(bData || []);
+        setFollows(fData || []);
+        setLoadingFavorites(false);
+      };
+      fetchFavorites();
+    }
+  }, [user, activeMenu]);
   const [isSaving, setIsSaving] = useState(false);
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
 
@@ -953,18 +974,47 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     <div className="space-y-6 flex flex-col h-full pb-20">
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          찜한 행사
+          찜한 행사 ({bookmarks.length})
         </button>
         <button onClick={() => setActiveTab('following')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'following' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          팔로잉 (DJ/강사)
+          팔로잉 ({follows.length})
         </button>
       </div>
-      <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
-         <Heart className="w-12 h-12 mb-4 text-slate-300" />
-         <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">관심 목록이 비어있습니다</h3>
-         <p className="font-bold text-slate-500 mb-6">마음에 드는 행사나 아티스트를 팔로우하면 여기에 표시됩니다.</p>
-         <button onClick={() => handleMenuClick('find')} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg shadow-indigo-200">행사 둘러보기</button>
-      </div>
+
+      {loadingFavorites ? (
+        <div className="flex-1 flex items-center justify-center">로딩 중...</div>
+      ) : activeTab === 'all' ? (
+        bookmarks.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
+             <Heart className="w-12 h-12 mb-4 text-slate-300" />
+             <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">찜한 행사가 없습니다</h3>
+             <p className="font-bold text-slate-500 mb-6">마음에 드는 행사를 찜해두고 빠르게 확인해보세요.</p>
+             <button onClick={() => handleMenuClick('find')} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg shadow-indigo-200">행사 둘러보기</button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {bookmarks.map((b) => {
+                const event = (b.parties || b.lessons) as EventData;
+                return <EventCard key={b.id} event={event} />;
+             })}
+          </div>
+        )
+      ) : (
+        follows.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
+             <Users className="w-12 h-12 mb-4 text-slate-300" />
+             <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">팔로우 중인 아티스트가 없습니다</h3>
+             <p className="font-bold text-slate-500 mb-6">좋아하는 DJ나 강사를 팔로우하고 소식을 받아보세요.</p>
+             <button onClick={() => handleMenuClick('find')} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg shadow-indigo-200">아티스트 찾기</button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {follows.map((f) => (
+                <ProfessionalCard key={f.id} user={f.profiles} />
+             ))}
+          </div>
+        )
+      )}
     </div>
   );
 

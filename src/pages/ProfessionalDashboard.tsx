@@ -132,6 +132,9 @@ export default function ProfessionalDashboard() {
     portfolioUrl: '',
     studioLocation: '',
     photoURL: '',
+    gender: '', // 추가된 필드
+    facebookUrl: '', // 추가된 필드
+    youtubeUrl: '', // 추가된 필드
     // Specialized fields
     experienceYears: 0,
     curriculumLink: '',
@@ -185,6 +188,9 @@ export default function ProfessionalDashboard() {
         portfolioUrl: (profile as any).portfolioUrl || '',
         studioLocation: (profile as any).studioLocation || '',
         photoURL: profile.photoURL || '',
+        gender: (profile as any).gender || '',
+        facebookUrl: (profile as any).facebookUrl || '',
+        youtubeUrl: (profile as any).youtubeUrl || '',
       }));
       setPortfolioImages(profile.portfolioImages || []);
       isInitializedRef.current = true;
@@ -226,6 +232,9 @@ export default function ProfessionalDashboard() {
           portfolio_images: portfolioImages,
           studio_location: profileForm.studioLocation,
           photo_url: profileForm.photoURL,
+          gender: profileForm.gender,
+          facebook_url: profileForm.facebookUrl,
+          youtube_url: profileForm.youtubeUrl,
         })
         .eq('id', user.id);
 

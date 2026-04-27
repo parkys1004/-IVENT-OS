@@ -54,6 +54,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [showQR, setShowQR] = useState<string | null>(null);
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
 
   const downloadQR = async (regId: string, eventTitle: string) => {
     try {
@@ -1001,7 +1003,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
              {bookmarks.map((b) => {
                 const event = (b.parties || b.lessons);
                 if (!event) return null;
-                return <EventCard key={b.id} event={event as EventData} />;
+                return <EventCard key={b.id} event={event as EventData} index={0} />;
              })}
           </div>
         )
@@ -1017,7 +1019,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {follows.map((f) => {
                 if (!f.profiles) return null;
-                return <ProfessionalCard key={f.id} user={f.profiles} />;
+                return <ProfessionalCard key={f.id} professional={f.profiles} index={0} />;
              })}
           </div>
         )

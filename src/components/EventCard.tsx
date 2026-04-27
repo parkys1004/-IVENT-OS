@@ -28,6 +28,7 @@ export interface EventData {
   isBanner?: boolean;
   isLesson?: boolean;
   likesCount?: number;
+  createdAt?: string | Date;
 }
 
 export default function EventCard({ event, featured = false, index }: { event: EventData, featured?: boolean, index: number, key?: string | number }) {

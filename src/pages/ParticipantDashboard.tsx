@@ -994,8 +994,9 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {bookmarks.map((b) => {
-                const event = (b.parties || b.lessons) as EventData;
-                return <EventCard key={b.id} event={event} />;
+                const event = (b.parties || b.lessons);
+                if (!event) return null;
+                return <EventCard key={b.id} event={event as EventData} />;
              })}
           </div>
         )
@@ -1009,9 +1010,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {follows.map((f) => (
-                <ProfessionalCard key={f.id} user={f.profiles} />
-             ))}
+             {follows.map((f) => {
+                if (!f.profiles) return null;
+                return <ProfessionalCard key={f.id} user={f.profiles} />;
+             })}
           </div>
         )
       )}

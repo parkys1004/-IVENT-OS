@@ -508,7 +508,7 @@ export default function CreateEvent() {
 
               {/* Image Upload */}
               <div className="space-y-4">
-                <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">행사 사진 (최대 5장)</label>
+                <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">행사 사진 (최대 5장, 각 이미지당 최대 1MB)</label>
                 
                 <div 
                   className={clsx(

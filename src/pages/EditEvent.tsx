@@ -133,7 +133,8 @@ export default function EditEvent() {
           });
 
           const loadedImages = [
-            ...(data.image_url ? [data.image_url] : [])
+            ...(data.image_url ? [data.image_url] : []),
+            ...(data.media && Array.isArray(data.media) ? data.media : [])
           ];
           setImages(loadedImages);
           setCoverImageIndex(0);

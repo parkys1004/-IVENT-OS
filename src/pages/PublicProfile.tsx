@@ -154,87 +154,52 @@ export default function PublicProfile() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-24">
-      {/* Back Button */}
-      <div className="mb-8 pt-4">
-        <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 hover:text-indigo-600 transition font-bold text-sm">
-          <ArrowLeft className="w-4 h-4 mr-2" /> 뒤로 가기
-        </button>
-      </div>
-
       {/* Header Profile Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-[40px] border border-slate-100 dark:border-slate-800 p-8 sm:p-12 shadow-sm mb-12 relative overflow-hidden">
-        {/* Abstract background decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none"></div>
-
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-10 relative z-10">
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 p-8 sm:p-12 shadow-sm mb-12 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-10">
           {/* Avatar Area */}
-          <div className="relative">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-[32px] overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none bg-slate-100 dark:bg-slate-800">
-              {profile.photoURL ? (
-                <img src={profile.photoURL} alt={profile.displayName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                  <Users className="w-16 h-16" />
-                </div>
-              )}
-            </div>
-            
-            {/* Role Badge Overlay */}
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 px-4 py-1.5 rounded-full shadow-lg border border-slate-100 dark:border-slate-700 flex items-center gap-1.5 min-w-max">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                {profile.role === 'instructor' ? 'Instructor' : 
-                 profile.role === 'dj' ? 'Professional DJ' : 
-                 profile.role === 'media' ? 'Media Expert' : 
-                 profile.role === 'host' ? 'Host' : 'Member'}
-              </span>
-            </div>
+          <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-[24px] overflow-hidden border-4 border-slate-50 dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-800 shrink-0">
+            {profile.photoURL ? (
+              <img src={profile.photoURL} alt={profile.displayName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                <Users className="w-20 h-20" />
+              </div>
+            )}
           </div>
 
-          <div className="flex-1 text-center md:text-left pt-2">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+          <div className="flex-1 text-center md:text-left">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
+                <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white mb-3 tracking-tighter">
                   {profile.displayName}
                 </h1>
-                <p className="text-indigo-600 font-bold flex items-center justify-center md:justify-start gap-2">
-                   <Globe className="w-4 h-4" /> Professional in {profile.studioLocation || 'Global Dance Scene'}
+                <p className="text-indigo-600 font-bold text-lg">
+                   {profile.role.toUpperCase()}
                 </p>
               </div>
               
               <div className="flex items-center justify-center gap-3">
-                <button className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-sm shadow-xl shadow-slate-900/20 hover:scale-105 transition-transform active:scale-95">
+                <button className="px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-sm hover:scale-105 transition-transform">
                   Follow
                 </button>
-                <button className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl hover:bg-slate-200 transition-colors">
-                  <Share2 className="w-5 h-5" />
-                </button>
               </div>
             </div>
 
-            {/* Stats Block */}
-            <div className="flex items-center justify-center md:justify-start gap-8 mb-8">
-              <div className="text-center md:text-left">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Followers</p>
-                <p className="text-xl font-black text-slate-800 dark:text-white">{profile.followersCount}</p>
+            <p className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed font-medium mb-8">
+              "{profile.shortBio || '전문가 소개가 없습니다.'}"
+            </p>
+
+            <div className="flex items-center justify-center md:justify-start gap-6">
+              <div className="flex items-center gap-2 text-slate-500">
+                <MapPin className="w-5 h-5" />
+                <span className="font-bold text-slate-800 dark:text-white">{profile.studioLocation || '위치 미정'}</span>
               </div>
-              <div className="text-center md:text-left">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Events</p>
-                <p className="text-xl font-black text-slate-800 dark:text-white">{events.length}</p>
-              </div>
-              <div className="text-center md:text-left">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Impact</p>
-                <p className="text-xl font-black text-slate-800 dark:text-white">Top 1%</p>
+              <div className="flex items-center gap-2 text-slate-500">
+                <Users className="w-5 h-5" />
+                <span className="font-bold text-slate-800 dark:text-white">{profile.followersCount} 팔로워</span>
               </div>
             </div>
-
-            {/* Short Bio */}
-            {profile.shortBio && (
-              <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl font-medium italic">
-                "{profile.shortBio}"
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -243,30 +208,28 @@ export default function PublicProfile() {
         {/* Left Content Area */}
         <div className="space-y-12">
           {/* About Section */}
-          <section>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-              <Star className="w-7 h-7 text-amber-500" /> About Me
+          <section className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 p-10 shadow-sm">
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-6 tracking-tight flex items-center gap-3">
+              <Star className="w-7 h-7 text-amber-400" /> 전문가 소개
             </h3>
-            <div className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 border-dashed">
-              <div className="whitespace-pre-wrap text-slate-600 dark:text-slate-400 leading-relaxed">
-                {profile.description || '작성된 소개가 없습니다.'}
-              </div>
+            <div className="whitespace-pre-wrap text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+              {profile.description || '작성된 소개가 없습니다.'}
             </div>
           </section>
 
           {/* Portfolio Gallery */}
           {profile.portfolioImages && profile.portfolioImages.length > 0 && (
             <section>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-                <Camera className="w-7 h-7 text-indigo-500" /> Portfolio Gallery
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-6 tracking-tight flex items-center gap-3">
+                <Camera className="w-7 h-7 text-indigo-500" /> 포트폴리오
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {profile.portfolioImages.map((url: string, idx: number) => (
-                  <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm group">
+                  <div key={idx} className="aspect-[4/3] rounded-3xl overflow-hidden shadow-sm group cursor-pointer border-4 border-white dark:border-slate-800">
                     <img 
                       src={url} 
                       alt={`portfolio-${idx}`} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                       referrerPolicy="no-referrer"
                     />
                   </div>
@@ -277,40 +240,33 @@ export default function PublicProfile() {
 
           {/* Specialties & Career */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section>
+            <section className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
               <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-                <GraduationCap className="w-5 h-5 text-indigo-500" /> 
-                {profile.role === 'dj' ? 'Music Styles' : profile.role === 'media' ? 'Specialty' : 'Specialties'}
+                <GraduationCap className="w-6 h-6 text-indigo-500" /> 
+                {profile.role === 'dj' ? '음악 스타일' : '전문 분야'}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {profile.role === 'dj' && (profile as any).specialized?.music_style 
                   ? (profile as any).specialized.music_style.map((s: string, idx: number) => (
-                    <span key={idx} className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-4 py-2 rounded-xl text-sm font-bold border border-purple-100 dark:border-purple-800/30 shadow-sm">
+                    <span key={idx} className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-4 py-2 rounded-xl text-sm font-bold border border-purple-100 dark:border-purple-800">
                       {s}
                     </span>
                   ))
                   : profile.specialties ? profile.specialties.split(',').map((s: string, idx: number) => (
-                  <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl text-sm font-bold border border-indigo-100 dark:border-indigo-800/30 shadow-sm">
+                  <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl text-sm font-bold border border-indigo-100 dark:border-indigo-800">
                     {s.trim()}
                   </span>
                 )) : <p className="text-slate-400 italic text-sm">정보 없음</p>}
               </div>
             </section>
             
-            <section>
+            <section className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 p-8 shadow-sm">
               <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-                <Trophy className="w-5 h-5 text-amber-500" /> 
-                {profile.role === 'instructor' ? 'Experience' : 'Career Highlights'}
+                <Trophy className="w-6 h-6 text-amber-500" /> 
+                커리어 요약
               </h3>
-              <div className="bg-amber-50/30 dark:bg-amber-900/10 p-6 rounded-2xl border border-amber-100/50 dark:border-amber-900/20">
-                {profile.role === 'instructor' && (profile as any).specialized?.experience_years ? (
-                  <p className="text-sm font-bold text-slate-800 dark:text-amber-200 mb-2">
-                    { (profile as any).specialized.experience_years }년 이상 교육 경력
-                  </p>
-                ) : null}
-                <div className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-400 leading-6">
-                  {profile.career || '경력 정보가 등록되지 않았습니다.'}
-                </div>
+              <div className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-400 leading-7">
+                {profile.career || '경력 정보가 등록되지 않았습니다.'}
               </div>
             </section>
           </div>

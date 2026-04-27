@@ -49,13 +49,18 @@ export const UsersTab: React.FC<UsersTabProps> = ({
   };
 
   const handleRoleChange = async (uid: string, newRole: string) => {
+    const trimmedRole = newRole.trim();
+    console.log("Updating role:", { uid, role: trimmedRole });
     try {
       setIsSaving(true);
       // Auto approve if changing to admin or participant
-      const isApproved = ['admin', 'participant', 'host'].includes(newRole);
-      const { error } = await supabase.from('profiles').update({ role: newRole, is_approved: isApproved }).eq('id', uid);
-      if (error) throw error;
-      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole as any, isApproved: isApproved } : u));
+      const isApproved = ['admin', 'participant', 'host'].includes(trimmedRole);
+      const { error } = await supabase.from('profiles').update({ role: trimmedRole, is_approved: isApproved }).eq('id', uid);
+      if (error) {
+        console.error("Supabase update error:", error);
+        throw error;
+      }
+      setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: trimmedRole as any, isApproved: isApproved } : u));
       alert("회원 유형 및 승인 상태가 변경되었습니다.");
     } catch (error: any) {
       alert(`오류: ${error.message}`);

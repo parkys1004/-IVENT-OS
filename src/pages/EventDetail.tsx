@@ -224,7 +224,7 @@ export default function EventDetail() {
           currentAttendees: regCount || 0,
           djs: data.djs || [],
           performances: data.performances || [],
-          media: data.media || [],
+          mediaExperts: data.media_experts || [],
           tickets: data.tickets || [],
           paymentMethod: data.payment_method || '',
           level: data.level || 'beginner'
@@ -846,7 +846,7 @@ export default function EventDetail() {
           </div>
 
           {/* Lineup Section (If exists) */}
-          {(event.djs?.length > 0 || event.performances?.length > 0 || event.media?.length > 0) && (
+          {(event.djs?.length > 0 || event.performances?.length > 0 || event.mediaExperts?.length > 0) && (
             <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
               <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6">라인업 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -873,6 +873,20 @@ export default function EventDetail() {
                       {event.performances.map((perf: string, idx: number) => (
                         <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg text-indigo-700 dark:text-indigo-400 font-bold text-[14px] border border-indigo-100/50 dark:border-indigo-800/30">
                           {perf}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {event.mediaExperts?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                      <ImageIcon className="w-4 h-4 mr-2" /> Media Experts
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {event.mediaExperts.map((expert: string, idx: number) => (
+                        <span key={idx} className="bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-lg text-orange-700 dark:text-orange-400 font-bold text-[14px] border border-orange-100/50 dark:border-orange-800/30">
+                          {expert}
                         </span>
                       ))}
                     </div>

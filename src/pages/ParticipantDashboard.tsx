@@ -76,8 +76,62 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   // Gamification Metrics
   const [points] = useState(1250);
   const [rankPercentile] = useState(15);
-  const [monthlyGoal] = useState(10);
-  const [currentMonthVisits] = useState(7);
+  const [monthlyGoal, setMonthlyGoal] = useState(10);
+  const [currentMonthVisits, setCurrentMonthVisits] = useState(0);
+
+  const fetchGoalMetrics = async () => {
+    if (!user) return;
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // 1. Fetch Registrations count
+    const { data: regs, error: regsError } = await supabase
+      .from('registrations')
+      .select('event_id, registered_at')
+      .eq('user_id', user.id)
+      .eq('status', 'confirmed')
+      .gte('registered_at', firstDay.toISOString());
+
+    if (!regsError && regs) {
+      setCurrentMonthVisits(regs.length);
+    }
+
+    // 2. Fetch Goal
+    const { data: goal, error: goalError } = await supabase
+      .from('user_goals')
+      .select('target_count')
+      .eq('user_id', user.id)
+      .eq('year_month', firstDay.toISOString())
+      .maybeSingle();
+
+    if (!goalError && goal) {
+      setMonthlyGoal(goal.target_count);
+    }
+  };
+
+  const updateGoal = async (newGoal: number) => {
+    if (!user) return;
+    const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    
+    const { error } = await supabase
+      .from('user_goals')
+      .upsert({
+        user_id: user.id,
+        year_month: firstDay.toISOString(),
+        target_count: newGoal
+      }, { onConflict: 'user_id, year_month' });
+
+    if (!error) {
+      setMonthlyGoal(newGoal);
+    } else {
+      console.error(error);
+      alert('목표 설정에 실패했습니다.');
+    }
+  };
+
+  useEffect(() => {
+    if (user) fetchGoalMetrics();
+  }, [user]);
 
   const [dashboardConfig, setDashboardConfig] = useState({
     partiesLimit: 9,
@@ -1063,7 +1117,21 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-slate-400 text-[11px] font-black uppercase tracking-wider mb-1">Monthly Goal</p>
-                <h4 className="text-xl font-black text-slate-800 dark:text-white">이번 달 활동 목표</h4>
+                <h4 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                  이번 달 활동 목표
+                   <button 
+                     onClick={() => {
+                       const val = window.prompt("이번 달 목표 횟수를 입력하세요", monthlyGoal.toString());
+                       if (val) {
+                         const num = parseInt(val);
+                         if (!isNaN(num)) updateGoal(num);
+                       }
+                     }}
+                     className="text-xs text-indigo-500 hover:text-indigo-700 underline font-bold"
+                   >
+                     수정
+                   </button>
+                </h4>
               </div>
               <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                 <TrendingUp className="w-5 h-5" />
@@ -1072,16 +1140,20 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             <div>
               <div className="flex justify-between items-end mb-2">
                 <span className="text-2xl font-black text-slate-800 dark:text-white">{currentMonthVisits} <span className="text-sm text-slate-500">/ {monthlyGoal}회</span></span>
-                <span className="text-indigo-600 dark:text-amber-400 font-bold text-sm">{Math.round((currentMonthVisits / monthlyGoal) * 100)}%</span>
+                <span className="text-indigo-600 dark:text-amber-400 font-bold text-sm">{Math.min(100, Math.round((currentMonthVisits / monthlyGoal) * 100))}%</span>
               </div>
               <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
-                  animate={{ width: `${(currentMonthVisits / monthlyGoal) * 100}%` }}
+                  animate={{ width: `${Math.min(100, (currentMonthVisits / monthlyGoal) * 100)}%` }}
                   className="h-full bg-indigo-600 dark:bg-amber-400 rounded-full"
                 />
               </div>
-              <p className="text-[11px] text-slate-500 font-bold mt-3 italic">목표 달성까지 {monthlyGoal - currentMonthVisits}회 남았습니다! 🔥</p>
+              <p className="text-[11px] text-slate-500 font-bold mt-3 italic">
+                {currentMonthVisits >= monthlyGoal 
+                  ? "목표를 달성했습니다! 🎉" 
+                  : `목표 달성까지 ${monthlyGoal - currentMonthVisits}회 남았습니다! 🔥`}
+              </p>
             </div>
           </div>
 

@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL,
   display_name TEXT,
-  role TEXT DEFAULT 'participant' CHECK (role IN ('participant', 'host', 'admin', 'dj', 'instructor', 'media', 'banned')),
+  role TEXT DEFAULT 'participant' CHECK (role IN ('participant', 'host', 'admin', 'dj', 'instructor', 'media', 'banned', 'unassigned')),
   photo_url TEXT,
   phone TEXT,
   points INTEGER DEFAULT 0,

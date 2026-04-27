@@ -248,6 +248,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                            <option value="instructor">강사</option>
                            <option value="media">미디어</option>
                            <option value="participant">참여자</option>
+                           <option value="unassigned">미지정</option>
                            <option value="banned">블랙리스트</option>
                         </select>
                       </td>
@@ -362,6 +363,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                        <option value="instructor">강사</option>
                        <option value="media">미디어</option>
                        <option value="participant">참여자</option>
+                       <option value="unassigned">미지정</option>
                        <option value="banned">블랙리스트</option>
                     </select>
                 </div>

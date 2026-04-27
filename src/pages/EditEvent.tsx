@@ -70,6 +70,7 @@ export default function EditEvent() {
   };
 
   const [images, setImages] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState('');
   const [coverImageIndex, setCoverImageIndex] = useState<number>(0);
   const [dragActive, setDragActive] = useState(false);
 
@@ -192,9 +193,9 @@ export default function EditEvent() {
 
   const handleImageUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    const availableSlots = 3 - images.length;
+    const availableSlots = 5 - images.length;
     if (availableSlots <= 0) {
-      alert("최대 3장의 이미지만 등록할 수 있습니다.");
+      alert("최대 5장의 이미지만 등록할 수 있습니다.");
       return;
     }
 
@@ -251,10 +252,12 @@ export default function EditEvent() {
 
     setSubmitting(true);
     try {
+      // Build description with video URL
+      const finalDescription = videoUrl ? `${videoUrl}\n\n${formData.description}` : formData.description;
       const startDate = new Date(`${formData.date}T${formData.time}`);
       const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
 
-      const mainImageUrl = images.length > 0 ? images[coverImageIndex] : formData.imageUrl;
+      const mainImageUrl = images.length > 0 ? images[0] : formData.imageUrl;
       const newStatus = isAdmin ? eventData.status : 'pending';
 
       let updateError;
@@ -264,7 +267,7 @@ export default function EditEvent() {
           .from('lessons')
           .update({
             title: formData.title,
-            description: formData.description,
+            description: finalDescription,
             category: formData.category,
             date: startDate.toISOString(),
             end_date: endDate.toISOString(),
@@ -290,7 +293,7 @@ export default function EditEvent() {
           .from('parties')
           .update({
             title: formData.title,
-            description: formData.description,
+            description: finalDescription,
             category: formData.category,
             date: startDate.toISOString(),
             end_date: endDate.toISOString(),
@@ -533,6 +536,20 @@ export default function EditEvent() {
                 <Star className="w-5 h-5 text-amber-500" />
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">세부 정보</h2>
               </div>
+              
+              {/* YouTube Video URL */}
+              <div className="space-y-4">
+                <label className="block text-[13px] font-bold text-slate-600 dark:text-slate-400 mb-2 ml-1 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-rose-500" /> 유튜브 영상 링크 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-4 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-semibold shadow-sm"
+                />
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 {/* DJs */}
@@ -763,7 +780,7 @@ export default function EditEvent() {
               </div>
               
               <div className="space-y-6">
-                {images.length < 3 && (
+                {images.length < 5 && (
                   <div 
                     onClick={() => multiFileInputRef.current?.click()}
                     className={clsx(
@@ -793,7 +810,7 @@ export default function EditEvent() {
                       </div>
                       <div className="space-y-1">
                         <p className="text-slate-700 dark:text-slate-200 font-bold text-lg">이미지 추가하기</p>
-                        <p className="text-slate-400 text-sm">최대 3장까지 등록 가능합니다.</p>
+                        <p className="text-slate-400 text-sm">최대 5장까지 등록 가능합니다.</p>
                       </div>
                     </div>
                   </div>

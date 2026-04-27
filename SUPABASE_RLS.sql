@@ -118,7 +118,10 @@ CREATE POLICY "Point history modifications by admin only" ON point_history FOR U
 CREATE POLICY "Point history deletions by admin only" ON point_history FOR DELETE USING (is_admin());
 
 
--- 9. USER AI CONFIGS (개인 환경설정)
-CREATE POLICY "Users can manage own AI Configs" ON user_ai_configs FOR ALL USING (auth.uid() = user_id);
+ALTER TABLE user_goals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can insert own goal" ON user_goals FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own goal" ON user_goals FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can view own goal" ON user_goals FOR SELECT USING (auth.uid() = user_id);
 
 -- 완료

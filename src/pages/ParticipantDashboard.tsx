@@ -113,19 +113,25 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     if (!user) return;
     const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     
-    const { error } = await supabase
+    // Log the payload to debug
+    const payload = {
+      user_id: user.id,
+      year_month: firstDay.toISOString(),
+      target_count: newGoal
+    };
+    console.log("Updating goal payload:", payload);
+
+    const { data, error } = await supabase
       .from('user_goals')
-      .upsert({
-        user_id: user.id,
-        year_month: firstDay.toISOString(),
-        target_count: newGoal
-      }, { onConflict: 'user_id, year_month' });
+      .upsert(payload, { onConflict: 'user_id, year_month' })
+      .select();
 
     if (!error) {
       setMonthlyGoal(newGoal);
+      console.log("Goal updated successfully:", data);
     } else {
-      console.error(error);
-      alert('목표 설정에 실패했습니다.');
+      console.error("Goal update error:", error);
+      alert(`목표 설정에 실패했습니다: ${error.message}`);
     }
   };
 

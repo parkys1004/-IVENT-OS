@@ -60,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchProfile = async (userId: string, currentUser?: User) => {
+    console.count("fetchProfile called");
     console.log("Fetching profile for user:", userId);
     setAuthError(null);
     try {

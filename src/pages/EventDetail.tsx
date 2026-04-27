@@ -688,9 +688,8 @@ export default function EventDetail() {
           </div>
 
           {/* 행사 사진 리스트 (메인 제외) */}
-          <div className="hidden">
           {images.length > 1 && (
-            <div className="mt-8 px-4 md:px-0">
+            <div className="mt-8 px-4 md:px-0 hidden">
                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 px-1">행사 사진</h3>
                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                  {images.filter((_, idx) => idx !== currentImageIndex).map((img: string, idx: number) => (
@@ -703,7 +702,6 @@ export default function EventDetail() {
                </div>
             </div>
           )}
-          </div>
             </div>
           </div>
       <div className="mb-10 px-4 md:px-0 flex flex-col gap-3">

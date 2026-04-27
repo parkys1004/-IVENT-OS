@@ -93,7 +93,11 @@ CREATE POLICY "Users can delete own reviews" ON event_reviews FOR DELETE USING (
 
 CREATE POLICY "Event photos viewable by everyone" ON event_photos FOR SELECT USING (true);
 CREATE POLICY "Authenticated can upload event photos" ON event_photos FOR INSERT WITH CHECK (auth.role() = 'authenticated' AND auth.uid() = user_id);
-CREATE POLICY "Users can delete own photos" ON event_photos FOR DELETE USING (auth.uid() = user_id OR is_admin());
+CREATE POLICY "Users can delete own photos" ON event_photos FOR DELETE USING (
+  auth.uid() = user_id 
+  OR is_admin()
+  OR EXISTS (SELECT 1 FROM parties WHERE parties.id = event_photos.event_id AND parties.host_id = auth.uid())
+);
 
 
 -- 7. SETTINGS & PROMO BANNERS (관리자 전용 업데이트, 그 외 누구나 조회)

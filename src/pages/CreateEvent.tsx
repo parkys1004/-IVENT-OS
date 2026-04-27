@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
+import DatePicker from 'react-datepicker';
 import { useNavigate } from 'react-router-dom';
+import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
@@ -561,24 +563,30 @@ export default function CreateEvent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-slate-500 ml-1">날짜</label>
-                      <input
-                        required
-                        type="date"
-                        name="date"
-                        value={formData.date}
-                        onChange={handleChange}
+                      <DatePicker
+                        selected={formData.date ? new Date(formData.date) : null}
+                        onChange={(date: Date | null) => 
+                          handleChange({ target: { name: 'date', value: date ? date.toISOString().split('T')[0] : '' } } as any)
+                        }
+                        dateFormat="yyyy-MM-dd"
                         className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                        placeholderText="날짜 선택"
                       />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-slate-500 ml-1">시간</label>
-                      <input
-                        required
-                        type="time"
-                        name="time"
-                        value={formData.time}
-                        onChange={handleChange}
+                      <DatePicker
+                        selected={formData.time ? new Date(`1970-01-01T${formData.time}`) : null}
+                        onChange={(time: Date | null) => 
+                          handleChange({ target: { name: 'time', value: time ? time.toTimeString().substring(0, 5) : '' } } as any)
+                        }
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={15}
+                        timeCaption="Time"
+                        dateFormat="HH:mm"
                         className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                        placeholderText="시간 선택"
                       />
                     </div>
                   </div>
@@ -593,24 +601,30 @@ export default function CreateEvent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-slate-500 ml-1">날짜</label>
-                      <input
-                        required
-                        type="date"
-                        name="endDate"
-                        value={formData.endDate}
-                        onChange={handleChange}
+                      <DatePicker
+                        selected={formData.endDate ? new Date(formData.endDate) : null}
+                        onChange={(date: Date | null) => 
+                          handleChange({ target: { name: 'endDate', value: date ? date.toISOString().split('T')[0] : '' } } as any)
+                        }
+                        dateFormat="yyyy-MM-dd"
                         className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
+                        placeholderText="날짜 선택"
                       />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-slate-500 ml-1">시간</label>
-                      <input
-                        required
-                        type="time"
-                        name="endTime"
-                        value={formData.endTime}
-                        onChange={handleChange}
+                      <DatePicker
+                        selected={formData.endTime ? new Date(`1970-01-01T${formData.endTime}`) : null}
+                        onChange={(time: Date | null) => 
+                          handleChange({ target: { name: 'endTime', value: time ? time.toTimeString().substring(0, 5) : '' } } as any)
+                        }
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={15}
+                        timeCaption="Time"
+                        dateFormat="HH:mm"
                         className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 py-4 text-[14px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
+                        placeholderText="시간 선택"
                       />
                     </div>
                   </div>

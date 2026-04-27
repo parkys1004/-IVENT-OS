@@ -1,4 +1,5 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import "react-datepicker/dist/react-datepicker.css";
 
 /* 폰트 로드 실패 시 즉시 시스템 폰트 사용 */
 @layer base {

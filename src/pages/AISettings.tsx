@@ -132,6 +132,13 @@ export default function AISettings() {
     <div className="flex-1 bg-slate-50 dark:bg-slate-950 min-h-full p-6 md:p-10 overflow-y-auto no-scrollbar">
       <div className="max-w-6xl mx-auto">
         <header className="mb-10">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white font-bold mb-4 transition-colors"
+          >
+            <ChevronRight className="w-5 h-5 rotate-180" />
+            이전 화면으로
+          </button>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
               <Bot className="w-6 h-6 text-white" />

@@ -244,22 +244,40 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   }, [profile]);
 
   const handlePreferenceSave = async () => {
-    if (!user) return;
+    if (!user) {
+      console.error("User not found during preference save");
+      return;
+    }
+    
     setIsSaving(true);
     try {
+      // 데이터 구조 안전장치
+      const payload = {
+        genres: preferenceForm?.genres || [],
+        regions: preferenceForm?.regions || [],
+        roles: preferenceForm?.roles || [],
+        types: preferenceForm?.types || [],
+        autoApplied: !!preferenceForm?.autoApplied
+      };
+
       const { error } = await supabase
         .from('profiles')
         .update({
-          preferences: preferenceForm
+          preferences: payload,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
       if (error) throw error;
+      
+      // 상태 최신화
       await refreshProfile();
-      alert('추천 설정이 저장되었습니다.');
+      
+      // 성공 피드백 (Toast 등이 없으므로 텍스트로 대체 가능하지만 일단 alert 유지하거나 생략)
+      console.log('Preferences updated successfully');
     } catch (error) {
-      console.error(error);
-      alert('저장 중 오류가 발생했습니다.');
+      console.error('Failed to save preferences:', error);
+      alert('설정 저장 중 문제가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsSaving(false);
     }
@@ -1276,9 +1294,19 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             <button
                onClick={handlePreferenceSave}
                disabled={isSaving}
-               className="w-full py-4 bg-slate-900 dark:bg-amber-400 text-white dark:text-slate-900 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
+               className={clsx(
+                 "w-full py-4 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2",
+                 isSaving 
+                   ? "bg-slate-400 text-white cursor-not-allowed" 
+                   : "bg-slate-900 dark:bg-amber-400 text-white dark:text-slate-900 shadow-slate-900/10"
+               )}
             >
-               {isSaving ? '저장 중...' : '맞춤 설정 저장하기'}
+               {isSaving ? (
+                 <>
+                   <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                   저장 중...
+                 </>
+               ) : '맞춤 설정 저장하기'}
             </button>
           </div>
         </div>

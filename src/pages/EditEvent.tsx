@@ -594,6 +594,63 @@ export default function EditEvent() {
               </div>
             </div>
           </div>
+
+          {/* Lineup Section */}
+          <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">DJ 라인업</span>
+                </div>
+                <button type="button" onClick={addDj} className="text-[11px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-full">+ 추가</button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {formData.djs.map((dj, idx) => (
+                  <div key={idx} className="flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
+                    <input type="text" value={dj} onChange={(e) => updateDj(idx, e.target.value)} placeholder="DJ 이름을 입력하세요" className="flex-1 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                    <button type="button" onClick={() => removeDj(idx)} className="p-2 text-slate-300 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4 text-amber-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">공연/쇼케이스</span>
+                </div>
+                <button type="button" onClick={addPerformance} className="text-[11px] font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-full">+ 추가</button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {formData.performances.map((perf, idx) => (
+                  <div key={idx} className="flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
+                    <input type="text" value={perf} onChange={(e) => updatePerformance(idx, e.target.value)} placeholder="공연팀/댄서 이름을 입력하세요" className="flex-1 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500/20" />
+                    <button type="button" onClick={() => removePerformance(idx)} className="p-2 text-slate-300 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">미디어 (포토/영상)</span>
+                </div>
+                <button type="button" onClick={addMedia} className="text-[11px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full">+ 추가</button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {formData.mediaExperts.map((m, idx) => (
+                  <div key={idx} className="flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
+                    <input type="text" value={m} onChange={(e) => updateMedia(idx, e.target.value)} placeholder="작가/팀 이름을 입력하세요" className="flex-1 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                    <button type="button" onClick={() => removeMedia(idx)} className="p-2 text-slate-300 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       }
       rightColumn={

@@ -267,7 +267,7 @@ export default function CreateEvent() {
           price: formData.tickets[0]?.price || 0,
           djs: formData.djs.filter(d => d.trim()),
           performances: formData.performances.filter(p => p.trim()),
-          media: images,
+          media_experts: formData.media.filter(m => m.trim()),
           tickets: formData.tickets.filter(t => t.name.trim()),
           payment_method: formData.paymentMethod
         });
@@ -289,6 +289,20 @@ export default function CreateEvent() {
     const newTickets = [...formData.tickets];
     newTickets[index] = { ...newTickets[index], [field]: value };
     setFormData(prev => ({ ...prev, tickets: newTickets }));
+  };
+
+  const addLineupItem = (type: 'djs' | 'performances' | 'media') => {
+    setFormData(prev => ({ ...prev, [type]: [...prev[type], ''] }));
+  };
+
+  const updateLineupItem = (type: 'djs' | 'performances' | 'media', index: number, value: string) => {
+    const list = [...formData[type]];
+    list[index] = value;
+    setFormData(prev => ({ ...prev, [type]: list }));
+  };
+
+  const removeLineupItem = (type: 'djs' | 'performances' | 'media', index: number) => {
+    setFormData(prev => ({ ...prev, [type]: prev[type].filter((_, i) => i !== index) }));
   };
 
   if (loading && !aiLoading) {
@@ -423,6 +437,63 @@ export default function CreateEvent() {
                     <MapPin className="w-3 h-3" /> {formData.formattedAddress}
                   </p>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Lineup Section */}
+          <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <Music className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">DJ 라인업</span>
+                </div>
+                <button type="button" onClick={() => addLineupItem('djs')} className="text-[11px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-full">+ 추가</button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {formData.djs.map((dj, idx) => (
+                  <div key={idx} className="flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
+                    <input type="text" value={dj} onChange={(e) => updateLineupItem('djs', idx, e.target.value)} placeholder="DJ 이름을 입력하세요" className="flex-1 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" />
+                    <button type="button" onClick={() => removeLineupItem('djs', idx)} className="p-2 text-slate-300 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4 text-amber-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">공연/쇼케이스</span>
+                </div>
+                <button type="button" onClick={() => addLineupItem('performances')} className="text-[11px] font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-full">+ 추가</button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {formData.performances.map((perf, idx) => (
+                  <div key={idx} className="flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
+                    <input type="text" value={perf} onChange={(e) => updateLineupItem('performances', idx, e.target.value)} placeholder="공연팀/댄서 이름을 입력하세요" className="flex-1 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500/20" />
+                    <button type="button" onClick={() => removeLineupItem('performances', idx)} className="p-2 text-slate-300 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">미디어 (포토/영상)</span>
+                </div>
+                <button type="button" onClick={() => addLineupItem('media')} className="text-[11px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-full">+ 추가</button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {formData.media.map((m, idx) => (
+                  <div key={idx} className="flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
+                    <input type="text" value={m} onChange={(e) => updateLineupItem('media', idx, e.target.value)} placeholder="작가/팀 이름을 입력하세요" className="flex-1 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                    <button type="button" onClick={() => removeLineupItem('media', idx)} className="p-2 text-slate-300 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

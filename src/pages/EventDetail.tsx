@@ -227,6 +227,7 @@ export default function EventDetail() {
           currentAttendees: regCount || 0,
           djs: data.djs || [],
           performances: data.performances || [],
+          media: data.media || [],
           mediaExperts: data.media_experts || [],
           tickets: data.tickets || [],
           paymentMethod: data.payment_method || '',
@@ -919,18 +920,24 @@ export default function EventDetail() {
               </div>
             )}
             
-            {/* 행사 사진 리스트 (메인 제외) */}
+            {/* 행사 사진 리스트 */}
             {images.length > 1 && (
               <div className="mt-8">
                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 px-1">행사 사진</h3>
                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                   {images.filter((_, idx) => idx !== currentImageIndex).map((img: string, idx: number) => (
-                      <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer"
-                        onClick={() => setFullscreenImage(img)}
-                      >
-                        <img src={img} alt={`event-${idx}`} className="w-full h-full object-cover"/>
-                      </div>
-                   ))}
+                   {images.map((img: string, idx: number) => {
+                      if (idx === currentImageIndex) return null;
+                      return (
+                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer"
+                          onClick={() => {
+                            setFullscreenImage(img);
+                            setCurrentImageIndex(idx);
+                          }}
+                        >
+                          <img src={img} alt={`event-${idx}`} className="w-full h-full object-cover"/>
+                        </div>
+                      );
+                   })}
                  </div>
               </div>
             )}

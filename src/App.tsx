@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import DashboardSwitcher from './pages/DashboardSwitcher';
 import EventDetail from './pages/EventDetail';
@@ -63,8 +63,24 @@ function SupabaseConfigWarning() {
 }
 
 function AppContent() {
+  // Handle auth server configuration errors in hash
+  if (typeof window !== 'undefined' && window.location.hash.includes('error=server_error')) {
+    window.location.hash = ''; // 에러 해시 제거
+    console.error("인증 서버 설정 오류가 감지되었습니다.");
+  }
+
   const { profile, viewMode, authError, loading } = useAuth(); // loading 추가
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Redirect unauthenticated users
+  React.useEffect(() => {
+    if (!loading && !profile && location.pathname !== '/login' && location.pathname !== '/') {
+      // Note: Some paths like event details or explore might be public, 
+      // but following user's strict request to lock down except '/' and '/login'
+      navigate('/');
+    }
+  }, [profile, loading, location.pathname, navigate]);
 
   // Handle OAuth Redirect and Popup Closing
   React.useEffect(() => {

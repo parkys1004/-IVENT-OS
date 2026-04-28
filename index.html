@@ -27,7 +27,7 @@
         crossorigin="anonymous"></script>
   <script>
   // 카카오톡 인앱 브라우저에서만 외부 브라우저로 유도
-  (function() {
+  function redirectKakaoInApp() {
     var ua = navigator.userAgent.toLowerCase();
     if (!ua.match(/kakaotalk/i)) return; // 카카오 인앱이 아니면 즉시 종료
 
@@ -38,7 +38,13 @@
       // iOS: 딥링크 실패 시 아무것도 하지 않음 (타이머 제거)
       location.href = 'kakaotalk://web/openExternalApp?url=' + encodeURIComponent(targetUrl);
     }
-  })();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', redirectKakaoInApp);
+  } else {
+    redirectKakaoInApp();
+  }
 </script>
   </head>
   <body>

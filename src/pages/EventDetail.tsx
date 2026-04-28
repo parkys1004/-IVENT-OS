@@ -1455,8 +1455,8 @@ export default function EventDetail() {
         onClose={() => setShowShareModal(false)}
         title={event.title}
         url={window.location.href}
-         imageUrl={images[0] || 'https://dancehive.app/logo.png'}  // ← 추가
-  description={event.description || ''}                      // ← 추가
+         imageUrl={images[0] || 'https://dancehive.app/logo.png'}
+  description={event.description || ''}
       />
     </motion.div>
   );

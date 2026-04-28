@@ -23,17 +23,17 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           icons: [
             {
-              src: 'https://github.com/parkys1004/img/blob/main/dancehive/pwa-192x192.png?raw=true',
+              src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'https://github.com/parkys1004/img/blob/main/dancehive/pwa-512x512.png?raw=true',
+              src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'https://github.com/parkys1004/img/blob/main/dancehive/pwa-512x512.png?raw=true',
+              src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'

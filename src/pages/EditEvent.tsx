@@ -753,8 +753,12 @@ export default function EditEvent() {
               rows={6} 
               name="description" 
               value={formData.description} 
-              onChange={handleChange} 
-              className="w-full rounded-[32px] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 px-8 py-6 text-[15px] font-medium leading-relaxed text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none shadow-inner" 
+              onChange={(e) => {
+                handleChange(e);
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+              }} 
+              className="w-full rounded-[32px] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 px-8 py-6 text-[15px] font-medium leading-relaxed text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all resize-y min-h-[150px] shadow-inner" 
               placeholder="행사의 상세 커리큘럼, 일정, 환불 규정 등 상세 내용을 자유롭게 작성해주세요." 
             />
           </div>

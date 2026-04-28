@@ -66,7 +66,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
         content: {
           title: title, 
           description: description || '강습 공지', 
-          imageUrl: imageUrl || 'https://github.com/parkys1004/img/blob/main/dancehive/hivesns.png?raw=true',
+          imageUrl: imageUrl || 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/hivesns.png',
           link: {
             mobileWebUrl: url, 
             webUrl: url,
@@ -84,7 +84,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
       });
     } catch (error) {
       console.error("Kakao Share error:", error);
-      alert("카카오톡 공유 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      // Kakao SDK error object inspection
+      const errorMessage = (error as any)?.message || String(error);
+      alert(`카카오톡 공유 중 오류가 발생했습니다: ${errorMessage}`);
     }
   };
 

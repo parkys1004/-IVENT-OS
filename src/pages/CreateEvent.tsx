@@ -299,147 +299,256 @@ export default function CreateEvent() {
 
   return (
     <EventFormLayout
-      title="새로운 행사 만들기 테스트"
-      subtitle="성공적인 행사의 시작, 정보를 입력해주세요."
+      title="새로운 행사 만들기"
+      subtitle="당신의 열정을 공유할 새로운 이벤트를 시작하세요."
       aiLoading={aiLoading}
       onAiAnalyzeClick={() => fileInputRef.current?.click()}
       onSubmit={handleSubmit}
       leftColumn={
-        <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
+        <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-700">
           <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleAiInputClick} />
+          <input type="file" multiple accept="image/*" className="hidden" ref={multiFileInputRef} onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
           
-          <section className="bg-slate-50/50 dark:bg-slate-900/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
-                <Upload className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <h2 className="text-lg font-black text-slate-800 dark:text-white">포스터 이미지</h2>
-            </div>
-
-            <div className="space-y-6">
-              <div 
-                className={clsx(
-                  "relative group cursor-pointer transition-all aspect-[3/4] rounded-[24px] overflow-hidden border-2 border-dashed",
-                  dragActive ? "border-indigo-500 bg-indigo-50/50" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-inner"
-                )}
-                onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
-                onClick={() => multiFileInputRef.current?.click()}
-              >
-                {images.length > 0 ? (
-                  <>
-                    <img src={images[coverImageIndex]} alt="Cover" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
-                    <div className="absolute bottom-4 left-4 right-4 text-center">
-                       <span className="text-white text-xs font-black uppercase tracking-widest bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full">메인 커버 이미지</span>
+          {/* Poster Section */}
+          <div className="space-y-4">
+            <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">이벤트 포스터 (최대 5장)</label>
+            <div 
+              className={clsx(
+                "relative group cursor-pointer transition-all aspect-[3/4] rounded-[32px] overflow-hidden border-4 border-dashed",
+                dragActive ? "border-indigo-500 bg-indigo-50/50" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 shadow-inner hover:border-indigo-500/50"
+              )}
+              onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+              onClick={() => multiFileInputRef.current?.click()}
+            >
+              {images.length > 0 ? (
+                <>
+                  <img src={images[coverImageIndex]} alt="Cover" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center backdrop-blur-sm">
+                    <div className="bg-white text-slate-900 px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-2xl mb-2">
+                      <Plus className="w-5 h-5" /> 이미지 추가
                     </div>
-                  </>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-500 font-bold">
-                    <Upload className="w-12 h-12 mb-4 group-hover:scale-110 transition-transform" />
-                    <p>클릭하거나 이미지를 드래그 (최대 5장)</p>
+                    <p className="text-white text-[10px] font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full">이미지 클릭시 변경 가능</p>
                   </div>
-                )}
-              </div>
-              
-              {images.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {images.map((img, idx) => (
-                    <div key={idx} className={clsx("relative w-16 h-20 rounded-xl overflow-hidden border-2 cursor-pointer", coverImageIndex === idx ? "border-indigo-500" : "border-transparent opacity-60")} onClick={() => setCoverImageIndex(idx)}>
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                      <button type="button" onClick={(e) => { e.stopPropagation(); removeImage(idx); }} className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 text-white rounded-full"><X className="w-2.5 h-2.5" /></button>
-                    </div>
-                  ))}
+                  <div className="absolute top-4 left-4">
+                    <span className="text-white text-[10px] font-black uppercase tracking-widest bg-indigo-600 px-3 py-1.5 rounded-full shadow-lg">Main Cover</span>
+                  </div>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-slate-800/30">
+                  <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center border border-slate-100 dark:border-slate-700 group-hover:scale-110 transition-transform mb-6 shadow-sm">
+                    <Upload className="w-10 h-10 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                  </div>
+                  <p className="text-lg font-black text-slate-800 dark:text-slate-100">이벤트의 얼굴을 등록하세요</p>
+                  <p className="text-sm text-slate-400 mt-1">포스터를 여기에 드래그하거나 클릭하세요</p>
                 </div>
               )}
             </div>
-            <input type="file" multiple accept="image/*" className="hidden" ref={multiFileInputRef} onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
-          </section>
-
-          <section className="bg-slate-50/50 dark:bg-slate-900/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center"><FileText className="w-5 h-5 text-indigo-600" /></div>
-              <h2 className="text-lg font-black text-slate-800 dark:text-white">기본 정보</h2>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">행사 이름</label>
-                <input required type="text" name="title" value={formData.title} onChange={handleChange} className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 px-6 py-4 text-lg font-black text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all" placeholder="예: 강남 살사 파티" />
+            
+            {images.length > 0 && (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+                {images.map((img, idx) => (
+                  <div 
+                    key={idx} 
+                    className={clsx(
+                      "relative min-w-[70px] aspect-[3/4] rounded-xl overflow-hidden border-2 cursor-pointer transition-all", 
+                      coverImageIndex === idx ? "border-indigo-500 scale-105 shadow-md shadow-indigo-500/20" : "border-transparent opacity-60 hover:opacity-100"
+                    )} 
+                    onClick={() => setCoverImageIndex(idx)}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={(e) => { e.stopPropagation(); removeImage(idx); }} className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-lg hover:bg-rose-500 transition-colors"><X className="w-3 h-3" /></button>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
+
+          {/* Event Name */}
+          <div className="space-y-4">
+            <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">기본 정보</label>
+            <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">장소 검색</label>
-                {isLoaded ? <PlaceSearch onPlaceSelect={handlePlaceSelect} defaultValue={formData.locationName} /> : <div className="w-full h-14 bg-white dark:bg-slate-800 rounded-2xl animate-pulse" />}
+                <input 
+                  required 
+                  type="text" 
+                  name="title" 
+                  value={formData.title} 
+                  onChange={handleChange} 
+                  className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-xl font-black text-slate-800 dark:text-white placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all" 
+                  placeholder="행사 이름을 입력하세요" 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="relative">
+                  <select 
+                    name="category" 
+                    value={formData.category} 
+                    onChange={handleChange} 
+                    className="w-full appearance-none rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-white focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all cursor-pointer"
+                  >
+                    <option value="party">소셜 파티 (Social Party)</option>
+                    <option value="festival">페스티벌 (Festival)</option>
+                    <option value="workshop">워크숍 (Workshop)</option>
+                    <option value="concert">공연 (Concert)</option>
+                    <option value="salsa">살사 전문 (Salsa)</option>
+                    <option value="bachata">바차타 전문 (Bachata)</option>
+                    <option value="kizomba">키좀바 전문 (Kizomba)</option>
+                    <option value="salsa_bachata">살사/바차타 (SB)</option>
+                    <option value="sal_ba_ki">살바키 (SBK)</option>
+                    <option value="lesson">특강/정규강습 (Lesson)</option>
+                  </select>
+                  <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <Plus className="w-4 h-4 rotate-45" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 ml-1">
+                  <MapPin className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">장소 정보</span>
+                </div>
+                {isLoaded ? (
+                  <PlaceSearch 
+                    onPlaceSelect={handlePlaceSelect} 
+                    defaultValue={formData.locationName} 
+                    onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
+                  />
+                ) : (
+                  <div className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 rounded-2xl animate-pulse" />
+                )}
                 {formData.formattedAddress && (
-                  <p className="mt-2 px-4 py-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl text-xs font-bold text-slate-500 flex items-center gap-2"><MapPin className="w-3 h-3" /> {formData.formattedAddress}</p>
+                  <p className="px-4 py-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl text-xs font-bold text-slate-500 flex items-center gap-2">
+                    <MapPin className="w-3 h-3" /> {formData.formattedAddress}
+                  </p>
                 )}
               </div>
             </div>
-          </section>
+          </div>
         </div>
       }
       rightColumn={
-        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-700">
-          <section className="bg-slate-50/50 dark:bg-slate-900/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 space-y-8">
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">카테고리</label>
-                  <select name="category" value={formData.category} onChange={handleChange} className="w-full appearance-none rounded-2xl border border-slate-100 bg-white px-5 py-3 text-[14px] font-bold outline-none focus:ring-4 focus:ring-indigo-500/10">
-                    <option value="party">파티 (Party)</option>
-                    <option value="salsa">살사 (Salsa)</option>
-                    <option value="bachata">바차타 (Bachata)</option>
-                    <option value="kizomba">키좀바 (Kizomba)</option>
-                    <option value="salsa_bachata">살사/바차타 (Salsa/Bachata)</option>
-                    <option value="sal_ba_ki">살바키 (Sal-Ba-Ki)</option>
-                    <option value="lesson">강습 (Lesson)</option>
-                  </select>
+        <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-700 delay-100">
+          {/* Date & Time Section */}
+          <div className="p-8 rounded-[40px] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-8">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="w-5 h-5 text-rose-500" />
+              <span className="text-[14px] font-black text-slate-800 dark:text-white uppercase tracking-wider">이벤트 일정</span>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">시작 시간</span>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">최대 인원</label>
-                  <input required type="number" name="maxAttendees" min="1" value={formData.maxAttendees} onChange={handleChange} className="w-full rounded-2xl border border-slate-100 bg-white px-5 py-3 text-[14px] font-bold outline-none" />
-                </div>
-             </div>
-             <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-2"><Calendar className="w-4 h-4 text-rose-500" /><span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">행사 일정</span></div>
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="date" name="date" value={formData.date} onChange={handleChange} required className="w-full rounded-2xl border border-slate-100 bg-white px-4 py-3 text-[13px] font-bold" />
-                  <input type="time" name="time" value={formData.time} onChange={handleChange} required className="w-full rounded-2xl border border-slate-100 bg-white px-4 py-3 text-[13px] font-bold" />
+                  <input type="date" name="date" value={formData.date} onChange={handleChange} required className="w-full rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-4 text-[14px] font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10" />
+                  <input type="time" name="time" value={formData.time} onChange={handleChange} required className="w-full rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-4 text-[14px] font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10" />
                 </div>
-             </div>
-          </section>
-
-          <section className="bg-slate-50/50 dark:bg-slate-900/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 space-y-4">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center"><FileText className="w-5 h-5 text-amber-600" /></div>
-              <h2 className="text-lg font-black text-slate-800 dark:text-white">행사 상세 설명</h2>
-            </div>
-            <textarea required rows={8} name="description" value={formData.description} onChange={handleChange} className="w-full rounded-[24px] border border-slate-100 bg-white px-6 py-4 text-[14px] font-bold outline-none focus:ring-4 focus:ring-indigo-500/10" placeholder="행사 상세 내용을 입력해주세요." />
-          </section>
-
-          <section className="bg-slate-50/50 dark:bg-slate-900/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center"><CreditCard className="w-5 h-5 text-blue-600" /></div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-white">티켓 정보</h2>
               </div>
-              <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: [...p.tickets, { name: '', price: 0 }] }))} className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-black uppercase">+ 추가</button>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 ml-1">
+                  <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">종료 시간</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} required className="w-full rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-4 text-[14px] font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10" />
+                  <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} required className="w-full rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-4 text-[14px] font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10" />
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Pricing & Tickets */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between ml-1">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-amber-500" />
+                <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">티켓 및 참가비</span>
+              </div>
+              <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: [...p.tickets, { name: '', price: 0 }] }))} className="text-[11px] font-black text-indigo-500 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-full transition-all">
+                + 티켓 추가
+              </button>
+            </div>
+            
             <div className="space-y-3">
               {formData.tickets.map((ticket, idx) => (
-                <div key={idx} className="flex gap-3 items-end group animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex-[2]"><input type="text" value={ticket.name} onChange={(e) => updateTicket(idx, 'name', e.target.value)} placeholder="티켓 이름" className="w-full rounded-xl border border-slate-100 bg-white px-4 py-2.5 text-[13px] font-bold outline-none" /></div>
-                  <div className="flex-1"><input type="number" value={ticket.price} onChange={(e) => updateTicket(idx, 'price', Number(e.target.value))} className="w-full rounded-xl border border-slate-100 bg-white px-4 py-2.5 text-[13px] font-black text-right outline-none" /></div>
-                  {formData.tickets.length > 1 && <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: p.tickets.filter((_, i) => i !== idx) }))} className="p-2.5 text-slate-300 hover:text-rose-500"><MinusCircle className="w-5 h-5" /></button>}
+                <div key={idx} className="flex gap-3 items-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex-[2]">
+                    <input type="text" value={ticket.name} onChange={(e) => updateTicket(idx, 'name', e.target.value)} placeholder="티켓 명칭 (예: 입장권)" className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10" />
+                  </div>
+                  <div className="relative flex-1">
+                    <input type="number" value={ticket.price} onChange={(e) => updateTicket(idx, 'price', Number(e.target.value))} className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-black text-slate-800 dark:text-white text-right outline-none focus:ring-4 focus:ring-indigo-500/10" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">KRW</span>
+                  </div>
+                  {formData.tickets.length > 1 && (
+                    <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: p.tickets.filter((_, i) => i !== idx) }))} className="p-3.5 text-slate-300 hover:text-rose-500 transition-colors">
+                      <MinusCircle className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
-          </section>
+          </div>
+
+          {/* Attendees */}
+          <div className="space-y-4">
+            <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">인원 제한</label>
+            <div className="flex items-center gap-6 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+              <div className="flex-1">
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="500" 
+                  step="10" 
+                  name="maxAttendees" 
+                  value={formData.maxAttendees} 
+                  onChange={handleChange} 
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500" 
+                />
+              </div>
+              <div className="w-24 text-center">
+                <span className="text-2xl font-black text-slate-800 dark:text-white">{formData.maxAttendees}</span>
+                <span className="text-[10px] font-black text-slate-400 ml-1">명</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 ml-1">
+              <FileText className="w-4 h-4 text-slate-400" />
+              <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">상세 내용</span>
+            </div>
+            <textarea 
+              required 
+              rows={6} 
+              name="description" 
+              value={formData.description} 
+              onChange={handleChange} 
+              className="w-full rounded-[32px] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 px-8 py-6 text-[15px] font-medium leading-relaxed text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none shadow-inner" 
+              placeholder="행사의 상세 커리큘럼, 일정, 환불 규정 등 상세 내용을 자유롭게 작성해주세요." 
+            />
+          </div>
         </div>
       }
       footer={
-        <>
-          <button type="button" onClick={() => navigate(-1)} className="px-8 py-4 rounded-[20px] text-[15px] font-black text-slate-500 hover:bg-slate-50">취소</button>
-          <button type="submit" disabled={loading} className="px-12 py-4 bg-indigo-600 text-white font-black rounded-[24px] shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50">{loading ? '등록 중...' : '행사 등록 완료'}</button>
-        </>
+        <div className="flex items-center justify-between w-full">
+           <button type="button" onClick={() => navigate(-1)} className="px-8 py-4 rounded-2xl text-[15px] font-black text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">취소하기</button>
+           <button 
+              type="submit" 
+              disabled={loading} 
+              className="group relative px-12 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+              {loading ? '행사 등록 중...' : '행사 등록 완료'}
+            </button>
+        </div>
       }
     />
   );
 }
+

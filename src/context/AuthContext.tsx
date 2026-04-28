@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('participant');
   const [authError, setAuthError] = useState<string | null>(null);
-  
+  const lastFetchedUserId = useRef<string | null>(null);
   const isFetchingRef = useRef(false);
 
   const logout = useCallback(async () => {
@@ -63,7 +63,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = useCallback(async (userId: string, currentUser?: User) => {
     if (isFetchingRef.current) return;
+    
+    // Only skip if we already have a profile for this user and it's initialized
+    if (lastFetchedUserId.current === userId && profile) {
+      console.log("Profile already loaded for:", userId);
+      setLoading(false);
+      return;
+    }
+
     isFetchingRef.current = true;
+    lastFetchedUserId.current = userId;
 
     console.log("Fetching profile for user:", userId);
     setAuthError(null);
@@ -74,22 +83,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .maybeSingle();
 
-      if (error) { setAuthError(error.message); throw error; }
+      if (error) { 
+        setAuthError(error.message); 
+        throw error; 
+      }
 
       const activeUser = currentUser;
       const userEmail = activeUser?.email?.toLowerCase() || data?.email?.toLowerCase();
-
       const adminEmail = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase();
       
       if (data) {
+        let updatedRole = data.role as UserRole;
+        let updatedIsApproved = data.is_approved ?? true;
+
         if (userEmail === adminEmail && data.role !== 'admin') {
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ role: 'admin', is_approved: true })
             .eq('id', userId);
           if (!updateError) {
-            data.role = 'admin';
-            data.is_approved = true;
+            updatedRole = 'admin';
+            updatedIsApproved = true;
           }
         } else {
           const storedRole = window.sessionStorage.getItem('intendedRole');
@@ -98,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .from('profiles')
               .update({ role: storedRole, is_approved: true })
               .eq('id', userId);
-            if (!updateError) data.role = storedRole;
+            if (!updateError) updatedRole = storedRole as UserRole;
           }
         }
 
@@ -107,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const mappedProfile: UserProfile = {
           uid: data.id, email: data.email,
           displayName: data.display_name, photoURL: data.photo_url,
-          role: data.role as UserRole, isApproved: data.is_approved ?? true,
+          role: updatedRole, isApproved: updatedIsApproved,
           createdAt: data.created_at, points: data.points,
           followersCount: data.followers_count, shortBio: data.short_bio,
           description: data.description, specialties: data.specialties,
@@ -115,12 +129,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           portfolioImages: data.portfolio_images, studioLocation: data.studio_location,
           phone: data.phone
         };
+        
         setProfile(mappedProfile);
 
+        // Standardize viewMode logic here
         setViewMode(prev => {
-          if (data.role === 'admin') return 'admin';
-          if (['host', 'dj', 'instructor', 'media'].includes(data.role)) return 'professional';
-          if (data.role !== 'unassigned') return 'participant';
+          if (updatedRole === 'admin') return 'admin';
+          if (['host', 'dj', 'instructor', 'media'].includes(updatedRole)) return 'professional';
+          if (updatedRole !== 'unassigned') return 'participant';
           return prev;
         });
 
@@ -152,9 +168,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (createError.code === '23505') {
             const { data: reFetch } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
             if (reFetch) {
-              setProfile({ uid: reFetch.id, email: reFetch.email, displayName: reFetch.display_name,
-                photoURL: reFetch.photo_url, role: reFetch.role, isApproved: reFetch.is_approved,
-                createdAt: reFetch.created_at, points: reFetch.points });
+              setProfile({ 
+                uid: reFetch.id, email: reFetch.email, displayName: reFetch.display_name,
+                photoURL: reFetch.photo_url, role: reFetch.role as UserRole, isApproved: reFetch.is_approved,
+                createdAt: reFetch.created_at, points: reFetch.points 
+              });
+              setViewMode(reFetch.role === 'admin' ? 'admin' : ['host','dj', 'instructor','media'].includes(reFetch.role) ? 'professional' : 'participant');
             }
           } else {
             setAuthError(`Creation failed: ${createError.message}`);
@@ -166,10 +185,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               user_id: createdData.id, amount: signupPoints, reason: '신규 가입을 축하합니다!'
             });
           }
-          setProfile({ uid: createdData.id, email: createdData.email,
+          setProfile({ 
+            uid: createdData.id, email: createdData.email,
             displayName: createdData.display_name, photoURL: createdData.photo_url,
-            role: createdData.role, isApproved: createdData.is_approved,
-            createdAt: createdData.created_at, points: createdData.points });
+            role: createdData.role as UserRole, isApproved: createdData.is_approved,
+            createdAt: createdData.created_at, points: createdData.points 
+          });
           setViewMode(assignedRole === 'admin' ? 'admin' : ['host','dj','instructor','media'].includes(assignedRole) ? 'professional' : 'participant');
         }
       }
@@ -180,28 +201,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, []);
+  }, [profile]);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id, user);
+    if (user) {
+      // Force refresh by clearing lastFetchedUserId
+      lastFetchedUserId.current = null;
+      await fetchProfile(user.id, user);
+    }
   }, [user, fetchProfile]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state change event:", event);
+      console.log("Auth state change event:", event, session?.user?.id);
 
-      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        if (session?.user) setUser(session.user);
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setProfile(null);
+        lastFetchedUserId.current = null;
+        setLoading(false);
         return;
       }
 
       if (session?.user) {
         setUser(session.user);
-        // Add a slight delay to allow auth initialization to finish and release any locks
-        setTimeout(() => fetchProfile(session.user.id, session.user), 100);
+        // If INITIAL_SESSION or SIGNED_IN, verify profile
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          fetchProfile(session.user.id, session.user);
+        }
       } else {
         setUser(null);
         setProfile(null);
+        lastFetchedUserId.current = null;
         setLoading(false);
       }
     });
@@ -210,6 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
+
 
   const contextValue = useMemo(() => ({
     user, profile, loading, viewMode, setViewMode, authError, refreshProfile, logout

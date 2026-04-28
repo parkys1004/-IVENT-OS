@@ -256,7 +256,7 @@ export default function PointRecharge() {
                 pkg.id === 'tier-2' ? "bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-[#F39C12]" :
                 "bg-lime-100 dark:bg-lime-500/20 text-lime-600 dark:text-[#A3E635]"
               )}>
-                {React.cloneElement(pkg.icon as React.ReactElement, { className: "w-5 h-5 md:w-6 md:h-6" })}
+                {React.cloneElement(pkg.icon as any, { className: "w-5 h-5 md:w-6 md:h-6" })}
               </div>
 
               <div className="flex-1 space-y-4 md:space-y-6">

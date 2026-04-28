@@ -172,7 +172,7 @@ export default function HostDashboard() {
                         </div>
                       </td>
                       <td className="p-4 text-right">
-                        <Link to={event.isLesson ? `/edit-lesson/${event.id}` : `/edit/${event.id}`} className="text-indigo-600 font-bold hover:text-indigo-800 text-sm px-3 py-1.5 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors mr-2">
+                        <Link to={(event as any).isLesson ? `/edit-lesson/${event.id}` : `/edit/${event.id}`} className="text-indigo-600 font-bold hover:text-indigo-800 text-sm px-3 py-1.5 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors mr-2">
                           수정
                         </Link>
                         <Link to={`/event/${event.id}`} className="text-slate-600 font-bold hover:text-slate-800 text-sm px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">

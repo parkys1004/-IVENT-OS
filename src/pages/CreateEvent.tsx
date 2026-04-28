@@ -419,37 +419,53 @@ export default function CreateEvent() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 pb-24 md:pb-12">
       <div className="max-w-[800px] mx-auto px-4 py-8 md:py-12">
-        {/* Header */}
-        <div className="flex flex-col gap-6 mb-12">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-3">
-                새로운 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">행사 만들기</span>
+        {/* Header Section */}
+        <div className="flex flex-col gap-8 mb-16">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="animate-in fade-in slide-in-from-left-8 duration-1000">
+              <h1 className="text-5xl md:text-6xl font-[1000] text-slate-900 dark:text-white tracking-tighter mb-4 leading-tight">
+                새로운 <br className="md:hidden" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 animate-gradient">행사 만들기</span>
               </h1>
-              <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">행사 정보를 입력하거나 AI로 포스터를 분석해보세요.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xl font-bold flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                성공적인 행사의 시작, 정보를 입력해주세요.
+              </p>
             </div>
             
-            <div className="shrink-0 animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleAiInputClick} 
-              />
-              <button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={aiLoading}
-                className="w-full md:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black shadow-2xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all active:scale-95 disabled:opacity-70 group"
-              >
-                {aiLoading ? (
-                  <div className="w-5 h-5 border-3 border-white/30 dark:border-slate-900/30 border-t-white dark:border-t-slate-900 rounded-full animate-spin"></div>
-                ) : (
-                  <Sparkles className="w-5 h-5 text-indigo-400 dark:text-indigo-500 group-hover:animate-pulse" />
-                )}
-                {aiLoading ? 'AI가 분석 중...' : '포스터로 자동 완성'}
-              </button>
+            <div className="shrink-0 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
+              <div className="p-1 px-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 rounded-[32px] shadow-2xl shadow-indigo-500/20">
+                <div className="bg-white dark:bg-slate-900 rounded-[31px] p-2">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    ref={fileInputRef} 
+                    onChange={handleAiInputClick} 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={aiLoading}
+                    className="group relative flex items-center gap-4 px-8 py-5 rounded-[28px] overflow-hidden transition-all active:scale-95 disabled:opacity-70"
+                  >
+                    <div className="absolute inset-0 bg-indigo-600 group-hover:bg-indigo-700 transition-colors" />
+                    <div className="relative z-10 flex items-center gap-4 text-white">
+                      {aiLoading ? (
+                        <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md group-hover:scale-110 transition-transform">
+                          <Sparkles className="w-6 h-6 text-white" />
+                        </div>
+                      )}
+                      <div className="flex flex-col items-start translate-y-0.5">
+                        <span className="text-[17px] font-black leading-tight">AI 포스터 분석</span>
+                        <span className="text-[11px] font-bold opacity-80 uppercase tracking-widest">Poster Auto-Fill</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -458,10 +474,15 @@ export default function CreateEvent() {
           <form onSubmit={handleSubmit} id="create-event-form" className="p-8 md:p-12 space-y-16">
             
             {/* Basic Info Section */}
-            <section className="space-y-10">
-              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <FileText className="w-5 h-5 text-indigo-500" />
-                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">기본 정보</h2>
+            <section className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
+              <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">기본 정보</h2>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Essential Details</p>
+                </div>
               </div>
 
               <div className="space-y-8">
@@ -521,10 +542,15 @@ export default function CreateEvent() {
             </section>
 
             {/* Date & Time Section */}
-            <section className="space-y-10">
-              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <Calendar className="w-5 h-5 text-rose-500" />
-                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">일정 정보</h2>
+            <section className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+              <div className="flex items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-10 h-10 bg-rose-50 dark:bg-rose-900/30 rounded-xl flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight">일정 정보</h2>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Schedule & Timing</p>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">

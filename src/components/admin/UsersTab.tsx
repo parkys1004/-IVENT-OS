@@ -266,7 +266,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                             </button>
                           )}
                           <button 
-                            onClick={() => navigate(`/profile/${u.id || u.uid}`)}
+                            onClick={() => navigate(`/profile/${u.uid}`)}
                             className="text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors"
                           >
                             상세
@@ -370,7 +370,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
 
                 <div className="grid grid-cols-2 gap-2">
                   <button 
-                    onClick={() => navigate(`/profile/${u.id || u.uid}`)}
+                    onClick={() => navigate(`/profile/${u.uid}`)}
                     className="py-2.5 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-xs rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm"
                   >
                     프로필 보기

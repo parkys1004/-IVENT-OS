@@ -976,11 +976,15 @@ export default function EventDetail() {
               <button
                 onClick={() => setActiveTab('gallery')}
                 className={clsx(
-                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap",
+                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap relative group",
                   activeTab === 'gallery' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
                 )}
               >
                 갤러리 <span className="text-[10px] opacity-60 font-black">{photos.length}</span>
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500 border-2 border-white dark:border-slate-800"></span>
+                </span>
               </button>
             </div>
 
@@ -1128,7 +1132,7 @@ export default function EventDetail() {
                   </div>
                 </div>
 
-                {user && isExpired && (
+                {user && (
                   <div 
                     className={clsx(
                       "relative border-2 border-dashed rounded-[32px] p-8 md:p-12 transition-all group flex flex-col items-center justify-center gap-4 text-center cursor-pointer",

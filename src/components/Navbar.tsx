@@ -317,7 +317,7 @@ export default function Navbar() {
                            'USER'}
                         </div>
                       </div>
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-800 shrink-0 shadow-sm transition-transform group-hover:scale-105 bg-center bg-cover" style={(profile?.photoURL || user.photoURL) ? {backgroundImage: `url(${profile?.photoURL || user.photoURL})`} : {}}></div>
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-800 shrink-0 shadow-sm transition-transform group-hover:scale-105 bg-center bg-cover" style={(profile?.photoURL) ? {backgroundImage: `url(${profile?.photoURL})`} : {}}></div>
                     </button>
 
                     {/* Dropdown Menu */}
@@ -333,7 +333,7 @@ export default function Navbar() {
                             className="absolute right-0 mt-3 w-72 bg-white dark:bg-[#1A1612] rounded-[24px] shadow-2xl border border-slate-200 dark:border-slate-800 py-3 z-40 overflow-hidden"
                           >
                             <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full border border-slate-100 dark:border-slate-800 shadow-inner bg-center bg-cover" style={user.photoURL ? {backgroundImage: `url(${user.photoURL})`} : {}}></div>
+                              <div className="w-12 h-12 rounded-full border border-slate-100 dark:border-slate-800 shadow-inner bg-center bg-cover" style={profile?.photoURL ? {backgroundImage: `url(${profile?.photoURL})`} : {}}></div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2">
                                   <p className="text-base font-black text-slate-800 dark:text-white truncate">{profile?.displayName || user.email?.split('@')[0]}</p>

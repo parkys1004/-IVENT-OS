@@ -60,27 +60,32 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
     }
 
     // 2. 메시지 보내기
-    Kakao.Share.sendDefault({
-      objectType: 'feed',
-      content: {
-        title: title, 
-        description: description || '강습 공지', 
-        imageUrl: imageUrl || 'https://github.com/parkys1004/img/blob/main/dancehive/hivesns.png?raw=true',
-        link: {
-          mobileWebUrl: url, 
-          webUrl: url,
-        },
-      },
-      buttons: [
-        {
-          title: '상세보기',
+    try {
+      Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: title, 
+          description: description || '강습 공지', 
+          imageUrl: imageUrl || 'https://github.com/parkys1004/img/blob/main/dancehive/hivesns.png?raw=true',
           link: {
-            mobileWebUrl: url,
+            mobileWebUrl: url, 
             webUrl: url,
           },
         },
-      ],
-    });
+        buttons: [
+          {
+            title: '상세보기',
+            link: {
+              mobileWebUrl: url,
+              webUrl: url,
+            },
+          },
+        ],
+      });
+    } catch (error) {
+      console.error("Kakao Share error:", error);
+      alert("카카오톡 공유 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
   return (

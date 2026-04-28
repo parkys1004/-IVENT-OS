@@ -1,7 +1,23 @@
-import React, { useState } from 'react';
-import { LayoutGrid, Save, RefreshCw, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LayoutGrid, Save, RefreshCw, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import clsx from 'clsx';
 import { supabase } from '../../supabase';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface DashboardConfig {
   partiesLimit: number;
@@ -14,13 +30,106 @@ interface DashboardConfig {
 interface ConfigTabProps {
   dashboardConfig: DashboardConfig;
   setDashboardConfig: React.Dispatch<React.SetStateAction<DashboardConfig>>;
+  events: any[]; 
+  users: any[];
 }
+
+// Sortable Item Component
+interface SortableItemProps {
+  item: any;
+}
+
+const SortableItem = ({ item }: SortableItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 cursor-grab">
+      <div className="flex items-center gap-3">
+        <GripVertical className="text-slate-400 w-5 h-5" />
+        <span className="font-bold text-sm tracking-tight">{item.title}</span>
+      </div>
+      <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Priority: {item.priority || 0}</span>
+    </div>
+  );
+};
 
 export const ConfigTab: React.FC<ConfigTabProps> = ({
   dashboardConfig,
-  setDashboardConfig
+  setDashboardConfig,
+  events,
+  users
 }) => {
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [sectionItems, setSectionItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (selectedSection) {
+      const filtered = selectedSection === 'parties' ? events.filter(e => !e.isLesson) : 
+                       selectedSection === 'lessons' ? events.filter(e => e.isLesson) : 
+                       [];
+      setSectionItems(filtered.sort((a,b) => (b.priority || 0) - (a.priority || 0)));
+    }
+  }, [selectedSection, events]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    
+    if (active.id !== over.id) {
+      setSectionItems((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        
+        // Update priorities based on new order
+        updatePriorities(newItems);
+        
+        return newItems;
+      });
+    }
+  };
+
+  const updatePriorities = async (items: any[]) => {
+    setIsSaving(true);
+    try {
+      const updates = items.map((item, idx) => ({
+        id: item.id,
+        priority: items.length - idx 
+      }));
+      
+      // Update in database using a Promise.all for simplicity
+      const { error } = await supabase
+        .from('events') // Assuming the table name is 'events'
+        .upsert(updates);
+        
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error('Error updating priorities:', error);
+      alert('순서 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleConfigSave = async () => {
     setIsSaving(true);
@@ -118,6 +227,12 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                     </span>
                   </div>
                   <div className="flex gap-1">
+                    <button
+                      onClick={() => setSelectedSection(section)}
+                      className="p-2 mr-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 rounded-lg text-indigo-600 dark:text-indigo-400 font-black text-xs"
+                    >
+                      항목 관리
+                    </button>
                     <button 
                       onClick={() => {
                         if (idx === 0) return;
@@ -146,7 +261,39 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
             </div>
           </div>
         </div>
-      </div>
+       </div>
+
+      {/* Selected Section Details */}
+      {selectedSection && (
+        <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white capitalize">{selectedSection} 항목 순서 조정</h3>
+            <button
+               onClick={() => setSelectedSection(null)}
+               className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white font-bold"
+            >
+              닫기
+            </button>
+          </div>
+          <div className="space-y-3">
+             {/* Filtered List and Reordering */}
+             <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+             >
+                <SortableContext
+                  items={sectionItems}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {sectionItems.map((item) => (
+                    <SortableItem key={item.id} item={item} />
+                  ))}
+                </SortableContext>
+             </DndContext>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

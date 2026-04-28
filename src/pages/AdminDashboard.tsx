@@ -478,6 +478,8 @@ export default function AdminDashboard() {
                 <ConfigTab 
                   dashboardConfig={dashboardConfig} 
                   setDashboardConfig={setDashboardConfig} 
+                  events={events}
+                  users={users}
                 />
               )}
               {activeMenu === 'settings' && (

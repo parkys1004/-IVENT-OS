@@ -79,8 +79,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const activeUser = currentUser;
       const userEmail = activeUser?.email?.toLowerCase() || data?.email?.toLowerCase();
 
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase();
+      
       if (data) {
-        if (userEmail === 'aimaster1004@gmail.com' && data.role !== 'admin') {
+        if (userEmail === adminEmail && data.role !== 'admin') {
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ role: 'admin', is_approved: true })
@@ -124,7 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       } else if (activeUser) {
         const storedRole = window.sessionStorage.getItem('intendedRole');
-        const isAdminEmail = activeUser.email?.toLowerCase() === 'aimaster1004@gmail.com';
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase();
+        const isAdminEmail = activeUser.email?.toLowerCase() === adminEmail;
         const assignedRole = isAdminEmail ? 'admin' : ((storedRole as UserRole) || 'unassigned');
 
         let signupPoints = 1000;

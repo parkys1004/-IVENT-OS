@@ -136,6 +136,7 @@ export default function EventDetail() {
     if (!id) return;
 
     const fetchEventAndReg = async () => {
+      let cancelled = false;
       try {
         setLoading(true);
         // Try parties table first
@@ -165,14 +166,16 @@ export default function EventDetail() {
 
         if (error) {
           console.error("Error fetching party:", error);
-          handleSupabaseError(error, OperationType.GET, 'parties');
-          navigate('/');
+          if (!cancelled) {
+             handleSupabaseError(error, OperationType.GET, 'parties');
+             navigate('/');
+          }
           return;
         }
 
         if (!data) {
           console.warn("Item not found or access denied:", id);
-          navigate('/');
+          if (!cancelled) navigate('/');
           return;
         }
 
@@ -230,9 +233,9 @@ export default function EventDetail() {
           level: data.level || 'beginner'
         };
         
-        setEvent(mappedEvent);
+        if (!cancelled) setEvent(mappedEvent);
 
-        if (user) {
+        if (user && !cancelled) {
           // Check registration
           const { data: regData, error: regError } = await supabase
             .from('registrations')
@@ -245,10 +248,6 @@ export default function EventDetail() {
           if (regError && regError.code !== 'PGRST116') {
             console.error("Error fetching registration:", regError);
           }
-
-          // Check Like status (Placeholder if event_likes table exists)
-          // In simpler setup, we can use a separate table or just skip if not critical
-          // For now, let's assume no high-level like tracking for now to simplify
         }
 
         // Fetch Community Data (Comments & Reviews)
@@ -258,7 +257,7 @@ export default function EventDetail() {
           .eq('event_id', id)
           .order('created_at', { ascending: false });
 
-        if (commentsData) {
+        if (commentsData && !cancelled) {
           setComments(commentsData.map((c: any) => ({
             ...c,
             author_name: c.author?.display_name || '알 수 없는 사용자',
@@ -272,7 +271,7 @@ export default function EventDetail() {
           .eq('event_id', id)
           .order('created_at', { ascending: false });
 
-        if (reviewsData) {
+        if (reviewsData && !cancelled) {
           setReviews(reviewsData.map((r: any) => ({
             ...r,
             author_name: r.author?.display_name || '알 수 없는 사용자',
@@ -287,7 +286,7 @@ export default function EventDetail() {
           .eq('event_id', id)
           .order('created_at', { ascending: false });
 
-        if (photosData) {
+        if (photosData && !cancelled) {
           setPhotos(photosData.map((p: any) => ({
             id: p.id,
             user_id: p.user_id,
@@ -299,13 +298,14 @@ export default function EventDetail() {
           })));
         }
       } catch (err) {
-        handleSupabaseError(err, OperationType.GET, 'parties');
+        if (!cancelled) handleSupabaseError(err, OperationType.GET, 'parties');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchEventAndReg();
+    return () => { cancelled = true; };
   }, [id, user, navigate]);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {

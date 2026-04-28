@@ -486,14 +486,14 @@ export default function CreateEvent() {
                         name="category"
                         value={formData.category}
                         onChange={handleChange}
-                        className="w-full appearance-none rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all cursor-pointer"
+                        className="w-full appearance-none rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all cursor-pointer shadow-sm"
                       >
+                        <option value="party">파티 (Party)</option>
                         <option value="salsa">살사 (Salsa)</option>
                         <option value="bachata">바차타 (Bachata)</option>
                         <option value="kizomba">키좀바 (Kizomba)</option>
                         <option value="salsa_bachata">살사/바차타 (Salsa/Bachata)</option>
                         <option value="sal_ba_ki">살바키 (Sal-Ba-Ki)</option>
-                        <option value="party">파티 (Party)</option>
                         <option value="lesson">강습 (Lesson)</option>
                       </select>
                       <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -613,22 +613,22 @@ export default function CreateEvent() {
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">세부 출연진 및 티켓</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* DJs */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-1">
-                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <Music className="w-4 h-4 text-indigo-500" /> DJs
                     </label>
                     <button 
                       type="button" 
                       onClick={addDj}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-[11px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-indigo-100 transition-colors"
                     >
                       <PlusCircle className="w-3.5 h-3.5" /> 추가
                     </button>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {formData.djs.map((dj, idx) => (
                       <div key={idx} className="group flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                         <input
@@ -636,17 +636,19 @@ export default function CreateEvent() {
                           value={dj}
                           onChange={(e) => updateDj(idx, e.target.value)}
                           placeholder="DJ 이름을 입력하세요"
-                          className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-semibold shadow-sm"
+                          className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 outline-none font-semibold shadow-sm"
                         />
-                        <button type="button" onClick={() => removeDj(idx)} className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                          <MinusCircle className="w-6 h-6" />
+                        <button type="button" onClick={() => removeDj(idx)} className="p-2 text-slate-300 hover:text-rose-500 focus:opacity-100">
+                          <MinusCircle className="w-5 h-5" />
                         </button>
                       </div>
                     ))}
                     {formData.djs.length === 0 && (
-                      <div className="py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400">
-                        <Music className="w-8 h-8 mb-2 opacity-20" />
-                        <p className="text-xs font-bold italic tracking-tighter">등록된 DJ 정보가 없습니다.</p>
+                      <div className="py-10 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 space-y-2">
+                        <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                          <Music className="w-5 h-5 opacity-40" />
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-400 italic">등록된 DJ 정보가 없습니다.</p>
                       </div>
                     )}
                   </div>
@@ -655,18 +657,18 @@ export default function CreateEvent() {
                 {/* Performances */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-1">
-                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <Mic2 className="w-4 h-4 text-rose-500" /> 공연팀
                     </label>
                     <button 
                       type="button" 
                       onClick={addPerformance}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg text-[11px] font-black uppercase tracking-wider hover:bg-rose-100 transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-rose-100 transition-colors"
                     >
                       <PlusCircle className="w-3.5 h-3.5" /> 추가
                     </button>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {formData.performances.map((perf, idx) => (
                       <div key={idx} className="group flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                         <input
@@ -674,17 +676,19 @@ export default function CreateEvent() {
                           value={perf}
                           onChange={(e) => updatePerformance(idx, e.target.value)}
                           placeholder="공연팀 또는 아티스트"
-                          className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all font-semibold shadow-sm"
+                          className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-rose-500/20 outline-none font-semibold shadow-sm"
                         />
-                        <button type="button" onClick={() => removePerformance(idx)} className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                          <MinusCircle className="w-6 h-6" />
+                        <button type="button" onClick={() => removePerformance(idx)} className="p-2 text-slate-300 hover:text-rose-500 focus:opacity-100">
+                          <MinusCircle className="w-5 h-5" />
                         </button>
                       </div>
                     ))}
                     {formData.performances.length === 0 && (
-                      <div className="py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400">
-                        <Mic2 className="w-8 h-8 mb-2 opacity-20" />
-                        <p className="text-xs font-bold italic tracking-tighter">등록된 공연 정보가 없습니다.</p>
+                      <div className="py-10 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 space-y-2">
+                        <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                          <Mic2 className="w-5 h-5 opacity-40" />
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-400 italic">등록된 공연 정보가 없습니다.</p>
                       </div>
                     )}
                   </div>
@@ -693,18 +697,18 @@ export default function CreateEvent() {
                 {/* Media */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-1">
-                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <ImageIcon className="w-4 h-4 text-blue-500" /> 미디어
+                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-emerald-500" /> 미디어
                     </label>
                     <button 
                       type="button" 
                       onClick={addMedia}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[11px] font-black uppercase tracking-wider hover:bg-blue-100 transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-colors"
                     >
                       <PlusCircle className="w-3.5 h-3.5" /> 추가
                     </button>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {formData.media.map((person, idx) => (
                       <div key={idx} className="group flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                         <input
@@ -712,17 +716,19 @@ export default function CreateEvent() {
                           value={person}
                           onChange={(e) => updateMedia(idx, e.target.value)}
                           placeholder="포토 / 영상 전문가"
-                          className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-semibold shadow-sm"
+                          className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500/20 outline-none font-semibold shadow-sm"
                         />
-                        <button type="button" onClick={() => removeMedia(idx)} className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                          <MinusCircle className="w-6 h-6" />
+                        <button type="button" onClick={() => removeMedia(idx)} className="p-2 text-slate-300 hover:text-rose-500 focus:opacity-100">
+                          <MinusCircle className="w-5 h-5" />
                         </button>
                       </div>
                     ))}
                     {formData.media.length === 0 && (
-                      <div className="py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400">
-                        <Upload className="w-8 h-8 mb-2 opacity-20" />
-                        <p className="text-xs font-bold italic tracking-tighter">등록된 미디어 정보가 없습니다.</p>
+                      <div className="py-10 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 space-y-2">
+                        <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                          <Upload className="w-5 h-5 opacity-40 shrink-0" />
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-400 italic">등록된 미디어 정보가 없습니다.</p>
                       </div>
                     )}
                   </div>
@@ -731,31 +737,31 @@ export default function CreateEvent() {
                 {/* Tickets */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-1">
-                    <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-emerald-500" /> 티켓
+                    <label className="text-[13px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-blue-500" /> 티켓
                     </label>
                     <button 
                       type="button" 
                       onClick={addTicket}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-[11px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-blue-100 transition-colors"
                     >
                       <PlusCircle className="w-3.5 h-3.5" /> 추가
                     </button>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {formData.tickets.map((ticket, idx) => (
-                      <div key={idx} className="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col gap-4 relative animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="space-y-1">
+                      <div key={idx} className="bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col gap-3 relative animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex-1 space-y-1">
                           <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">티켓 명칭</label>
                           <input
                             type="text"
                             value={ticket.name}
                             onChange={(e) => updateTicket(idx, 'name', e.target.value)}
-                            placeholder="명칭 (예: 얼리버드)"
-                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-semibold"
+                            placeholder="일반 예매"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-[13px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none font-semibold shadow-sm"
                           />
                         </div>
-                        <div className="space-y-1">
+                        <div className="flex-1 space-y-1">
                           <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">가격 (원)</label>
                           <div className="relative">
                             <input
@@ -763,7 +769,7 @@ export default function CreateEvent() {
                               value={ticket.price}
                               onChange={(e) => updateTicket(idx, 'price', Number(e.target.value))}
                               placeholder="0"
-                              className="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black"
+                              className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[13px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none font-bold shadow-sm"
                             />
                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₩</span>
                           </div>
@@ -772,9 +778,9 @@ export default function CreateEvent() {
                           <button 
                             type="button" 
                             onClick={() => removeTicket(idx)} 
-                            className="absolute -top-2 -right-2 w-7 h-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 shadow-lg"
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 shadow-md"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -787,13 +793,13 @@ export default function CreateEvent() {
             {/* Payment & Location Section */}
             <section className="space-y-12">
               <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <MapPin className="w-5 h-5 text-blue-500" />
+                <MapPin className="w-5 h-5 text-indigo-500" />
                 <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">장소 및 결제</h2>
               </div>
 
               <div className="space-y-8">
-                <div className="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                  <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center">
+                <div className="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-[28px] border border-slate-100 dark:border-slate-800">
+                  <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-3 flex items-center">
                     <CreditCard className="w-4 h-4 mr-2 text-indigo-500"/> 입금 안내 정보
                   </label>
                   <textarea
@@ -801,18 +807,18 @@ export default function CreateEvent() {
                     value={formData.paymentMethod}
                     onChange={handleChange}
                     rows={2}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-4 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none shadow-sm"
+                    className="w-full rounded-2xl border-none bg-white dark:bg-slate-900 px-6 py-4 text-[14px] text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all resize-none shadow-sm"
                     placeholder="예: 우리은행 1002-123-456789 홍길동 / 입금 후 성함 문자로 보내주세요."
                   />
-                  <p className="mt-2 text-[11px] text-slate-500 italic">※ 예매 시 사용자에게 노출되는 입금 안내 정보입니다.</p>
+                  <p className="mt-3 text-[11px] text-slate-400 font-medium ml-1">※ 예매 시 사용자에게 노출되는 입금 안내 정보입니다.</p>
                 </div>
 
                 <div className="space-y-4">
-                  <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
-                    <span className="flex items-center"><MapPin className="w-4 h-4 mr-1 text-slate-400 dark:text-slate-500"/> 장소</span>
+                  <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center justify-between">
+                    <span className="flex items-center"><MapPin className="w-4 h-4 mr-2 text-indigo-500"/> 장소</span>
                     {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-                      <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-100 italic">
-                        자동 완성 비활성 (API 키 없음)
+                      <span className="text-[10px] text-amber-600 font-black bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-full border border-amber-100 dark:border-amber-800 shadow-sm">
+                        API 키 없음
                       </span>
                     )}
                   </label>
@@ -824,26 +830,9 @@ export default function CreateEvent() {
                         name="locationName"
                         value={formData.locationName}
                         onChange={handleChange}
-                        className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                        className="w-full rounded-[24px] border-none bg-slate-50 dark:bg-slate-800/50 px-8 py-5 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-inner"
                         placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
                       />
-                      <div className="text-[11px] text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                        {loadError ? (
-                          <div className="text-rose-500 space-y-2">
-                             <p className="font-bold flex items-center gap-1.5"><X className="w-3.5 h-3.5"/> 구글 맵 로드 오류</p>
-                             <p className="font-mono text-[10px] bg-rose-50 dark:bg-rose-900/20 p-2 rounded">{loadError.message}</p>
-                             <p className="text-slate-500 dark:text-slate-400 font-normal">
-                               <b>RefererNotAllowedMapError</b>가 발생했다면 아래 주소를 구글 콘솔의 <b>HTTP 리퍼러</b> 목록에 추가하세요:
-                               <code className="block mt-1 bg-slate-100 dark:bg-slate-700 p-1 rounded break-all">{window.location.origin}/*</code>
-                             </p>
-                          </div>
-                        ) : (
-                          <>
-                            💡 <b>Settings &gt; Secrets</b>에서 <code className="text-indigo-500 font-bold">VITE_GOOGLE_MAPS_API_KEY</code>를 등록해주세요.<br/>
-                            * <b>필수 활성화 API:</b> Maps JavaScript API, Places API
-                          </>
-                        )}
-                      </div>
                     </div>
                   ) : isLoaded ? (
                     <PlaceSearch 
@@ -853,11 +842,11 @@ export default function CreateEvent() {
                       value={formData.locationName}
                     />
                   ) : (
-                    <div className="w-full h-14 bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-2xl border border-slate-100 dark:border-slate-800"></div>
+                    <div className="w-full h-16 bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-[24px] border border-slate-100 dark:border-slate-800"></div>
                   )}
                   {formData.formattedAddress && (
-                    <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 px-1 font-medium">
-                      <MapPin className="w-3.5 h-3.5" /> 주소: {formData.formattedAddress} {formData.city && `(${formData.city}, ${formData.country})`}
+                    <p className="mt-3 text-[12px] text-slate-500 dark:text-slate-400 flex items-center gap-2 px-2 font-bold italic tracking-tight">
+                      <MapPin className="w-3.5 h-3.5 text-rose-500" /> {formData.formattedAddress} {formData.city && `(${formData.city}, ${formData.country})`}
                     </p>
                   )}
                 </div>
@@ -965,7 +954,7 @@ export default function CreateEvent() {
                   e.target.style.height = e.target.scrollHeight + 'px';
                 }}
                 rows={12}
-                className="w-full rounded-[32px] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-8 py-8 text-[15px] leading-relaxed text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500/50 outline-none transition-all resize-none shadow-inner font-medium placeholder:text-slate-300"
+                className="w-full rounded-[32px] border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-8 py-8 text-[15px] leading-relaxed text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/5 outline-none transition-all resize-none shadow-inner font-medium placeholder:text-slate-300"
                 placeholder="일정, 프로그램, 특별 혜택 등 행사에 대해 자세히 알려주세요."
               />
             </section>
@@ -985,7 +974,7 @@ export default function CreateEvent() {
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-6 py-4 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-sm"
+                  className="w-full rounded-2xl border-none bg-slate-50 dark:bg-slate-800/50 px-8 py-5 text-[15px] font-bold text-slate-800 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all shadow-inner"
                 />
               </div>
 
@@ -995,40 +984,46 @@ export default function CreateEvent() {
                 
                 <div 
                   className={clsx(
-                    "border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center gap-3 transition-colors",
-                    dragActive ? "border-indigo-500 bg-indigo-50/50" : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30"
+                    "border-3 border-dashed rounded-[32px] p-12 flex flex-col items-center justify-center gap-4 transition-all group cursor-pointer",
+                    dragActive ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10" : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 hover:border-indigo-400"
                   )}
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
+                  onClick={() => mediaFileInputRef.current?.click()}
                 >
-                  <Upload className="w-10 h-10 text-slate-400" />
-                  <p className="text-sm font-bold text-slate-600 dark:text-slate-400">클릭하거나 드래그하여 사진을 업로드하세요.</p>
-                  <button 
-                    type="button" 
-                    onClick={() => mediaFileInputRef.current?.click()}
-                    className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    파일 선택
-                  </button>
+                  <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center shadow-md border border-slate-100 dark:border-slate-700 group-hover:scale-110 transition-transform">
+                    <Upload className="w-8 h-8 text-indigo-500" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[15px] font-black text-slate-700 dark:text-slate-200">클릭하거나 드래그하여 사진을 업로드하세요.</p>
+                    <button 
+                      type="button" 
+                      className="mt-3 px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[11px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
+                    >
+                      파일 선택
+                    </button>
+                  </div>
                   <input ref={mediaFileInputRef} type="file" multiple accept="image/*" className="hidden" onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                  {images.map((img, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border-2 border-white dark:border-slate-800">
-                      <img src={img} alt={`upload-${idx}`} className="w-full h-full object-cover" />
-                      <button 
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 animate-in fade-in duration-500">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-[24px] overflow-hidden shadow-sm border-2 border-white dark:border-slate-800 group">
+                        <img src={img} alt={`upload-${idx}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                          className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </section>
 

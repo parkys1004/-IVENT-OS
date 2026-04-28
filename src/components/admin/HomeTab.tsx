@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Key, Database, RefreshCw } from 'lucide-react';
+import { ShieldAlert, Key, Database, RefreshCw, Plus, Calendar, GraduationCap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { UserProfile } from '../../context/AuthContext';
 import { supabase } from '../../supabase';
@@ -163,6 +164,40 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           데이터 마이그레이션 실행
         </button>
       </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Link 
+          to="/create-event"
+          className="group relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Calendar className="w-24 h-24 text-slate-900 dark:text-white" />
+          </div>
+          <div className="relative z-10">
+            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Plus className="w-6 h-6 text-orange-600" />
+            </div>
+            <h4 className="text-lg font-black text-slate-800 dark:text-white mb-1">새 행사 등록</h4>
+            <p className="text-sm text-slate-500 font-medium tracking-tight">AI 포스터 분석을 통해 빠르게 파티를 등록하세요.</p>
+          </div>
+        </Link>
+        <Link 
+          to="/create-lesson"
+          className="group relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all"
+        >
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <GraduationCap className="w-24 h-24 text-slate-900 dark:text-white" />
+          </div>
+          <div className="relative z-10">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Plus className="w-6 h-6 text-emerald-600" />
+            </div>
+            <h4 className="text-lg font-black text-slate-800 dark:text-white mb-1">새 강습 등록</h4>
+            <p className="text-sm text-slate-500 font-medium tracking-tight">정규 강습이나 워크숍을 시스템에 추가하세요.</p>
+          </div>
+        </Link>
+      </div>
+
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-px">
         <button className="px-4 py-3 font-bold text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white">종합 현황</button>
         <button className="px-4 py-3 font-bold text-slate-400 hover:text-slate-600 transition-colors">데이터베이스 자가진단</button>

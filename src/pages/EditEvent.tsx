@@ -109,6 +109,13 @@ export default function EditEvent() {
 
         if (error) throw error;
         if (data) {
+          // Auth check: only host or admin can edit
+          if (data.host_id !== user.id && profile?.role !== 'admin') {
+            alert('수정 권한이 없습니다.');
+            navigate(`/event/${id}`);
+            return;
+          }
+
           setEventData(data);
           
           const startDateObj = (data.date || data.start_date) ? new Date(data.date || data.start_date) : new Date();

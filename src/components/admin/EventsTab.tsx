@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUp, ArrowDown, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, RefreshCw, Trash2, Plus, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -113,21 +113,35 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   return (
     <div className="space-y-6 flex flex-col h-full min-h-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-        <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800">
-          <button onClick={() => setActiveEventTab('all')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-            전체
-          </button>
-          <button onClick={() => setActiveEventTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors text-sm flex items-center gap-2", activeEventTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-            승인 대기
-            {events.filter(e => e.isLesson === onlyLessons && (e.status === 'pending' || e.status === 'draft')).length > 0 && 
-              <span className={onlyLessons ? "bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full" : "bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full"}>
-                {events.filter(e => e.isLesson === onlyLessons && (e.status === 'pending' || e.status === 'draft')).length}
-              </span>
-            }
-          </button>
-          <button onClick={() => setActiveEventTab('expired')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'expired' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-            기간 만료
-          </button>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800">
+            <button onClick={() => setActiveEventTab('all')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+              전체
+            </button>
+            <button onClick={() => setActiveEventTab('pending')} className={clsx("px-4 py-3 font-bold transition-colors text-sm flex items-center gap-2", activeEventTab === 'pending' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+              승인 대기
+              {events.filter(e => e.isLesson === onlyLessons && (e.status === 'pending' || e.status === 'draft')).length > 0 && 
+                <span className={onlyLessons ? "bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded-full" : "bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full"}>
+                  {events.filter(e => e.isLesson === onlyLessons && (e.status === 'pending' || e.status === 'draft')).length}
+                </span>
+              }
+            </button>
+            <button onClick={() => setActiveEventTab('expired')} className={clsx("px-4 py-3 font-bold transition-colors text-sm", activeEventTab === 'expired' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+              기간 만료
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <Link 
+              to={onlyLessons ? "/create-lesson" : "/create-event"}
+              className={clsx(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white shadow-lg transition-all active:scale-95",
+                onlyLessons ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-orange-600 hover:bg-orange-700 shadow-orange-500/20"
+              )}
+            >
+              <Plus className="w-3.5 h-3.5" /> {onlyLessons ? '강습 등록' : '행사 등록'}
+            </Link>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
@@ -275,6 +289,9 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                               승인하기
                             </button>
                           )}
+                          <Link to={event.isLesson ? `/edit-lesson/${event.id}` : `/edit-event/${event.id}`} className="text-slate-600 dark:text-slate-400 font-black text-[11px] px-3 py-2 border border-slate-100 dark:border-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all flex items-center gap-1.5">
+                            <Edit className="w-3.5 h-3.5" /> 수정
+                          </Link>
                           <Link to={`/event/${event.id}`} className="text-indigo-600 font-black text-[11px] px-3 py-2 border border-indigo-100 dark:border-indigo-900/40 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all">
                             보기
                           </Link>

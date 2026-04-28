@@ -133,7 +133,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
 
           <div className="flex gap-2">
             <Link 
-              to={onlyLessons ? "/create-lesson" : "/create-event"}
+              to={onlyLessons ? "/create-lesson" : "/create"}
               className={clsx(
                 "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black text-white shadow-lg transition-all active:scale-95",
                 onlyLessons ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-orange-600 hover:bg-orange-700 shadow-orange-500/20"
@@ -289,7 +289,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                               승인하기
                             </button>
                           )}
-                          <Link to={event.isLesson ? `/edit-lesson/${event.id}` : `/edit-event/${event.id}`} className="text-slate-600 dark:text-slate-400 font-black text-[11px] px-3 py-2 border border-slate-100 dark:border-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all flex items-center gap-1.5">
+                          <Link to={event.isLesson ? `/edit-lesson/${event.id}` : `/edit/${event.id}`} className="text-slate-600 dark:text-slate-400 font-black text-[11px] px-3 py-2 border border-slate-100 dark:border-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all flex items-center gap-1.5">
                             <Edit className="w-3.5 h-3.5" /> 수정
                           </Link>
                           <Link to={`/event/${event.id}`} className="text-indigo-600 font-black text-[11px] px-3 py-2 border border-indigo-100 dark:border-indigo-900/40 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all">
@@ -402,7 +402,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                       </button>
                     )}
                     <Link 
-                      to={event.isLesson ? `/edit-lesson/${event.id}` : `/edit-event/${event.id}`}
+                      to={event.isLesson ? `/edit-lesson/${event.id}` : `/edit/${event.id}`}
                       className={clsx(
                         "flex-1 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-black text-xs rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center shadow-sm",
                         !isPendingApproval && "flex-[2]"

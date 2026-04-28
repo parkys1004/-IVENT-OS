@@ -291,6 +291,7 @@ export default function PostDetail() {
         onClose={() => setShowShareModal(false)}
         title={post.title}
         url={window.location.href}
+        description={post.content.substring(0, 100) + '...'}
       />
     </div>
   </div>

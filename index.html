@@ -13,14 +13,14 @@
     <meta property="og:url" content="https://dancehive.app" />
     <meta property="og:title" content="Dancehive | Connect & Shine" />
     <meta property="og:description" content="당신의 열정을 무대로, Dancehive는 댄서와 주최자를 잇는 가장 스마트한 연결을 제공합니다." />
-    <meta property="og:image" content="https://github.com/parkys1004/img/blob/main/dancehive/hivesns.png?raw=true" />
+    <meta property="og:image" content="https://raw.githubusercontent.com/parkys1004/img/main/dancehive/hivesns.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://dancehive.app" />
     <meta property="twitter:title" content="Dancehive | Connect & Shine" />
     <meta property="twitter:description" content="당신의 열정을 무대로, Dancehive는 댄서와 주최자를 잇는 가장 스마트한 연결을 제공합니다." />
-    <meta property="twitter:image" content="https://github.com/parkys1004/img/blob/main/dancehive/hivesns.png?raw=true" />
+    <meta property="twitter:image" content="https://raw.githubusercontent.com/parkys1004/img/main/dancehive/hivesns.png" />
 
    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.0/kakao.min.js" 
         integrity="sha384-l+xbElFSnPZ2rOaPrU//2FF5B4LB8FiX5q4fXYTlfcG4PGpMkE1vcL7kNXI6Cci0" 
@@ -35,12 +35,8 @@
     if (ua.match(/android/i)) {
       location.href = 'intent://' + targetUrl.replace(/https?:\/\//i, '') + '#Intent;scheme=https;package=com.android.chrome;end';
     } else if (ua.match(/iphone|ipad|ipod/i)) {
-      // iOS: 딥링크 실패 시 그냥 현재 페이지에 남도록 fallback 처리
-      var fallbackTimer = setTimeout(function() {
-        // 딥링크가 열리지 않으면 아무것도 하지 않음 (현재 페이지 유지)
-      }, 2000);
+      // iOS: 딥링크 실패 시 아무것도 하지 않음 (타이머 제거)
       location.href = 'kakaotalk://web/openExternalApp?url=' + encodeURIComponent(targetUrl);
-      clearTimeout(fallbackTimer);
     }
   })();
 </script>

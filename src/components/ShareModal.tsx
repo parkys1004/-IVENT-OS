@@ -48,17 +48,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, 
       return;
     }
 
-    // 1. 초기화
-    if (!Kakao.isInitialized()) {
-      const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
-      if (!kakaoKey) {
-        console.error("VITE_KAKAO_JS_KEY is not defined.");
-        alert("카카오 앱 키 설정이 필요합니다.");
-        return;
-      }
-      Kakao.init(kakaoKey);
-    }
-
     // 2. 메시지 보내기
     try {
       Kakao.Share.sendDefault({

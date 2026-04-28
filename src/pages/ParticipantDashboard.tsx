@@ -251,33 +251,38 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     
     setIsSaving(true);
     try {
-      // 데이터 구조 안전장치
+      // 데이터 구조 안전장치 및 기본값 보장
       const payload = {
-        genres: preferenceForm?.genres || [],
-        regions: preferenceForm?.regions || [],
-        roles: preferenceForm?.roles || [],
-        types: preferenceForm?.types || [],
-        autoApplied: !!preferenceForm?.autoApplied
+        genres: Array.isArray(preferenceForm?.genres) ? preferenceForm.genres : [],
+        regions: Array.isArray(preferenceForm?.regions) ? preferenceForm.regions : [],
+        roles: Array.isArray(preferenceForm?.roles) ? preferenceForm.roles : [],
+        types: Array.isArray(preferenceForm?.types) ? preferenceForm.types : [],
+        autoApplied: Boolean(preferenceForm?.autoApplied)
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({
           preferences: payload,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Update Error:', error);
+        throw error;
+      }
+      
+      console.log('Update result:', data);
       
       // 상태 최신화
       await refreshProfile();
-      
-      // 성공 피드백 (Toast 등이 없으므로 텍스트로 대체 가능하지만 일단 alert 유지하거나 생략)
-      console.log('Preferences updated successfully');
-    } catch (error) {
+      alert('취향 설정이 성공적으로 저장되었습니다!');
+    } catch (error: any) {
       console.error('Failed to save preferences:', error);
-      alert('설정 저장 중 문제가 발생했습니다. 다시 시도해주세요.');
+      const msg = error?.message || '알 수 없는 오류가 발생했습니다.';
+      alert(`설정 저장 중 문제가 발생했습니다: ${msg}\n\n(데이터베이스에 preferences 컬럼이 있는지 확인해주세요.)`);
     } finally {
       setIsSaving(false);
     }

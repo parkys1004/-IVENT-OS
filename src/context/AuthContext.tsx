@@ -24,6 +24,13 @@ export interface UserProfile {
   portfolioImages?: string[];
   studioLocation?: string;
   phone?: string;
+  preferences?: {
+    genres?: string[];
+    regions?: string[];
+    roles?: string[];
+    types?: string[];
+    autoApplied?: boolean;
+  };
 }
 
 interface AuthContextType {
@@ -127,7 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: data.description, specialties: data.specialties,
           career: data.career, portfolioUrl: data.portfolio_url,
           portfolioImages: data.portfolio_images, studioLocation: data.studio_location,
-          phone: data.phone
+          phone: data.phone,
+          preferences: data.preferences
         };
         
         setProfile(mappedProfile);

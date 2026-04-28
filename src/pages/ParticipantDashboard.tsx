@@ -26,7 +26,7 @@ interface PromoBanner {
   isActive: boolean;
 }
 
-type MenuKey = 'bookings' | 'records' | 'find' | 'favorites' | 'community' | 'rewards' | 'settings' | 'tickets';
+type MenuKey = 'bookings' | 'records' | 'find' | 'favorites' | 'community' | 'rewards' | 'settings' | 'tickets' | 'recommendation_settings';
 type TabKey = string;
 
 export default function ParticipantDashboard({ forceMarketplace = false }: { forceMarketplace?: boolean }) {
@@ -205,6 +205,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     phone: '',
     photoURL: ''
   });
+  const [preferenceForm, setPreferenceForm] = useState<UserProfile['preferences']>({
+    genres: [],
+    regions: [],
+    roles: [],
+    types: [],
+    autoApplied: false
+  });
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
 
   const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,8 +233,37 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         phone: (profile as any).phone || '',
         photoURL: profile.photoURL || ''
       });
+      setPreferenceForm(profile.preferences || {
+        genres: [],
+        regions: [],
+        roles: [],
+        types: [],
+        autoApplied: false
+      });
     }
   }, [profile]);
+
+  const handlePreferenceSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          preferences: preferenceForm
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      await refreshProfile();
+      alert('추천 설정이 저장되었습니다.');
+    } catch (error) {
+      console.error(error);
+      alert('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -540,13 +576,6 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
   const filteredEvents = events.filter(e => {
     // Robust category equality check with null safety
-    const eventCategory = e.category?.toLowerCase() || '';
-    const currentFilter = filter?.toLowerCase() || 'all';
-
-    // Note: for categorized sections like 'parties' and 'lessons', 
-    // we want all events that match search and date, regardless of the top-level category filter.
-    // However, for the main "Search & Discover" area (if we were using one), we'd use matchesCategory.
-    
     const matchesSearch = searchQuery === '' || 
       e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (e.locationName && e.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -563,6 +592,35 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
     return matchesSearch && isUpcomingOrOngoing;
   }).sort((a, b) => {
+    // Recommendation Scoring
+    let scoreA = 0;
+    let scoreB = 0;
+
+    if (profile?.preferences) {
+      const prefs = profile.preferences;
+      
+      // Match Genres
+      prefs.genres?.forEach(g => {
+        if (a.title.includes(g) || a.category.includes(g) || (a.description || '').includes(g)) scoreA += 10;
+        if (b.title.includes(g) || b.category.includes(g) || (b.description || '').includes(g)) scoreB += 10;
+      });
+
+      // Match Regions
+      prefs.regions?.forEach(r => {
+        if ((a.locationName || '').includes(r) || (a as any).formattedAddress?.includes(r)) scoreA += 5;
+        if ((b.locationName || '').includes(r) || (b as any).formattedAddress?.includes(r)) scoreB += 5;
+      });
+
+      // Match Types
+      prefs.types?.forEach(t => {
+        if ((a.description || '').includes(t) || a.category.includes(t)) scoreA += 3;
+        if ((b.description || '').includes(t) || b.category.includes(t)) scoreB += 3;
+      });
+    }
+
+    // If there's a score difference, use it
+    if (scoreA !== scoreB) return scoreB - scoreA;
+
     // 1. Primary Sort logic based on selected sortBy
     let comparison = 0;
 
@@ -1084,7 +1142,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                <button 
                  type="submit"
                  disabled={isSaving}
-                 className="mt-8 px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 w-full sm:w-auto disabled:opacity-50"
+                 className="mt-8 px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-black w-full sm:w-auto disabled:opacity-50"
                >
                  {isSaving ? '저장 중...' : '변경사항 저장하기'}
                </button>
@@ -1093,6 +1151,148 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       </div>
     </div>
   );
+
+  const renderRecommendationSettingsContent = () => {
+    const GENRES = ['살사', '바차타', '키좀바', '라인댄스', '온1', '온2', '쿠반', '센슈얼'];
+    const REGIONS = ['서울', '강남', '홍대', '부산', '포항', '대구', '대전', '광주', '경기', '인천'];
+    const TYPES = ['파티', '소셜', '강습', '워크숍', '페스티벌', '공연'];
+
+    const toggleItem = (category: keyof UserProfile['preferences'], item: string) => {
+      setPreferenceForm(prev => {
+        if (!prev) return prev;
+        const currentItems = (prev[category] as string[]) || [];
+        const newItems = currentItems.includes(item) 
+          ? currentItems.filter(i => i !== item)
+          : [...currentItems, item];
+        return { ...prev, [category]: newItems };
+      });
+    };
+
+    return (
+      <div className="space-y-8 flex flex-col h-full pb-20 overflow-y-auto no-scrollbar">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-slate-800 dark:text-white">자동 추천 설정</h3>
+              <p className="text-sm text-slate-500 font-bold">회원님의 취향을 등록하면 맞춤형 이벤트를 추천해드립니다.</p>
+            </div>
+          </div>
+
+          <div className="space-y-10">
+            {/* Genre Selection */}
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest pl-1">
+                <Music className="w-4 h-4 text-emerald-500" /> 선호 장르
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {GENRES.map(genre => (
+                  <button
+                    key={genre}
+                    onClick={() => toggleItem('genres', genre)}
+                    className={clsx(
+                      "px-5 py-2.5 rounded-2xl text-xs font-black transition-all border-2",
+                      preferenceForm?.genres?.includes(genre)
+                        ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                        : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300"
+                    )}
+                  >
+                    {genre}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Region Selection */}
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest pl-1">
+                <MapPin className="w-4 h-4 text-rose-500" /> 선호 지역
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {REGIONS.map(region => (
+                  <button
+                    key={region}
+                    onClick={() => toggleItem('regions', region)}
+                    className={clsx(
+                      "px-5 py-2.5 rounded-2xl text-xs font-black transition-all border-2",
+                      preferenceForm?.regions?.includes(region)
+                        ? "bg-rose-600 border-rose-600 text-white shadow-lg shadow-rose-500/20"
+                        : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300"
+                    )}
+                  >
+                    {region}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Type Selection */}
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest pl-1">
+                <Flame className="w-4 h-4 text-orange-500" /> 관심 행사 유형
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {TYPES.map(type => (
+                  <button
+                    key={type}
+                    onClick={() => toggleItem('types', type)}
+                    className={clsx(
+                      "px-5 py-2.5 rounded-2xl text-xs font-black transition-all border-2",
+                      preferenceForm?.types?.includes(type)
+                        ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/20"
+                        : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300"
+                    )}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Auto Applied Toggle */}
+            <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+               <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <p className="font-black text-slate-800 dark:text-white">메인화면 자동 적용</p>
+                    <p className="text-xs text-slate-500 font-bold">검색 페이지 진입 시 해당 필터를 자동으로 적용합니다.</p>
+                  </div>
+                  <button 
+                    onClick={() => setPreferenceForm(prev => prev ? ({ ...prev, autoApplied: !prev.autoApplied }) : prev)}
+                    className={clsx(
+                      "w-14 h-8 rounded-full relative transition-colors",
+                      preferenceForm?.autoApplied ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                    )}
+                  >
+                    <motion.div 
+                      animate={{ x: preferenceForm?.autoApplied ? 24 : 4 }}
+                      className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm"
+                    />
+                  </button>
+               </div>
+            </div>
+
+            <button
+               onClick={handlePreferenceSave}
+               disabled={isSaving}
+               className="w-full py-4 bg-slate-900 dark:bg-amber-400 text-white dark:text-slate-900 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
+            >
+               {isSaving ? '저장 중...' : '맞춤 설정 저장하기'}
+            </button>
+          </div>
+        </div>
+
+        <div className="p-8 bg-indigo-50 dark:bg-indigo-950/20 rounded-[2.5rem] border border-indigo-100 dark:border-indigo-900/50 flex items-start gap-4">
+          <Info className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-indigo-800/70 dark:text-indigo-400/70 font-bold leading-relaxed">
+            등록된 취향 정보는 실시간 자동 추천 알고리즘에 반영되어, 회원님께 가장 적합한 행사를 우선적으로 노출합니다. 
+            더 정확한 추천을 위해 AI와 대화하듯 행사를 검색해보고 싶다면 'AI 추천 모드'를 활용해보세요!
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   const renderRecordsContent = () => (
     <div className="space-y-6 flex flex-col h-full items-center justify-center text-center p-10">
@@ -1537,6 +1737,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 <Compass className="w-5 h-5" /> 행사 찾기
               </button>
               <button 
+                onClick={() => handleMenuClick('recommendation_settings')}
+                className={clsx("w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold transition-all text-sm", activeMenu === 'recommendation_settings' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
+              >
+                 <Sparkles className="w-5 h-5" /> 자동 추천 설정
+              </button>
+              <button 
                 onClick={() => handleMenuClick('favorites')}
                 className={clsx("w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold transition-all text-sm", activeMenu === 'favorites' ? "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-amber-400 font-black shadow-sm" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white")}
               >
@@ -1590,7 +1796,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         
         {/* Mobile Navigation */}
         <div className="lg:hidden w-full mb-4 max-w-full overflow-x-auto flex gap-2 shrink-0 no-scrollbar py-2 px-2">
-           {['bookings', 'find', 'records', 'favorites', 'community', 'rewards', 'settings'].map((menu) => (
+           {['bookings', 'find', 'recommendation_settings', 'records', 'favorites', 'community', 'rewards', 'settings'].map((menu) => (
               <button 
                 key={menu}
                 onClick={() => handleMenuClick(menu as MenuKey)}
@@ -1601,7 +1807,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                     : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300"
                 )}
               >
-                {menu === 'bookings' ? '예매' : menu === 'find' ? '탐색' : menu === 'records' ? '기록' : menu === 'favorites' ? '관심' : menu === 'community' ? '소통' : menu === 'rewards' ? '혜택' : '설정'}
+                {menu === 'bookings' ? '예매' : menu === 'find' ? '탐색' : menu === 'recommendation_settings' ? '추천' : menu === 'records' ? '기록' : menu === 'favorites' ? '관심' : menu === 'community' ? '소통' : menu === 'rewards' ? '혜택' : '설정'}
               </button>
            ))}
         </div>
@@ -1614,6 +1820,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             {activeMenu === 'bookings' && '예매/이용 내역'}
             {activeMenu === 'records' && '내 댄스 기록'}
             {activeMenu === 'find' && '행사 찾기'}
+            {activeMenu === 'recommendation_settings' && '자동 추천 설정'}
             {activeMenu === 'tickets' && '활동 통계 상세'}
             {activeMenu === 'favorites' && '관심 목록'}
             {activeMenu === 'community' && '커뮤니티'}
@@ -1633,6 +1840,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
           >
             {activeMenu === 'bookings' && renderBookingsContent()}
             {activeMenu === 'find' && renderFindContent()}
+            {activeMenu === 'recommendation_settings' && renderRecommendationSettingsContent()}
             {activeMenu === 'records' && renderRecordsContent()}
             {activeMenu === 'tickets' && renderTicketsContent()}
             {activeMenu === 'favorites' && renderFavoritesContent()}

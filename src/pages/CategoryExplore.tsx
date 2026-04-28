@@ -6,13 +6,14 @@ import { Search, CalendarDays, Clock, Flame, Users, Sparkles, BrainCircuit, X } 
 import { useLanguage } from '../context/LanguageContext';
 import EventCard, { EventData } from '../components/EventCard';
 import ProfessionalCard from '../components/ProfessionalCard';
-import { UserProfile } from '../context/AuthContext';
+import { UserProfile, useAuth } from '../context/AuthContext';
 import { extractTagsFromInput, getRecommendations, RecommendationTags } from '../services/recommendationService';
 import clsx from 'clsx';
 
 export default function CategoryExplore() {
   const { category } = useParams<{ category: string }>();
   const { t } = useLanguage();
+  const { profile } = useAuth();
   const [events, setEvents] = useState<EventData[]>([]);
   const [professionals, setProfessionals] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,6 +184,15 @@ export default function CategoryExplore() {
           e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (e.locationName && e.locationName.toLowerCase().includes(searchQuery.toLowerCase()));
         
+        // Auto-apply preferences if enabled
+        let matchesPreferences = true;
+        if (profile?.preferences?.autoApplied && !searchQuery) {
+          const prefs = profile.preferences;
+          const genreMatch = !prefs.genres?.length || prefs.genres.some(g => e.title.includes(g) || e.category.includes(g) || (e.description || '').includes(g));
+          const regionMatch = !prefs.regions?.length || prefs.regions.some(r => (e.locationName || '').includes(r) || (e as any).formattedAddress?.includes(r));
+          matchesPreferences = genreMatch && regionMatch;
+        }
+
         const getTime = (val: any) => {
           if (!val) return 0;
           return new Date(val).getTime();
@@ -195,7 +205,7 @@ export default function CategoryExplore() {
         const endTime = endDateStr ? getTime(endDateStr) : eventTime + (4 * 60 * 60 * 1000);
         const isUpcomingOrOngoing = endTime > now;
 
-        return matchesSearch && isUpcomingOrOngoing;
+        return matchesSearch && matchesPreferences && isUpcomingOrOngoing;
       }).sort((a, b) => {
         const getTime = (val: any) => {
           if (!val) return 0;

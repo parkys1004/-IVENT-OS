@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   followers_count INTEGER DEFAULT 0,
   priority INTEGER DEFAULT 0,
   is_approved BOOLEAN DEFAULT false,
+  preferences JSONB DEFAULT '{"genres": [], "regions": [], "roles": [], "types": [], "autoApplied": false}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

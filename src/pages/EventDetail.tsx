@@ -74,7 +74,7 @@ export default function EventDetail() {
   const [showShareModal, setShowShareModal] = useState(false);
 
   // Community States
-  const [activeTab, setActiveTab] = useState<'info' | 'comments' | 'reviews' | 'gallery'>('info');
+  const [activeTab, setActiveTab] = useState<'reviews' | 'comments' | 'gallery'>('reviews');
   const [comments, setComments] = useState<Comment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [photos, setPhotos] = useState<EventPhoto[]>([]);
@@ -947,13 +947,13 @@ export default function EventDetail() {
           <div className="space-y-6">
             <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-x-auto no-scrollbar scroll-smooth">
               <button
-                onClick={() => setActiveTab('info')}
+                onClick={() => setActiveTab('reviews')}
                 className={clsx(
-                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all whitespace-nowrap",
-                  activeTab === 'info' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
+                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap",
+                  activeTab === 'reviews' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
                 )}
               >
-                상세정보
+                리뷰 <span className="text-[10px] opacity-60 font-black">{reviews.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab('comments')}
@@ -963,15 +963,6 @@ export default function EventDetail() {
                 )}
               >
                 댓글 <span className="text-[10px] opacity-60 font-black">{comments.length}</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('reviews')}
-                className={clsx(
-                  "px-4 md:px-6 py-2 rounded-xl text-[12px] md:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap",
-                  activeTab === 'reviews' ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500"
-                )}
-              >
-                리뷰 <span className="text-[10px] opacity-60 font-black">{reviews.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab('gallery')}

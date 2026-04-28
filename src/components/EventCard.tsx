@@ -21,6 +21,7 @@ export interface EventData {
   geoPoint?: { lat: number, lng: number };
   imageUrl?: string;
   imageUrls?: string[];
+  description?: string;
   coverImageIndex?: number;
   maxAttendees: number;
   currentAttendees: number;

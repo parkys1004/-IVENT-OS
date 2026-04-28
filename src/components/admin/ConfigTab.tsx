@@ -76,12 +76,21 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 
   useEffect(() => {
     if (selectedSection) {
-      const filtered = selectedSection === 'parties' ? events.filter(e => !e.isLesson) : 
-                       selectedSection === 'lessons' ? events.filter(e => e.isLesson) : 
-                       [];
-      setSectionItems(filtered.sort((a,b) => (b.priority || 0) - (a.priority || 0)));
+      let items: any[] = [];
+      if (selectedSection === 'parties') {
+        items = events.filter(e => !e.isLesson).map(e => ({ ...e, title: e.title }));
+      } else if (selectedSection === 'lessons') {
+        items = events.filter(e => e.isLesson).map(e => ({ ...e, title: e.title }));
+      } else if (selectedSection === 'instructors') {
+        items = users.filter(u => u.role === 'instructor').map(u => ({ ...u, title: u.displayName }));
+      } else if (selectedSection === 'djMedia') {
+        // 'djMedia' 섹션에 표시할 데이터가 무엇인지 정의가 필요합니다.
+        // 여기서는 임시로 빈 배열을 반환합니다. 데이터 소스를 확인해주세요.
+        items = [];
+      }
+      setSectionItems(items.sort((a,b) => (b.priority || 0) - (a.priority || 0)));
     }
-  }, [selectedSection, events]);
+  }, [selectedSection, events, users]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -116,9 +125,11 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
         priority: items.length - idx 
       }));
       
-      // Update in database using a Promise.all for simplicity
+      const tableName = (selectedSection === 'parties' || selectedSection === 'lessons') ? 'events' : 'profiles';
+      
+      // Update in database
       const { error } = await supabase
-        .from('events') // Assuming the table name is 'events'
+        .from(tableName) 
         .upsert(updates);
         
       if (error) throw error;

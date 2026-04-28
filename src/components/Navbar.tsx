@@ -46,6 +46,18 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
 
+  React.useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('[data-dropdown]')) {
+        setDropdownOpen(false);
+        setLangDropdownOpen(false);
+        setPartyDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
   const handleModeSwitch = (mode: 'admin' | 'professional' | 'participant') => {
     setViewMode(mode);
     setDropdownOpen(false);
@@ -120,7 +132,7 @@ export default function Navbar() {
                 {navLinks.map((link) => (
                   <div 
                     key={link.to} 
-                    className="relative group"
+                    className="relative group" data-dropdown
                     onMouseEnter={() => link.subLinks && setPartyDropdownOpen(true)}
                     onMouseLeave={() => link.subLinks && setPartyDropdownOpen(false)}
                   >
@@ -185,7 +197,7 @@ export default function Navbar() {
 
             <div className="flex items-center gap-2 sm:gap-4 relative">
               {/* Language Switcher */}
-              <div className="relative">
+              <div className="relative" data-dropdown>
                 <button
                   onClick={() => setLangDropdownOpen(!langDropdownOpen)}
                   className="inline-flex items-center p-2 sm:p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm"
@@ -287,7 +299,7 @@ export default function Navbar() {
                   )}
                   
                   {/* Profile Dropdown Toggle */}
-                  <div className="relative">
+                  <div className="relative" data-dropdown>
                     <button 
                       onClick={() => setDropdownOpen(!dropdownOpen)}
                       className="text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-3 hover:bg-white dark:hover:bg-slate-800/50 py-1 sm:py-1.5 px-1 sm:px-3 rounded-2xl transition-all outline-none"

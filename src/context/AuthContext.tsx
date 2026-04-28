@@ -187,10 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, fetchProfile]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(prev => prev ? false : prev);
-    }, 5000);
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state change event:", event);
 
@@ -211,7 +207,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
-      clearTimeout(timer);
       subscription.unsubscribe();
     };
   }, [fetchProfile]);

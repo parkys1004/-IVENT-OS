@@ -220,6 +220,24 @@ export default function CreateEvent() {
     if (file) handleAiAnalyze(file);
   };
 
+  const uploadImageToStorage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `event-images/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('events') // Assuming 'events' bucket exists
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data: publicUrlData } = supabase.storage
+      .from('events')
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
+  };
+
   const handleImageUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const availableSlots = 5 - images.length;
@@ -232,11 +250,11 @@ export default function CreateEvent() {
     
     try {
       setLoading(true);
-      const newImages = await Promise.all(filesToProcess.map(resizeAndCompressImage));
-      setImages(prev => [...prev, ...newImages]);
+      const newImageUrls = await Promise.all(filesToProcess.map(uploadImageToStorage));
+      setImages(prev => [...prev, ...newImageUrls]);
     } catch (error) {
-      console.error("Image loading failed: ", error);
-      alert("이미지를 처리하는 중 오류가 발생했습니다.");
+      console.error("Image upload failed: ", error);
+      alert("이미지를 업로드하는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
       if (multiFileInputRef.current) multiFileInputRef.current.value = '';

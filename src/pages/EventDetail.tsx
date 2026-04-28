@@ -4,6 +4,7 @@ import { supabase } from '../supabase';
 import { useLanguage } from '../context/LanguageContext';
 import TypeBadge from '../components/TypeBadge';
 import { handleSupabaseError, OperationType } from '../lib/supabaseError';
+import { uploadImageToStorage } from '../lib/storage';
 import { EventData } from '../components/EventCard';
 
 interface RegistrationData {
@@ -83,42 +84,6 @@ export default function EventDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const resizeAndCompressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
-        };
-      };
-    });
-  };
-
   const getLocale = () => {
     switch (language) {
       case 'en': return enUS;
@@ -135,8 +100,9 @@ export default function EventDetail() {
   useEffect(() => {
     if (!id) return;
 
+    let cancelled = false;
+
     const fetchEventAndReg = async () => {
-      let cancelled = false;
       try {
         setLoading(true);
         // Try parties table first
@@ -400,14 +366,14 @@ export default function EventDetail() {
     setIsUploading(true);
     try {
       const file = e.target.files[0];
-      const compressed = await resizeAndCompressImage(file);
+      const imageUrl = await uploadImageToStorage(file, 'events');
       
       const { error } = await supabase
         .from('event_photos')
         .insert({
           event_id: id,
           user_id: user.id,
-          image_url: compressed
+          image_url: imageUrl
         });
 
       if (error) throw error;

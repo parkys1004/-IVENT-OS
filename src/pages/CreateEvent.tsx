@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { spendPoints, DEFAULT_POINT_POLICIES } from '../lib/points';
 import clsx from 'clsx';
+import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
 
 export default function CreateEvent() {
   const { user, profile } = useAuth();
@@ -79,51 +80,10 @@ export default function CreateEvent() {
     }));
   };
 
-  const resizeAndCompressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1000;
-          const MAX_HEIGHT = 1000;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          // Compress to WebP
-          const dataUrl = canvas.toDataURL('image/webp', 0.8);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleAiAnalyze = async (file: File) => {
     setAiLoading(true);
     try {
-      const dataUrl = await resizeAndCompressImage(file);
+      const dataUrl = await compressImageToDataUrl(file);
       const base64Data = dataUrl.split(',')[1];
       const mimeType = 'image/webp';
 
@@ -221,24 +181,6 @@ export default function CreateEvent() {
     if (file) handleAiAnalyze(file);
   };
 
-  const uploadImageToStorage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `event-images/${fileName}`;
-
-    const { data, error } = await supabase.storage
-      .from('events') // Assuming 'events' bucket exists
-      .upload(filePath, file);
-
-    if (error) throw error;
-
-    const { data: publicUrlData } = supabase.storage
-      .from('events')
-      .getPublicUrl(filePath);
-
-    return publicUrlData.publicUrl;
-  };
-
   const handleImageUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const availableSlots = 5 - images.length;
@@ -258,7 +200,7 @@ export default function CreateEvent() {
     
     try {
       setLoading(true);
-      const newImageUrls = await Promise.all(filesToProcess.map(uploadImageToStorage));
+      const newImageUrls = await Promise.all(filesToProcess.map(f => uploadImageToStorage(f, 'events')));
       setImages(prev => [...prev, ...newImageUrls]);
     } catch (error) {
       console.error("Image upload failed: ", error);

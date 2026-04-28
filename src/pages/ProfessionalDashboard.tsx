@@ -10,6 +10,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { supabase } from '../supabase';
+import { uploadImageToStorage } from '../lib/storage';
 
 type MenuKey = 'activities' | 'events' | 'profile' | 'participants' | 'community' | 'students' | 'curriculum' | 'playlist' | 'bookings' | 'equipment' | 'gallery' | 'scanner';
 type TabKey = string;
@@ -65,44 +66,13 @@ export default function ProfessionalDashboard() {
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
 
-  const resizeAndCompressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1000;
-          const MAX_HEIGHT = 1000;
-          let width = img.width;
-          let height = img.height;
-          if (width > height) {
-            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-          } else {
-            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/webp', 0.8);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     const fileArray = Array.from(files);
     try {
       setIsSaving(true);
-      const newImages = await Promise.all(fileArray.map(resizeAndCompressImage));
+      const newImages = await Promise.all(fileArray.map(f => uploadImageToStorage(f, 'events'))); // Using events bucket for portfolio images conceptually, or images bucket
       setPortfolioImages(prev => [...prev, ...newImages]);
     } catch (error) {
       console.error(error);
@@ -203,7 +173,7 @@ export default function ProfessionalDashboard() {
     if (!file) return;
     try {
       setIsSaving(true);
-      const dataUrl = await resizeAndCompressImage(file);
+      const dataUrl = await uploadImageToStorage(file, 'profiles');
       setProfileForm(prev => ({ ...prev, photoURL: dataUrl }));
     } catch (error) {
       console.error(error);

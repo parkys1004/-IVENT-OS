@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import clsx from 'clsx';
+import { uploadImageToStorage } from '../lib/storage';
 
 export default function EditEvent() {
   const { id } = useParams();
@@ -163,47 +164,6 @@ export default function EditEvent() {
     fetchEvent();
   }, [id, navigate]);
 
-  const resizeAndCompressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1000;
-          const MAX_HEIGHT = 1000;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          // Compress to WebP
-          const dataUrl = canvas.toDataURL('image/webp', 0.8);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleImageUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const availableSlots = 5 - images.length;
@@ -212,14 +172,21 @@ export default function EditEvent() {
       return;
     }
 
-    const filesToProcess = fileArray.slice(0, availableSlots);
+    const filesToProcess = fileArray.slice(0, availableSlots).filter(file => {
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowed.includes(file.type)) {
+        alert(`${file.name}은(는) 지원하지 않는 파일 형식입니다.`);
+        return false;
+      }
+      return true;
+    });
     
     try {
       setSubmitting(true);
-      const newImages = await Promise.all(filesToProcess.map(resizeAndCompressImage));
+      const newImages = await Promise.all(filesToProcess.map(f => uploadImageToStorage(f, 'events')));
       setImages(prev => [...prev, ...newImages]);
     } catch (error) {
-      console.error("Image loading failed: ", error);
+      console.error("Image upload failed: ", error);
       alert("이미지를 처리하는 중 오류가 발생했습니다.");
     } finally {
       setSubmitting(false);

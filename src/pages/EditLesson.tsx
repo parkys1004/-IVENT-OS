@@ -6,6 +6,7 @@ import PlaceSearch from '../components/PlaceSearch';
 import { Calendar, FileText, MapPin, Upload, X, GraduationCap, PlusCircle, MinusCircle, CreditCard, Plus, ImageIcon as ImageIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
+import { uploadImageToStorage } from '../lib/storage';
 import clsx from 'clsx';
 
 export default function EditLesson() {
@@ -124,54 +125,15 @@ export default function EditLesson() {
     }));
   };
 
-  const resizeAndCompressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1000;
-          const MAX_HEIGHT = 1000;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/webp', 0.8);
-          resolve(dataUrl);
-        };
-        img.onerror = error => reject(error);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
         setSaving(true);
-        const compressed = await resizeAndCompressImage(file);
-        setFormData(prev => ({ ...prev, imageUrl: compressed }));
+        const imageUrl = await uploadImageToStorage(file, 'events');
+        setFormData(prev => ({ ...prev, imageUrl }));
       } catch (error) {
-        console.error("Image compression failed:", error);
+        console.error("Image upload failed:", error);
         alert("이미지 처리 중 오류가 발생했습니다.");
       } finally {
         setSaving(false);

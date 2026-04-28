@@ -17,6 +17,7 @@ import EventCard, { EventData } from '../components/EventCard';
 import ProfessionalCard from '../components/ProfessionalCard';
 import { UserProfile } from '../context/AuthContext';
 import { handleSupabaseError, OperationType } from '../lib/supabaseError';
+import { uploadImageToStorage } from '../lib/storage';
 
 interface PromoBanner {
   id: string;
@@ -206,43 +207,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   });
   const profilePictureInputRef = useRef<HTMLInputElement>(null);
 
-  const resizeAndCompressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_SIZE = 400;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-          } else {
-            if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/webp', 0.8));
-        };
-        img.onerror = error => reject(error);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const base64 = await resizeAndCompressImage(file);
-        setProfileForm(prev => ({ ...prev, photoURL: base64 }));
+        const url = await uploadImageToStorage(file, 'profiles');
+        setProfileForm(prev => ({ ...prev, photoURL: url }));
       } catch (error) {
         console.error("Image processing failed:", error);
       }

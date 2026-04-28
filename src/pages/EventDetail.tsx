@@ -83,6 +83,7 @@ export default function EventDetail() {
   const [newRating, setNewRating] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   const getLocale = () => {
     switch (language) {
@@ -360,26 +361,37 @@ export default function EventDetail() {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !id || !e.target.files?.[0]) return;
+  const handlePhotoUpload = async (files: FileList | File[]) => {
+    if (!user || !id || files.length === 0) return;
     
-    setIsUploading(true);
-    try {
-      const file = e.target.files[0];
-      const imageUrl = await uploadImageToStorage(file, 'events');
-      
-      const { error } = await supabase
-        .from('event_photos')
-        .insert({
-          event_id: id,
-          user_id: user.id,
-          image_url: imageUrl
-        });
+    // Check person limit (max 4 per person)
+    const existingCount = photos.filter(p => p.user_id === user.id).length;
+    if (existingCount + files.length > 4) {
+      alert(`한 명당 최대 4장까지만 등록 가능합니다. (현재 ${existingCount}장 등록됨, 추가 시도: ${files.length}장)`);
+      return;
+    }
 
-      if (error) throw error;
-      
-      // Award points
-      await awardPoints(user.id, 300, `[갤러리 업로드] ${event.title}`, { event_id: id });
+    setIsUploading(true);
+    let successCount = 0;
+
+    try {
+      for (const file of Array.from(files)) {
+        const imageUrl = await uploadImageToStorage(file, 'events');
+        
+        const { error } = await supabase
+          .from('event_photos')
+          .insert({
+            event_id: id,
+            user_id: user.id,
+            image_url: imageUrl
+          });
+
+        if (error) throw error;
+        successCount++;
+        
+        // Award points for each photo
+        await awardPoints(user.id, 300, `[갤러리 업로드] ${event.title}`, { event_id: id });
+      }
 
       // Refresh local state
       const { data } = await supabase
@@ -399,12 +411,34 @@ export default function EventDetail() {
           author_photo: p.author?.photo_url || ''
         })));
       }
-      alert("행사 사진이 성공적으로 등록되었습니다!");
+      
+      if (successCount > 0) {
+        alert(`${successCount}장의 사진이 성공적으로 등록되었습니다!`);
+      }
     } catch (error: any) {
-      console.error("Error uploading photo:", error);
-      alert(`사진 업로드 실패: ${error.message}`);
+      console.error("Error uploading photos:", error);
+      alert(`사진 업로드 중 오류가 발생했습니다: ${error.message}`);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await handlePhotoUpload(e.dataTransfer.files);
     }
   };
 
@@ -1092,34 +1126,57 @@ export default function EventDetail() {
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 font-bold">참여자들이 직접 담은 행사의 추억들을 확인해보세요.</p>
                   </div>
-                  
-                  {user && isExpired && (
-                    <div className="relative group">
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        disabled={isUploading}
-                        className="hidden" 
-                        id="photo-upload"
-                      />
-                      <label 
-                        htmlFor="photo-upload"
-                        className={clsx(
-                          "cursor-pointer inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black text-sm shadow-lg shadow-indigo-600/20 hover:scale-105 active:scale-95 transition-all",
-                          isUploading && "opacity-50 cursor-wait"
-                        )}
-                      >
-                        {isUploading ? (
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <UploadIcon className="w-4 h-4" />
-                        )}
-                        나도 사진 올리기
-                      </label>
-                    </div>
-                  )}
                 </div>
+
+                {user && isExpired && (
+                  <div 
+                    className={clsx(
+                      "relative border-2 border-dashed rounded-[32px] p-8 md:p-12 transition-all group flex flex-col items-center justify-center gap-4 text-center cursor-pointer",
+                      dragActive 
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10" 
+                        : "border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 hover:border-indigo-400 dark:hover:border-indigo-500/50"
+                    )}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('gallery-photo-upload')?.click()}
+                  >
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => e.target.files && handlePhotoUpload(e.target.files)}
+                      disabled={isUploading}
+                      className="hidden" 
+                      id="gallery-photo-upload"
+                    />
+                    
+                    <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center shadow-md border border-slate-100 dark:border-slate-700 group-hover:scale-110 transition-transform">
+                      {isUploading ? (
+                        <div className="w-8 h-8 border-3 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin" />
+                      ) : (
+                        <UploadIcon className="w-8 h-8 text-indigo-500" />
+                      )}
+                    </div>
+                    
+                    <div>
+                      <p className="text-lg font-black text-slate-700 dark:text-slate-200">
+                        {isUploading ? "사진 업로드 중..." : "클릭하거나 사진을 드래그하여 업로드하세요"}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-2 font-bold">
+                        1인당 최대 4장까지 가능 (WebP 자동 변환)
+                      </p>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-slate-900/20 dark:shadow-none"
+                    >
+                      {isUploading ? "업로드 중..." : "파일 선택하기"}
+                    </button>
+                  </div>
+                )}
 
                 {photos.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

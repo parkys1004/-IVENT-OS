@@ -77,7 +77,7 @@ export const compressImage = (file: File): Promise<Blob> => {
           } else {
             reject(new Error('Canvas to Blob conversion failed'));
           }
-        }, 'image/jpeg', 0.8);
+        }, 'image/webp', 0.8);
       };
       img.onerror = (err) => reject(err);
     };
@@ -88,7 +88,7 @@ export const compressImage = (file: File): Promise<Blob> => {
 export const uploadImageToStorage = async (file: File, bucketPath: string = 'images'): Promise<string> => {
   try {
     const compressedBlob = await compressImage(file);
-    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileExt = 'webp';
     // Remove special characters from file name for safe storage
     const safeName = Math.random().toString(36).substring(2, 15);
     const fileName = `${Date.now()}_${safeName}.${fileExt}`;
@@ -97,7 +97,7 @@ export const uploadImageToStorage = async (file: File, bucketPath: string = 'ima
     const { data, error } = await supabase.storage
       .from(bucketPath)
       .upload(filePath, compressedBlob, {
-        contentType: file.type || 'image/jpeg',
+        contentType: 'image/webp',
         upsert: false
       });
 

@@ -225,8 +225,9 @@ export default function EditEvent() {
         }
       });
       
-      if (response.text) {
-        const parsed = JSON.parse(response.text);
+      if (response && response.text) {
+        const text = response.text;
+        const parsed = JSON.parse(text);
         const validCategories = ['salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson'];
         setFormData(prev => ({
            ...prev,
@@ -747,7 +748,6 @@ export default function EditEvent() {
           </button>
           <button
             type="submit"
-            form="edit-event-form"
             disabled={submitting}
             className="px-12 py-4 bg-indigo-600 text-white font-black rounded-[24px] shadow-xl shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50"
           >
@@ -755,8 +755,7 @@ export default function EditEvent() {
           </button>
         </div>
       }
-    >
-      <form onSubmit={handleSubmit} id="edit-event-form" className="hidden" />
-    </EventFormLayout>
+      onSubmit={handleSubmit}
+    />
   );
 }

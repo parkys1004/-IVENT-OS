@@ -6,6 +6,7 @@ interface EventFormLayoutProps {
   subtitle: string;
   aiLoading?: boolean;
   onAiAnalyzeClick?: () => void;
+  onSubmit?: (e: React.FormEvent) => void;
   leftColumn: React.ReactNode;
   rightColumn: React.ReactNode;
   footer: React.ReactNode;
@@ -17,6 +18,7 @@ export const EventFormLayout: React.FC<EventFormLayoutProps> = ({
   subtitle,
   aiLoading,
   onAiAnalyzeClick,
+  onSubmit,
   leftColumn,
   rightColumn,
   footer,
@@ -68,7 +70,7 @@ export const EventFormLayout: React.FC<EventFormLayoutProps> = ({
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900/50 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <form onSubmit={onSubmit} className="bg-white dark:bg-slate-900/50 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <div className="p-6 md:p-10 lg:p-12">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
               {/* Left Column */}
@@ -87,7 +89,7 @@ export const EventFormLayout: React.FC<EventFormLayoutProps> = ({
               {footer}
             </div>
           </div>
-        </div>
+        </form>
         {children}
       </div>
     </div>

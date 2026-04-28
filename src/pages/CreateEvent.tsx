@@ -299,7 +299,7 @@ export default function CreateEvent() {
 
   return (
     <EventFormLayout
-      title="새로운 행사 만들기"
+      title="새로운 행사 만들기 테스트"
       subtitle="성공적인 행사의 시작, 정보를 입력해주세요."
       aiLoading={aiLoading}
       onAiAnalyzeClick={() => fileInputRef.current?.click()}

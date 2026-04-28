@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, CalendarDays, Clock, Flame, Users } from 'lucide-react';
+import { Search, CalendarDays, Clock, Flame, Users, Sparkles, BrainCircuit, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import EventCard, { EventData } from '../components/EventCard';
 import ProfessionalCard from '../components/ProfessionalCard';
 import { UserProfile } from '../context/AuthContext';
+import { extractTagsFromInput, getRecommendations, RecommendationTags } from '../services/recommendationService';
 import clsx from 'clsx';
 
 export default function CategoryExplore() {
@@ -18,7 +19,48 @@ export default function CategoryExplore() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('upcoming');
 
+  // AI Recommendation States
+  const [aiSearchMode, setAiSearchMode] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTags, setAiTags] = useState<RecommendationTags | null>(null);
+  const [aiResults, setAiResults] = useState<EventData[]>([]);
+
   const isProfessionalCategory = ['instructor', 'dj', 'media', 'dj_media'].includes(category || '');
+
+  const handleAiSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiInput.trim()) return;
+
+    setAiLoading(true);
+    try {
+      const tags = await extractTagsFromInput(aiInput);
+      setAiTags(tags);
+      const results = await getRecommendations(tags);
+      
+      const mappedResults = results.map(e => ({
+        id: e.id,
+        title: e.title,
+        description: e.description || '',
+        date: e.date,
+        end_date: e.end_date,
+        category: e.category,
+        locationName: e.location_name,
+        imageUrl: e.image_url,
+        isLesson: false, // Assuming 'parties' for now, can be extended
+        likesCount: e.likes_count || 0,
+        createdAt: e.created_at,
+        metadata: e.metadata || {},
+        maxAttendees: e.max_attendees || 0,
+      }));
+
+      setAiResults(mappedResults as any);
+    } catch (error) {
+      console.error('AI Search Error:', error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -197,49 +239,112 @@ export default function CategoryExplore() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[20px] p-2 flex flex-col md:flex-row items-center gap-3 shadow-sm transition-colors mb-12">
-        <div className="relative w-full md:w-80 group">
-          <input 
-            type="text" 
-            placeholder={isProfessionalCategory ? "전문가 이름으로 검색..." : t('search.placeholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[14px] pl-4 pr-10 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:focus:border-indigo-500 transition-all font-medium text-slate-700 dark:text-slate-200"
-          />
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+      <div className={clsx(
+        "bg-white dark:bg-slate-900 border rounded-[24px] p-2 flex flex-col gap-3 shadow-sm transition-all mb-12",
+        aiSearchMode ? "border-indigo-500/50 ring-4 ring-indigo-500/5" : "border-slate-200 dark:border-slate-800"
+      )}>
+        <div className="flex flex-col md:flex-row items-center gap-3">
+          <div className="relative w-full group">
+            {aiSearchMode ? (
+              <form onSubmit={handleAiSearch} className="flex gap-2 w-full">
+                <div className="relative flex-1">
+                  <input 
+                    type="text" 
+                    placeholder="예: 서울 강남에서 이번 주말 살사 파티 추천해줘"
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                    className="w-full bg-indigo-50/30 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-[16px] pl-10 pr-4 py-3 text-sm outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
+                  />
+                  <BrainCircuit className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-500 animate-pulse" />
+                </div>
+                <button 
+                  type="submit"
+                  disabled={aiLoading}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-[16px] font-black text-sm transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                >
+                  {aiLoading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  분석 및 추천
+                </button>
+              </form>
+            ) : (
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder={isProfessionalCategory ? "전문가 이름으로 검색..." : t('search.placeholder')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-[16px] pl-10 pr-4 py-3 text-sm outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 dark:focus:border-indigo-500 transition-all font-medium text-slate-700 dark:text-slate-200"
+                />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+              </div>
+            )}
+          </div>
+
+          <button 
+            onClick={() => {
+              setAiSearchMode(!aiSearchMode);
+              if (aiSearchMode) {
+                setAiResults([]);
+                setAiTags(null);
+                setAiInput('');
+              }
+            }}
+            className={clsx(
+              "p-3 rounded-[16px] transition-all flex items-center gap-2 font-black text-xs uppercase tracking-widest",
+              aiSearchMode 
+                ? "bg-rose-50 text-rose-600 dark:bg-rose-950/20" 
+                : "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/20 hover:scale-105"
+            )}
+          >
+            {aiSearchMode ? <X className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+            {aiSearchMode ? "AI 끄기" : "AI 추천 모드"}
+          </button>
         </div>
 
-        {!isProfessionalCategory && (
-          <>
-            <div className="h-10 border-l border-slate-200 dark:border-slate-800 hidden md:block mx-1"></div>
-            <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-[14px] border border-slate-100 dark:border-slate-800 w-full md:w-auto">
-              {[
-                { id: 'upcoming', label: t('search.sort.upcoming'), icon: <Clock className="w-3.5 h-3.5" /> },
-                { id: 'latest', label: t('search.sort.latest') },
-                { id: 'popular', label: t('search.sort.popular'), icon: <Flame className="w-3.5 h-3.5 text-orange-500" /> }
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSortBy(s.id)}
-                  className={clsx(
-                    "flex-1 md:flex-initial flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-[10px] text-xs font-bold transition-all whitespace-nowrap",
-                    sortBy === s.id 
-                      ? "bg-indigo-600 dark:bg-indigo-600 text-white shadow-sm" 
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                  )}
-                >
-                  {s.icon && s.icon}
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </>
+        {aiSearchMode && aiTags && (
+          <div className="px-4 pb-2 flex flex-wrap gap-2 items-center border-t border-indigo-50 dark:border-indigo-950/50 pt-3 animate-in fade-in slide-in-from-top-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mr-2">Extracted Tags:</span>
+            {Object.entries(aiTags).map(([key, vals]) => 
+              (vals as string[]).map(val => (
+                <span key={val} className="px-2.5 py-1 bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900 rounded-full text-[10px] font-black text-indigo-600 dark:text-indigo-400 shadow-sm flex items-center gap-1">
+                  <span className="text-[8px] opacity-40">{key}:</span> {val}
+                </span>
+              ))
+            )}
+          </div>
+        )}
+
+        {!isProfessionalCategory && !aiSearchMode && (
+          <div className="flex bg-slate-50 dark:bg-slate-950 p-1.5 rounded-[16px] border border-slate-100 dark:border-slate-800 w-full overflow-x-auto scrollbar-none">
+            {[
+              { id: 'upcoming', label: t('search.sort.upcoming'), icon: <Clock className="w-3.5 h-3.5" /> },
+              { id: 'latest', label: t('search.sort.latest') },
+              { id: 'popular', label: t('search.sort.popular'), icon: <Flame className="w-3.5 h-3.5 text-orange-500" /> }
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSortBy(s.id)}
+                className={clsx(
+                  "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-[12px] text-xs font-bold transition-all whitespace-nowrap",
+                  sortBy === s.id 
+                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700" 
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                {s.icon && s.icon}
+                {s.label}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        <div className="flex justify-center py-24">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-indigo-100 rounded-full animate-pulse" />
+            <div className="absolute inset-0 w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          </div>
         </div>
       ) : (
         <div className={clsx(
@@ -252,23 +357,23 @@ export default function CategoryExplore() {
                 <motion.div
                   key={pro.uid}
                   layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
                 >
                   <ProfessionalCard professional={pro} index={idx} />
                 </motion.div>
               ))
             ) : (
-              (filteredItems as EventData[]).map((event, idx) => (
+              (aiSearchMode && aiResults.length > 0 ? aiResults : filteredItems as EventData[]).map((event, idx) => (
                 <motion.div
                   key={event.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
                 >
                   <EventCard event={event} index={idx} />
                 </motion.div>
@@ -276,12 +381,20 @@ export default function CategoryExplore() {
             )}
           </AnimatePresence>
 
-          {filteredItems.length === 0 && (
-            <div className="col-span-full py-24 text-center bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-              {isProfessionalCategory ? <Users className="mx-auto h-16 w-16 text-slate-200 dark:text-slate-700 mb-6" /> : <CalendarDays className="mx-auto h-16 w-16 text-slate-200 dark:text-slate-700 mb-6" />}
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">등록된 내역이 없습니다.</h3>
-              <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                현재 {isProfessionalCategory ? '요청하신 분야의 전문가가' : t(`search.category.${category}`) + ' 카테고리에 활성화된 항목이'} 없습니다.
+          {((aiSearchMode && aiResults.length === 0 && !aiLoading) || (!aiSearchMode && filteredItems.length === 0)) && (
+            <div className="col-span-full py-32 text-center bg-slate-50/50 dark:bg-slate-900/50 rounded-[40px] border border-dashed border-slate-200 dark:border-slate-800 transition-colors">
+              <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center border border-slate-100 dark:border-slate-700 mx-auto mb-8 shadow-sm">
+                {isProfessionalCategory ? <Users className="h-10 w-10 text-slate-300" /> : <CalendarDays className="h-10 w-10 text-slate-300" />}
+              </div>
+              <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">
+                {aiSearchMode ? "AI가 검색 중입니다..." : "등록된 내역이 없습니다."}
+              </h3>
+              <p className="text-slate-400 max-w-xs mx-auto font-medium">
+                {aiSearchMode 
+                  ? "준비되셨나요? 자연스러운 문장으로 댄스 이벤트를 찾아보세요!"
+                  : isProfessionalCategory 
+                    ? '협회 및 주최진이 곧 새로운 전문가를 등록할 예정입니다.' 
+                    : t(`search.category.${category}`) + ' 카테고리에 활성화된 항목이 없습니다.'}
               </p>
             </div>
           )}

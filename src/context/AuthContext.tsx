@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
       } else if (activeUser) {
-        const storedRole = window.sessionStorage.getItem('intendedRole');
+        const storedRole = window.localStorage.getItem('intendedRole');
         const adminEmail = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase();
         const isAdminEmail = activeUser.email?.toLowerCase() === adminEmail;
         const assignedRole = isAdminEmail ? 'admin' : ((storedRole as UserRole) || 'unassigned');

@@ -246,7 +246,14 @@ export default function CreateEvent() {
       return;
     }
 
-    const filesToProcess = fileArray.slice(0, availableSlots);
+    const filesToProcess = fileArray.slice(0, availableSlots).filter(file => {
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowed.includes(file.type)) {
+        alert(`${file.name}은(는) 지원하지 않는 파일 형식입니다. 이미지 파일만 업로드해주세요.`);
+        return false;
+      }
+      return true;
+    });
     
     try {
       setLoading(true);

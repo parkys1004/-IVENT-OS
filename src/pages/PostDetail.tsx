@@ -292,7 +292,11 @@ export default function PostDetail() {
         title={post.title}
         url={window.location.href}
         description={post.content.substring(0, 100) + '...'}
-        imageUrl={post.image_url || 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/hivesns.png'}
+        imageUrl={
+          (post.image_url && post.image_url.startsWith('http')) 
+            ? post.image_url 
+            : 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/hivesns.png'
+        }
       />
     </div>
   </div>

@@ -76,7 +76,7 @@ export default function EventCard({ event, featured = false, index }: { event: E
               <span className="truncate">{event.title}</span>
             </h3>
             <p className="opacity-90 text-[14px] sm:text-[16px] lg:text-[18px] truncate mb-6 sm:mb-8 flex items-center gap-2 drop-shadow-lg font-medium">
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"/> <span className="truncate">{event.locationName}</span> <span className="opacity-30">|</span> <Clock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"/> <span className="truncate">{format(dateObj, 'yyyy.MM.dd a h:mm', { locale: ko })}</span>
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-orange-400"/> <span className="truncate font-bold">{format(dateObj, 'yyyy.MM.dd a h:mm', { locale: ko })}</span> <span className="opacity-30">|</span> <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"/> <span className="truncate">{event.locationName}</span>
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -127,11 +127,11 @@ export default function EventCard({ event, featured = false, index }: { event: E
           </h3>
 
           <div className="text-[14px] text-slate-500 dark:text-slate-400 space-y-2.5 mb-6">
-            <div className="flex items-center gap-2 truncate">
-              <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" /> <span className="truncate">{event.locationName}</span>
+            <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-bold">
+               <Clock className="w-4 h-4 shrink-0" /> <span>{format(dateObj, 'M월 d일 (E) a h:mm', { locale: ko })}</span>
             </div>
-            <div className="flex items-center gap-2">
-               <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" /> <span>{format(dateObj, 'M월 d일 (E) a h:mm', { locale: ko })}</span>
+            <div className="flex items-center gap-2 truncate opacity-80">
+              <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" /> <span className="truncate">{event.locationName}</span>
             </div>
           </div>
 

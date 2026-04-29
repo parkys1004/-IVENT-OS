@@ -181,6 +181,7 @@ export default function EditEvent() {
 
       // 1. Check Personal API Key from LocalStorage first (Security & Privacy)
       let apiKey = localStorage.getItem('user_gemini_api_key');
+      let isPersonalKey = !!apiKey;
       
       if (!apiKey && user) {
         // Fallback to Supabase for compatibility with existing users
@@ -192,10 +193,11 @@ export default function EditEvent() {
         
         if (aiConfig?.api_key) {
           apiKey = aiConfig.api_key;
+          isPersonalKey = true;
         }
       }
 
-      if (!apiKey) {
+      if (!isPersonalKey) {
         // 2. Check Daily Free Usage if no personal key
         const today = new Date().toISOString().split('T')[0];
         const usageData = JSON.parse(localStorage.getItem('ai_usage_stats') || '{"date":"", "count":0}');
@@ -207,18 +209,12 @@ export default function EditEvent() {
 
         const FREE_LIMIT = 5; // 하루 5회 무료 제공
         if (usageData.count < FREE_LIMIT) {
-          apiKey = process.env.GEMINI_API_KEY || '';
-          
-          if (!apiKey) {
-             throw new Error('SYSTEM_API_KEY_MISSING');
-          }
-
           usageData.count += 1;
           localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
           
           setAiStatus({ 
             type: 'loading', 
-            message: `무료 체험 중 (${FREE_LIMIT - usageData.count}회 남음) ✨` 
+            message: `무료 체험 중 (${FREE_LIMIT - usageData.count + 1}회 남음) ✨` 
           });
         } else {
           setAiStatus({ 
@@ -236,7 +232,7 @@ export default function EditEvent() {
       setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
       
       let parsed;
-      const useProxy = apiKey === process.env.GEMINI_API_KEY || !localStorage.getItem('user_gemini_api_key');
+      const useProxy = !isPersonalKey;
 
       if (useProxy) {
         // [보안적용] 서버 측 브릿지 호출

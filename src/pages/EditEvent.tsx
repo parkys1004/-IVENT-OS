@@ -211,7 +211,7 @@ export default function EditEvent() {
               mimeType: mimeType
             }
           },
-          "Extract event information from this dance poster. Strictly follow the JSON schema. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson'. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For tickets, extract all price options. For djs/performances/media, extract names as arrays. If info is missing, use empty defaults."
+          "Extract event information from this dance poster. Strictly follow the JSON schema. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For tickets, extract all price options. For djs/performances/media, extract names as arrays. If info is missing, use empty defaults."
         ],
         config: {
           responseMimeType: "application/json",

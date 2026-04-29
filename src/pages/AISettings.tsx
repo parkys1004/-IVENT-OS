@@ -49,6 +49,7 @@ export default function AISettings() {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-4o');
+  const [saveToLocal, setSaveToLocal] = useState(true); // Default to local for higher privacy
 
   useEffect(() => {
     if (!user) {
@@ -61,14 +62,34 @@ export default function AISettings() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. Fetch from Supabase
+      const { data: dbKeys, error } = await supabase
         .from('user_ai_configs')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setSavedKeys(data || []);
+
+      // 2. Fetch from LocalStorage
+      const localGeminiKey = localStorage.getItem('user_gemini_api_key');
+      const finalKeys: any[] = [...(dbKeys || [])];
+      
+      if (localGeminiKey) {
+        // Add a virtual entry for local key
+        finalKeys.unshift({
+          id: 'local-gemini',
+          user_id: user?.id || 'local',
+          provider: 'google',
+          api_key: localGeminiKey,
+          model: 'gemini-2.0-flash',
+          status: 'active',
+          is_local: true,
+          created_at: new Date().toISOString()
+        });
+      }
+      
+      setSavedKeys(finalKeys);
     } catch (err) {
       console.error('Error fetching AI settings:', err);
     } finally {
@@ -82,21 +103,28 @@ export default function AISettings() {
     
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('user_ai_configs')
-        .upsert({
-          user_id: user?.id,
-          provider,
-          api_key: apiKey,
-          model: selectedModel,
-          status: 'active',
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id,provider' });
+      if (provider === 'google' && saveToLocal) {
+        // Save to LocalStorage ONLY (Highest Privacy)
+        localStorage.setItem('user_gemini_api_key', apiKey);
+        alert('API 키가 브라우저 보안 저장소(LocalStorage)에 안전하게 저장되었습니다. 서버에는 저장되지 않습니다.');
+      } else {
+        // Save to Database (Cloud Sync)
+        const { error } = await supabase
+          .from('user_ai_configs')
+          .upsert({
+            user_id: user?.id,
+            provider,
+            api_key: apiKey,
+            model: selectedModel,
+            status: 'active',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,provider' });
 
-      if (error) throw error;
+        if (error) throw error;
+        alert('API 연동 설정이 서버에 성공적으로 저장되었습니다.');
+      }
       
       setApiKey('');
-      alert('API 연동 설정이 성공적으로 저장되었습니다.');
       fetchSettings();
     } catch (err: any) {
       alert(`저장 실패: ${err.message}`);
@@ -105,17 +133,21 @@ export default function AISettings() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, isLocal?: boolean) => {
     if (!window.confirm('정말 이 API 설정을 삭제하시겠습니까?')) return;
     
     try {
-      const { error } = await supabase
-        .from('user_ai_configs')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      setSavedKeys(prev => prev.filter(k => k.id !== id));
+      if (isLocal) {
+        localStorage.removeItem('user_gemini_api_key');
+      } else {
+        const { error } = await supabase
+          .from('user_ai_configs')
+          .delete()
+          .eq('id', id);
+        
+        if (error) throw error;
+      }
+      fetchSettings();
     } catch (err: any) {
       alert('삭제 중 오류가 발생했습니다.');
     }
@@ -230,6 +262,23 @@ export default function AISettings() {
                   </div>
                 </div>
 
+                {provider === 'google' && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-500/5 rounded-2xl border border-emerald-100 dark:border-emerald-500/20">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={saveToLocal}
+                        onChange={(e) => setSaveToLocal(e.target.checked)}
+                        className="w-5 h-5 rounded-lg border-2 border-emerald-200 text-emerald-500 focus:ring-emerald-500/20 transition-all"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-black text-emerald-800 dark:text-emerald-400">브라우저 로컬 저장 (권장)</p>
+                        <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70 font-bold leading-tight mt-0.5">키가 서버로 전송되지 않아 가장 안전합니다.</p>
+                      </div>
+                    </label>
+                  </div>
+                )}
+
                 <button 
                   type="submit"
                   disabled={isSaving || !apiKey}
@@ -294,13 +343,16 @@ export default function AISettings() {
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                               <p className="text-[11px] font-mono text-slate-400">{maskKey(key.api_key)}</p>
-                               <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950 px-1.5 py-0.5 rounded-md uppercase">{key.model}</span>
+                               <p className="text-[11px] font-mono text-slate-400">{maskKey((key as any).api_key)}</p>
+                               <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950 px-1.5 py-0.5 rounded-md uppercase">{(key as any).model}</span>
+                               {(key as any).is_local && (
+                                 <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded-md uppercase border border-emerald-100 dark:border-emerald-500/20">LOCAL</span>
+                               )}
                             </div>
                           </div>
                         </div>
                         <button 
-                          onClick={() => handleDelete(key.id)}
+                          onClick={() => handleDelete(key.id, (key as any).is_local)}
                           className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-rose-600 hover:border-rose-100 rounded-2xl shadow-sm transition-all active:scale-95"
                         >
                           <Trash2 className="w-5 h-5" />

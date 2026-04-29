@@ -179,24 +179,58 @@ export default function EditEvent() {
       const base64Data = dataUrl.split(',')[1];
       const mimeType = 'image/webp';
 
-      let apiKey = process.env.GEMINI_API_KEY;
-
-      if (user) {
-        setAiStatus({ type: 'loading', message: '설정 정보를 확인 중입니다... ⚙️' });
+      // 1. Check Personal API Key from LocalStorage first (Security & Privacy)
+      let apiKey = localStorage.getItem('user_gemini_api_key');
+      
+      if (!apiKey && user) {
+        // Fallback to Supabase for compatibility with existing users
         const { data: aiConfig } = await supabase
           .from('user_ai_configs')
           .select('api_key')
           .eq('user_id', user.id)
-          .eq('provider', 'google')
           .maybeSingle();
-
+        
         if (aiConfig?.api_key) {
           apiKey = aiConfig.api_key;
         }
       }
 
       if (!apiKey) {
-        throw new Error('GEMINI_API_KEY_MISSING');
+        // 2. Check Daily Free Usage if no personal key
+        const today = new Date().toISOString().split('T')[0];
+        const usageData = JSON.parse(localStorage.getItem('ai_usage_stats') || '{"date":"", "count":0}');
+        
+        if (usageData.date !== today) {
+          usageData.date = today;
+          usageData.count = 0;
+        }
+
+        const FREE_LIMIT = 5; // 하루 5회 무료 제공
+        if (usageData.count < FREE_LIMIT) {
+          apiKey = process.env.GEMINI_API_KEY || '';
+          
+          if (!apiKey) {
+             throw new Error('SYSTEM_API_KEY_MISSING');
+          }
+
+          usageData.count += 1;
+          localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
+          
+          setAiStatus({ 
+            type: 'loading', 
+            message: `무료 체험 중 (${FREE_LIMIT - usageData.count}회 남음) ✨` 
+          });
+        } else {
+          setAiStatus({ 
+            type: 'error', 
+            message: '일일 무료 분석 횟수 초과! 개인 API 키를 등록해주세요. 🔑' 
+          });
+          setTimeout(() => setAiStatus({ type: null, message: '' }), 6000);
+          setAiLoading(false);
+          return;
+        }
+      } else {
+        setAiStatus({ type: 'loading', message: '등록된 개인 API 키를 불러옵니다. 🔐' });
       }
 
       setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });

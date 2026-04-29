@@ -207,27 +207,40 @@ export default function EditEvent() {
               mimeType: mimeType
             }
           },
-          "Extract event information from this dance poster. Strictly follow the JSON schema. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson'. If info is missing, leave empty string. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For locationName, extract the venue name. For formattedAddress, extract the official address. For city, extract the city name (e.g., Seoul)., For country, use 2-letter code (e.g., KR)."
+          "Extract event information from this dance poster. Strictly follow the JSON schema. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson'. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For tickets, extract all price options. For djs/performances/media, extract names as arrays. If info is missing, use empty defaults."
         ],
         config: {
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              title: { type: Type.STRING, description: "Event title" },
-              description: { type: Type.STRING, description: "Event detailed description" },
-              category: { type: Type.STRING, description: "Category of the event (salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson)" },
-              date: { type: Type.STRING, description: "Event start date in YYYY-MM-DD format" },
-              time: { type: Type.STRING, description: "Event start time in 24h HH:mm format" },
-              endDate: { type: Type.STRING, description: "Event end date in YYYY-MM-DD format" },
-              endTime: { type: Type.STRING, description: "Event end time in 24h HH:mm format" },
-              locationName: { type: Type.STRING, description: "Location name or building name" },
-              formattedAddress: { type: Type.STRING, description: "Full official address (Road name address preferred)" },
-              city: { type: Type.STRING, description: "City name in English, e.g. Seoul, Tokyo" },
-              country: { type: Type.STRING, description: "2-letter Country code, e.g. KR, JP, SG" },
-              maxAttendees: { type: Type.INTEGER, description: "Maximum number of attendees, fallback to 50" }
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              category: { type: Type.STRING },
+              date: { type: Type.STRING },
+              time: { type: Type.STRING },
+              endDate: { type: Type.STRING },
+              endTime: { type: Type.STRING },
+              locationName: { type: Type.STRING },
+              formattedAddress: { type: Type.STRING },
+              city: { type: Type.STRING },
+              country: { type: Type.STRING },
+              maxAttendees: { type: Type.INTEGER },
+              djs: { type: Type.ARRAY, items: { type: Type.STRING } },
+              performances: { type: Type.ARRAY, items: { type: Type.STRING } },
+              media: { type: Type.ARRAY, items: { type: Type.STRING } },
+              tickets: { 
+                type: Type.ARRAY, 
+                items: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING },
+                    price: { type: Type.INTEGER }
+                  }
+                }
+              }
             },
-            required: ["title", "description", "category", "date", "time", "endDate", "endTime", "locationName", "maxAttendees"]
+            required: ["title", "description", "category", "date", "time", "locationName"]
           }
         }
       });
@@ -235,7 +248,8 @@ export default function EditEvent() {
       if (response && response.text) {
         const text = response.text;
         const parsed = JSON.parse(text);
-        const validCategories = ['salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson'];
+        const validCategories = ['salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'];
+        
         setFormData(prev => ({
            ...prev,
            title: parsed.title || prev.title,
@@ -243,13 +257,17 @@ export default function EditEvent() {
            category: validCategories.includes(parsed.category) ? parsed.category : prev.category,
            date: parsed.date || prev.date,
            time: parsed.time || prev.time,
-           endDate: parsed.endDate || prev.endDate,
-           endTime: parsed.endTime || prev.endTime,
+           endDate: parsed.endDate || parsed.date || prev.endDate,
+           endTime: parsed.endTime || (parsed.time ? "23:59" : prev.endTime),
            locationName: parsed.locationName || prev.locationName,
            formattedAddress: parsed.formattedAddress || prev.formattedAddress,
            city: parsed.city || prev.city,
            country: parsed.country || prev.country,
-           maxAttendees: parsed.maxAttendees || prev.maxAttendees
+           maxAttendees: parsed.maxAttendees || prev.maxAttendees,
+           djs: parsed.djs && parsed.djs.length > 0 ? parsed.djs : prev.djs,
+           performances: parsed.performances && parsed.performances.length > 0 ? parsed.performances : prev.performances,
+           mediaExperts: parsed.media && parsed.media.length > 0 ? parsed.media : prev.mediaExperts,
+           tickets: parsed.tickets && parsed.tickets.length > 0 ? parsed.tickets : prev.tickets
         }));
       }
     } catch(err: any) {

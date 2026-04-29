@@ -12,12 +12,17 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // CORS 설정 추가
-  app.use(cors());
+  // CORS 설정 (Preflight 요청 포함)
+  app.use(cors({
+    origin: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Accept", "Authorization"],
+    credentials: true
+  }));
 
-  // JSON Body size limit increased for base64 images
-  app.use(express.json({ limit: "20mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+  // JSON Body size limit 
+  app.use(express.json({ limit: "30mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "30mb" }));
 
   // API 호출 로그 (디버깅용)
   app.use((req, res, next) => {
@@ -111,10 +116,8 @@ async function startServer() {
     }
   };
 
-  // 모든 가능한 분석 경로 지원 (하이브리드 지원)
-  app.post("/api/ai/analyze", analyzeHandler);
-  app.post("/api/v1/analyze-poster", analyzeHandler);
-  app.post("/api/v1/analyze-poster/", analyzeHandler);
+  // AI 분석 API (경로 다양성 허용)
+  app.post(["/api/v1/analyze-poster", "/api/ai/analyze"], analyzeHandler);
 
   app.get("/api/v1/analyze-poster", (req, res) => {
     res.json({ message: "API is ready. Use POST." });

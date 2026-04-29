@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import cors from "cors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,8 +12,20 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // CORS 설정 추가
+  app.use(cors());
+
   // JSON Body size limit increased for base64 images
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: "20mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+
+  // API 호출 로그 (디버깅용)
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      console.log(`[API Request] ${req.method} ${req.path}`);
+    }
+    next();
+  });
 
   // AI Analysis API - Secure Token is NOT exposed to client
   app.post("/api/ai/analyze", async (req, res) => {

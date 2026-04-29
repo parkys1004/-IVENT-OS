@@ -27,19 +27,15 @@ async function startServer() {
     next();
   });
 
-  app.get("/api/v1/analyze-poster", (req, res) => {
-    res.json({ message: "AI Analysis API is ready. Please use POST method." });
-  });
-
   const analyzeHandler = async (req: express.Request, res: express.Response) => {
-    console.log(`[AI Analysis] Request received: ${req.method} ${req.path}`);
+    console.log(`[AI Analysis] Processing request for ${req.path}`);
     try {
       const { imageBase64, mimeType } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
 
       if (!apiKey) {
-        console.error("[AI Analysis] GEMINI_API_KEY is missing in environment variables.");
-        return res.status(500).json({ error: "시스템 API 키가 서버에 설정되지 않았습니다." });
+        console.error("[AI Analysis] GEMINI_API_KEY is missing in environment.");
+        return res.status(500).json({ error: "시스템 API 키가 서버 설정에 없습니다." });
       }
 
       if (!imageBase64) {
@@ -85,7 +81,7 @@ async function startServer() {
         }
       });
 
-      const prompt = "Extract dance event details from this poster. Use categories: salsa, bachata, kizomba, party, lesson, festival, workshop. For dates: YYYY-MM-DD. For times: HH:mm (24h).";
+      const prompt = "Extract event information from this dance poster. For dates use YYYY-MM-DD. For times use 24h format HH:mm.";
 
       const result = await model.generateContent([
         {
@@ -99,30 +95,40 @@ async function startServer() {
 
       const response = await result.response;
       let text = response.text();
-      
-      // 마크다운 백틱 제거
       text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
       
       try {
         const parsed = JSON.parse(text);
-        console.log("[AI Analysis] Successfully parsed analysis data.");
+        console.log("[AI Analysis] Success.");
         res.json(parsed);
       } catch (parseError) {
-        console.error("[AI Analysis] JSON Parse Error. Raw text:", text);
+        console.error("[AI Analysis] JSON Parse Error:", text.substring(0, 500));
         res.status(500).json({ error: "AI 응답 데이터 형식이 올바르지 않습니다." });
       }
     } catch (error: any) {
-      console.error("[AI Analysis] Proxy Error:", error);
-      res.status(500).json({ error: error.message || "서버 분석 중 오류가 발생했습니다." });
+      console.error("[AI Analysis] Error:", error);
+      res.status(500).json({ error: error.message || "서버 분석 오류" });
     }
   };
 
+  // 모든 가능한 분석 경로 지원 (하이브리드 지원)
+  app.post("/api/ai/analyze", analyzeHandler);
   app.post("/api/v1/analyze-poster", analyzeHandler);
   app.post("/api/v1/analyze-poster/", analyzeHandler);
 
-  // 상태 체크용 엔드포인트
+  app.get("/api/v1/analyze-poster", (req, res) => {
+    res.json({ message: "API is ready. Use POST." });
+  });
+
+  // 상태 체크
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", time: new Date().toISOString() });
+  });
+
+  // API 404
+  app.use("/api/*", (req, res) => {
+    console.warn(`[Proxy Warning] Unhandled API request: ${req.method} ${req.path}`);
+    res.status(404).json({ error: `Not Found: ${req.method} ${req.path}` });
   });
 
   // Vite middleware for development

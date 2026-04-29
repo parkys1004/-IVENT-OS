@@ -150,19 +150,26 @@ export default function CreateEvent() {
         try {
           const proxyResponse = await fetch('/api/v1/analyze-poster', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
             body: JSON.stringify({ imageBase64: base64Data, mimeType })
           });
           
+          if (proxyResponse.status === 405) {
+            throw new Error('서버에서 허용되지 않는 요청 방식입니다(405). URL이나 설정을 확인하세요.');
+          }
+
           const contentType = proxyResponse.headers.get('content-type');
           if (!contentType || !contentType.includes('application/json')) {
             const text = await proxyResponse.text();
-            console.error('Server non-JSON:', text.substring(0, 100));
-            throw new Error('서버 분석 응답이 올바르지 않습니다.');
+            console.error('Server non-JSON Response:', text.substring(0, 100));
+            throw new Error(`서버 응답 오류 (${proxyResponse.status}): JSON 형식이 아닙니다.`);
           }
 
           const data = await proxyResponse.json();
-          if (!proxyResponse.ok) throw new Error(data.error || '서버 분석 실패');
+          if (!proxyResponse.ok) throw new Error(data.error || `서버 오류 (${proxyResponse.status})`);
           parsed = data;
         } catch (fetchErr: any) {
           throw new Error(fetchErr.message || '서버 연결 실패');

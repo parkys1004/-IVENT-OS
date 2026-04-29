@@ -4,7 +4,7 @@ import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
 import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { spendPoints, DEFAULT_POINT_POLICIES } from '../lib/points';
@@ -161,30 +161,29 @@ export default function CreateEvent() {
         parsed = await proxyResponse.json();
       } else {
         // 개인 키 사용자용 직접 호출 (하이브리드 지원)
-        const ai = new GoogleGenAI({ apiKey });
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: [{ inlineData: { data: base64Data, mimeType } }, "Extract event info according to schema."],
-          config: {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {
-              type: Type.OBJECT,
+              type: SchemaType.OBJECT,
               properties: {
-                title: { type: Type.STRING },
-                description: { type: Type.STRING },
-                category: { type: Type.STRING },
-                date: { type: Type.STRING },
-                time: { type: Type.STRING },
-                locationName: { type: Type.STRING },
-                formattedAddress: { type: Type.STRING },
-                djs: { type: Type.ARRAY, items: { type: Type.STRING } },
-                performances: { type: Type.ARRAY, items: { type: Type.STRING } },
-                media: { type: Type.ARRAY, items: { type: Type.STRING } },
+                title: { type: SchemaType.STRING },
+                description: { type: SchemaType.STRING },
+                category: { type: SchemaType.STRING },
+                date: { type: SchemaType.STRING },
+                time: { type: SchemaType.STRING },
+                locationName: { type: SchemaType.STRING },
+                formattedAddress: { type: SchemaType.STRING },
+                djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 tickets: { 
-                  type: Type.ARRAY, 
+                  type: SchemaType.ARRAY, 
                   items: { 
-                    type: Type.OBJECT,
-                    properties: { name: { type: Type.STRING }, price: { type: Type.INTEGER } }
+                    type: SchemaType.OBJECT,
+                    properties: { name: { type: SchemaType.STRING }, price: { type: SchemaType.INTEGER } }
                   }
                 }
               },
@@ -193,8 +192,14 @@ export default function CreateEvent() {
           }
         });
 
+        const result = await model.generateContent([
+          { inlineData: { data: base64Data, mimeType } }, 
+          "Extract event info from this poster exactly as per schema."
+        ]);
+        
+        const response = await result.response;
         if (response && response.text) {
-          parsed = JSON.parse(response.text);
+          parsed = JSON.parse(response.text());
         }
       }
       
@@ -226,8 +231,12 @@ export default function CreateEvent() {
     } catch(err: any) {
       console.error('AI Analysis failed:', err);
       let errorMessage = 'AI 분석 중 오류가 발생했습니다. 😢';
-      if (err.message?.includes('GEMINI_API_KEY') || err.message?.includes('GEMINI_API_KEY_MISSING')) {
+      if (err.message?.includes('GEMINI_API_KEY') || err.message?.includes('GEMINI_API_KEY_MISSING') || err.message?.includes('SYSTEM_API_KEY_MISSING')) {
         errorMessage = 'API 키가 등록되어 있지 않습니다. ⚠️';
+      } else if (err.message?.includes('Quota') || err.message?.includes('rate limit')) {
+        errorMessage = 'API 호출 한도가 초과되었습니다. 잠시 후 시도해주세요. ⏳';
+      } else {
+        errorMessage = `오류: ${err.message?.substring(0, 50) || '알 수 없는 오류'}`;
       }
       setAiStatus({ type: 'error', message: errorMessage });
       setTimeout(() => setAiStatus({ type: null, message: '' }), 5000);

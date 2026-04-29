@@ -147,18 +147,29 @@ export default function CreateEvent() {
 
       if (useProxy) {
         // [보안적용] 서버 측에서 API 호출 (API 키 숨김)
-        const proxyResponse = await fetch('/api/ai/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64Data, mimeType })
-        });
-        
-        if (!proxyResponse.ok) {
-          const errData = await proxyResponse.json();
-          throw new Error(errData.error || 'Server Analysis Failed');
+        try {
+          const proxyResponse = await fetch('/api/ai/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64Data, mimeType })
+          });
+          
+          const contentType = proxyResponse.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            // 서버에서 JSON이 아닌 응답(예: HTML 오류 페이지)을 보낸 경우
+            const text = await proxyResponse.text();
+            console.error('Server returned non-JSON response:', text.substring(0, 200));
+            throw new Error('서버 통신 오류가 발생했습니다. (JSON 응답 아님)');
+          }
+
+          const data = await proxyResponse.json();
+          if (!proxyResponse.ok) {
+            throw new Error(data.error || '분석 중 서버 오류가 발생했습니다.');
+          }
+          parsed = data;
+        } catch (fetchErr: any) {
+          throw new Error(fetchErr.message || '서버 연결에 실패했습니다.');
         }
-        
-        parsed = await proxyResponse.json();
       } else {
         // 개인 키 사용자용 직접 호출 (하이브리드 지원)
         const genAI = new GoogleGenerativeAI(apiKey);

@@ -76,10 +76,21 @@ async function startServer() {
       ]);
 
       const response = await result.response;
-      res.json(JSON.parse(response.text()));
+      let text = response.text();
+      
+      // JSON 파싱 전 마크다운 백틱 제거 (안전장치)
+      text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
+      
+      try {
+        const parsed = JSON.parse(text);
+        res.json(parsed);
+      } catch (parseError) {
+        console.error("JSON Parse Error. Raw Text:", text);
+        res.status(500).json({ error: "AI가 생성한 데이터 형식이 올바르지 않습니다." });
+      }
     } catch (error: any) {
       console.error("AI Proxy Error:", error);
-      res.status(500).json({ error: error.message || "AI Analysis failed on server." });
+      res.status(500).json({ error: error.message || "서버 분석 중 오류가 발생했습니다." });
     }
   });
 

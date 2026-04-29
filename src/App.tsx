@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import DashboardSwitcher from './pages/DashboardSwitcher';
@@ -62,6 +62,14 @@ function SupabaseConfigWarning() {
   );
 }
 
+function ScrollToTopOnNavigation() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 function AppContent() {
   // Handle auth server configuration errors in hash
   if (typeof window !== 'undefined' && window.location.hash.includes('error=server_error')) {
@@ -75,9 +83,26 @@ function AppContent() {
 
   // Redirect unauthenticated users
   React.useEffect(() => {
-    if (!loading && !profile && location.pathname !== '/login' && location.pathname !== '/') {
-      // Note: Some paths like event details or explore might be public, 
-      // but following user's strict request to lock down except '/' and '/login'
+    const publicPaths = [
+      '/', 
+      '/login', 
+      '/explore', 
+      '/places', 
+      '/community', 
+      '/event', 
+      '/profile', 
+      '/past-events',
+      '/privacy',
+      '/terms',
+      '/scan-tickets'
+    ];
+    
+    const isPublicPath = publicPaths.some(path => 
+      location.pathname === path || location.pathname.startsWith(path + '/')
+    );
+
+    if (!loading && !profile && !isPublicPath) {
+      // Note: Only lock down protected routes (dashboard, create, edit, settings, etc.)
       navigate('/');
     }
   }, [profile, loading, location.pathname, navigate]);
@@ -118,10 +143,10 @@ function AppContent() {
     );
   }
 
-  const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin';
+  const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin' || location.pathname === '/mypage' || location.pathname === '/ai-settings';
   const isHomePath = location.pathname === '/';
   const isCommunityPath = location.pathname.startsWith('/community');
-  const isDashboardView = isDashboardPath && profile; // Apply to any logged-in user on dashboard path
+  const isDashboardView = isDashboardPath && profile; 
 
   return (
     <div className={clsx(
@@ -134,6 +159,7 @@ function AppContent() {
         </div>
       )}
       <Navbar />
+      <ScrollToTopOnNavigation />
       <AnimatedBackground />
       <main className={clsx(
         "w-full mx-auto flex-1 flex flex-col relative",
@@ -146,6 +172,7 @@ function AppContent() {
           <Route path="/" element={<DashboardSwitcher forceExplore />} />
           <Route path="/dashboard" element={<DashboardSwitcher />} />
           <Route path="/admin" element={<DashboardSwitcher />} />
+          <Route path="/explore" element={<CategoryExplore />} />
           <Route path="/explore/:category" element={<CategoryExplore />} />
           <Route path="/community" element={<Community />} />
           <Route path="/community/:id" element={<PostDetail />} />

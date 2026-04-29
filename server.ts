@@ -117,9 +117,9 @@ async function startServer() {
   };
 
   // AI 분석 API (경로 다양성 허용)
-  app.post(["/api/v1/analyze-poster", "/api/ai/analyze"], analyzeHandler);
+  app.post(["/api/ai/analyze", "/api/v1/analyze-poster"], analyzeHandler);
 
-  app.get("/api/v1/analyze-poster", (req, res) => {
+  app.get("/api/ai/analyze", (req, res) => {
     res.json({ message: "API is ready. Use POST." });
   });
 

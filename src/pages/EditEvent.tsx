@@ -234,58 +234,64 @@ export default function EditEvent() {
       }
 
       setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
-      const ai = new GoogleGenAI({ apiKey });
       
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType
-            }
-          },
-          "Extract event information from this dance poster. Strictly follow the JSON schema. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For tickets, extract all price options. For djs/performances/media, extract names as arrays. If info is missing, use empty defaults."
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              description: { type: Type.STRING },
-              category: { type: Type.STRING },
-              date: { type: Type.STRING },
-              time: { type: Type.STRING },
-              endDate: { type: Type.STRING },
-              endTime: { type: Type.STRING },
-              locationName: { type: Type.STRING },
-              formattedAddress: { type: Type.STRING },
-              city: { type: Type.STRING },
-              country: { type: Type.STRING },
-              maxAttendees: { type: Type.INTEGER },
-              djs: { type: Type.ARRAY, items: { type: Type.STRING } },
-              performances: { type: Type.ARRAY, items: { type: Type.STRING } },
-              media: { type: Type.ARRAY, items: { type: Type.STRING } },
-              tickets: { 
-                type: Type.ARRAY, 
-                items: { 
-                  type: Type.OBJECT,
-                  properties: {
-                    name: { type: Type.STRING },
-                    price: { type: Type.INTEGER }
+      let parsed;
+      const useProxy = apiKey === process.env.GEMINI_API_KEY || !localStorage.getItem('user_gemini_api_key');
+
+      if (useProxy) {
+        // [보안적용] 서버 측에서 API 호출 (API 키 숨김)
+        const proxyResponse = await fetch('/api/ai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64Data, mimeType })
+        });
+        
+        if (!proxyResponse.ok) {
+          const errData = await proxyResponse.json();
+          throw new Error(errData.error || 'Server Analysis Failed');
+        }
+        
+        parsed = await proxyResponse.json();
+      } else {
+        // 개인 키 사용자용 직접 호출
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: [{ inlineData: { data: base64Data, mimeType } }, "Extract event info according to schema."],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                description: { type: Type.STRING },
+                category: { type: Type.STRING },
+                date: { type: Type.STRING },
+                time: { type: Type.STRING },
+                locationName: { type: Type.STRING },
+                formattedAddress: { type: Type.STRING },
+                djs: { type: Type.ARRAY, items: { type: Type.STRING } },
+                performances: { type: Type.ARRAY, items: { type: Type.STRING } },
+                media: { type: Type.ARRAY, items: { type: Type.STRING } },
+                tickets: { 
+                  type: Type.ARRAY, 
+                  items: { 
+                    type: Type.OBJECT,
+                    properties: { name: { type: Type.STRING }, price: { type: Type.INTEGER } }
                   }
                 }
-              }
-            },
-            required: ["title", "description", "category", "date", "time", "locationName"]
+              },
+              required: ["title", "category", "date", "time", "locationName"]
+            }
           }
+        });
+
+        if (response && response.text) {
+          parsed = JSON.parse(response.text);
         }
-      });
+      }
       
-      if (response && response.text) {
-        const text = response.text;
-        const parsed = JSON.parse(text);
+      if (parsed) {
         const validCategories = ['salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'];
         
         setFormData(prev => ({

@@ -26,6 +26,15 @@ interface PromoBanner {
   isActive: boolean;
 }
 
+interface DashboardConfig {
+  partiesLimit: number;
+  workshopsLimit: number;
+  lessonsLimit: number;
+  instructorsLimit: number;
+  djMediaLimit: number;
+  sectionOrder: string[];
+}
+
 type MenuKey = 'bookings' | 'records' | 'find' | 'favorites' | 'community' | 'rewards' | 'settings' | 'tickets' | 'recommendation_settings';
 type TabKey = string;
 
@@ -163,12 +172,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     }
   }, [user]);
 
-  const [dashboardConfig, setDashboardConfig] = useState({
+  const [dashboardConfig, setDashboardConfig] = useState<DashboardConfig>({
     partiesLimit: 9,
+    workshopsLimit: 6,
     lessonsLimit: 6,
     instructorsLimit: 6,
     djMediaLimit: 6,
-    sectionOrder: ['parties', 'lessons', 'instructors', 'djMedia']
+    sectionOrder: ['parties', 'workshops', 'lessons', 'instructors', 'djMedia']
   });
 
   const [bookings, setBookings] = useState<any[]>([]);
@@ -678,13 +688,19 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const sortedProfessionals = [...professionals].sort((a, b) => ((b as any).priority || 0) - ((a as any).priority || 0));
 
   const parties = others.filter(e => {
-    const isActuallyParty = !e.isLesson;
+    const isActuallyParty = !e.isLesson && e.category !== 'workshop';
     const matchesCategoryFilter = filter === 'all' || filter === 'party' || e.category === filter;
     return isActuallyParty && matchesCategoryFilter;
   }).slice(0, dashboardConfig.partiesLimit || 9);
 
+  const workshops = others.filter(e => {
+    const isWorkshop = e.category === 'workshop';
+    const matchesCategoryFilter = filter === 'all' || filter === 'workshop' || e.category === filter;
+    return isWorkshop && matchesCategoryFilter;
+  }).slice(0, dashboardConfig.workshopsLimit || 6);
+
   const lessons = others.filter(e => {
-    const isActuallyLesson = e.isLesson;
+    const isActuallyLesson = e.isLesson && e.category !== 'workshop';
     const matchesCategoryFilter = filter === 'all' || filter === 'lesson' || e.category === filter;
     return isActuallyLesson && matchesCategoryFilter;
   }).slice(0, dashboardConfig.lessonsLimit || 6);
@@ -911,6 +927,33 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
                     {parties.map((event, idx) => (
+                      <EventCard key={event.id} event={event} index={idx} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          }
+          if (sectionKey === 'workshops') {
+            return (
+              <section key="workshops" className="space-y-6">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-indigo-500" />
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white">스페셜 워크숍</h3>
+                  </div>
+                  <button onClick={() => navigate('/explore/workshop')} className="text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors uppercase tracking-wider flex items-center gap-1 group">
+                    {t('ui.viewAll')}
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
+                {workshops.length === 0 ? (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+                    현재 예정된 워크숍이 없습니다.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                    {workshops.map((event, idx) => (
                       <EventCard key={event.id} event={event} index={idx} />
                     ))}
                   </div>

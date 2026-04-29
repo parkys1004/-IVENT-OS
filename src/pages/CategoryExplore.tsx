@@ -236,6 +236,7 @@ export default function CategoryExplore() {
           <p className="text-slate-500 dark:text-slate-400 font-medium">
             {category === 'party' ? '즐거운 댄스 파티와 소셜을 찾아보세요.' : 
              category === 'lesson' ? '기초부터 심화까지, 당신을 위한 강습.' :
+             category === 'workshop' ? '특별한 주제로 깊이 있게 배우는 집중 강습.' :
              category === 'instructor' ? '열정적인 강사와 함께하는 댄스 여행.' :
              category === 'dj' ? '최고의 텐션을 선사할 DJ 라인업.' :
              category === 'media' || category === 'dj_media' ? '당신의 순간을 담아낼 최고의 아티스트.' :

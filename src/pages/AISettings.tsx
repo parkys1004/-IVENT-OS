@@ -13,13 +13,16 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
-  Globe
+  Globe,
+  Activity,
+  History
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { useNavigate } from 'react-router-dom';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface AISetting {
   id: string;
@@ -34,7 +37,13 @@ interface AISetting {
 
 const PROVIDERS = [
   { id: 'openai', name: 'OpenAI (ChatGPT)', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
-  { id: 'google', name: 'Google (Gemini)', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'] }
+  { id: 'google', name: 'Google (Gemini)', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', models: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'] }
+];
+
+const DIAGNOSTIC_MODELS = [
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'AI 포스터 분석 (멀티모달)' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'AI 추천 모드 (속도/효율)' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: '고급 추론 (고성능)' }
 ];
 
 export default function AISettings() {
@@ -50,6 +59,14 @@ export default function AISettings() {
   const [showKey, setShowKey] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-4o');
   const [saveToLocal, setSaveToLocal] = useState(true); // Default to local for higher privacy
+
+  // Diagnostic State
+  const [diagnosticStatus, setDiagnosticStatus] = useState<Record<string, 'waiting' | 'loading' | 'success' | 'error'>>({
+    'gemini-2.0-flash': 'waiting',
+    'gemini-1.5-flash': 'waiting',
+    'gemini-1.5-pro': 'waiting'
+  });
+  const [diagnosticMessages, setDiagnosticMessages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user) {
@@ -158,6 +175,52 @@ export default function AISettings() {
     return `${key.slice(0, 8)}...${key.slice(-4)}`;
   };
 
+  const runDiagnostic = async () => {
+    if (!apiKey) {
+      alert('먼저 API 키를 입력해주세요.');
+      return;
+    }
+    
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    
+    for (const modelId of models) {
+      setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'loading' }));
+      
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: modelId });
+        
+        // 아주 짧은 텍스트로 실제 호출 테스트
+        const result = await model.generateContent("Hi");
+        const response = await result.response;
+        const text = response.text();
+        
+        if (text) {
+          setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'success' }));
+          setDiagnosticMessages(prev => ({ ...prev, [modelId]: '활성화됨 - 사용 가능' }));
+        }
+      } catch (err: any) {
+        console.error(`Diagnostic error for ${modelId}:`, err);
+        let msg = '권한 오류 (403)';
+        
+        // 에러 메시지 파싱
+        const errorStr = err.message || '';
+        if (errorStr.includes('404')) {
+          msg = '모델 미지원 (404)';
+        } else if (errorStr.includes('403')) {
+          msg = '권한 부족 (403)';
+        } else if (errorStr.includes('429')) {
+          msg = '할당량 초과 (429)';
+        } else if (errorStr.includes('API_KEY_INVALID')) {
+          msg = '유효하지 않은 키';
+        }
+
+        setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'error' }));
+        setDiagnosticMessages(prev => ({ ...prev, [modelId]: msg }));
+      }
+    }
+  };
+
   const currentProviderData = PROVIDERS.find(p => p.id === provider);
 
   return (
@@ -243,6 +306,68 @@ export default function AISettings() {
                     {provider === 'openai' ? 'OpenAI Dashboard' : 'Google AI Studio'}에서 발급받은 키를 입력하세요.
                   </p>
                 </div>
+
+                {/* Diagnostic Tool */}
+                {provider === 'google' && apiKey.length > 20 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="pt-4 border-t border-slate-100 dark:border-slate-800 overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Activity className="w-3 h-3 text-orange-500" /> 통합 진단 도구
+                      </h3>
+                      <button 
+                        type="button"
+                        onClick={runDiagnostic}
+                        disabled={Object.values(diagnosticStatus).some(s => s === 'loading')}
+                        className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-500/10 px-3 py-1 rounded-full hover:bg-orange-100 transition-colors disabled:opacity-50"
+                      >
+                        {Object.values(diagnosticStatus).some(s => s === 'loading') ? '진단 중...' : '연결 테스트 시작'}
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {DIAGNOSTIC_MODELS.map((m) => {
+                        const status = diagnosticStatus[m.id];
+                        const resultMsg = diagnosticMessages[m.id];
+                        
+                        return (
+                          <div key={m.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                            <div className="flex items-center gap-3">
+                              <div className={clsx(
+                                "w-2 h-2 rounded-full",
+                                status === 'waiting' && "bg-slate-300 dark:bg-slate-600",
+                                status === 'loading' && "bg-blue-500 animate-pulse",
+                                status === 'success' && "bg-emerald-500",
+                                status === 'error' && "bg-rose-500"
+                              )} />
+                              <div>
+                                <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{m.name}</p>
+                                <p className="text-[9px] text-slate-500 font-medium">{m.desc}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={clsx(
+                                "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase",
+                                status === 'waiting' && "text-slate-400 bg-slate-100 dark:bg-slate-800",
+                                status === 'loading' && "text-blue-500 bg-blue-50 dark:bg-blue-500/10",
+                                status === 'success' && "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10",
+                                status === 'error' && "text-rose-500 bg-rose-50 dark:bg-rose-500/10"
+                              )}>
+                                {status === 'waiting' && '대기'}
+                                {status === 'loading' && '진행 중'}
+                                {status === 'success' && (resultMsg || '성공')}
+                                {status === 'error' && (resultMsg || '실패')}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">기본 모델 설정</label>

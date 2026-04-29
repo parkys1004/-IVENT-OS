@@ -146,7 +146,7 @@ export default function CreateEvent() {
       const useProxy = apiKey === process.env.GEMINI_API_KEY || !localStorage.getItem('user_gemini_api_key');
 
       if (useProxy) {
-        // [보안적용] 서버 측에서 API 호출 (API 키 숨김)
+        // [보안적용] 서버 측 브릿지(Edge Function 역할) 호출
         try {
           const proxyResponse = await fetch('/api/ai/analyze', {
             method: 'POST',
@@ -156,22 +156,19 @@ export default function CreateEvent() {
           
           const contentType = proxyResponse.headers.get('content-type');
           if (!contentType || !contentType.includes('application/json')) {
-            // 서버에서 JSON이 아닌 응답(예: HTML 오류 페이지)을 보낸 경우
             const text = await proxyResponse.text();
-            console.error('Server returned non-JSON response:', text.substring(0, 200));
-            throw new Error('서버 통신 오류가 발생했습니다. (JSON 응답 아님)');
+            console.error('Server non-JSON:', text.substring(0, 100));
+            throw new Error('서버 분석 응답이 올바르지 않습니다.');
           }
 
           const data = await proxyResponse.json();
-          if (!proxyResponse.ok) {
-            throw new Error(data.error || '분석 중 서버 오류가 발생했습니다.');
-          }
+          if (!proxyResponse.ok) throw new Error(data.error || '서버 분석 실패');
           parsed = data;
         } catch (fetchErr: any) {
-          throw new Error(fetchErr.message || '서버 연결에 실패했습니다.');
+          throw new Error(fetchErr.message || '서버 연결 실패');
         }
       } else {
-        // 개인 키 사용자용 직접 호출 (하이브리드 지원)
+        // 개인 키 사용자용 직접 호출 (하이브리드 지원) - 스키마 일원화
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ 
           model: "gemini-1.5-flash",
@@ -185,8 +182,13 @@ export default function CreateEvent() {
                 category: { type: SchemaType.STRING },
                 date: { type: SchemaType.STRING },
                 time: { type: SchemaType.STRING },
+                endDate: { type: SchemaType.STRING },
+                endTime: { type: SchemaType.STRING },
                 locationName: { type: SchemaType.STRING },
                 formattedAddress: { type: SchemaType.STRING },
+                city: { type: SchemaType.STRING },
+                country: { type: SchemaType.STRING },
+                maxAttendees: { type: SchemaType.INTEGER },
                 djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
@@ -205,12 +207,14 @@ export default function CreateEvent() {
 
         const result = await model.generateContent([
           { inlineData: { data: base64Data, mimeType } }, 
-          "Extract event info from this poster exactly as per schema."
+          "Extract event info from this poster exactly as per schema. For dates use YYYY-MM-DD. For times use 24h format HH:mm."
         ]);
         
         const response = await result.response;
         if (response && response.text) {
-          parsed = JSON.parse(response.text());
+          let text = response.text();
+          text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
+          parsed = JSON.parse(text);
         }
       }
       

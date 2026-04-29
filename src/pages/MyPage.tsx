@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Settings, Save, AtSign, ShieldCheck, Ticket, Coins, Clock, TrendingUp, History, ChevronRight } from 'lucide-react';
+import { User, Settings, Save, AtSign, ShieldCheck, Ticket, Coins, Clock, TrendingUp, History, ChevronRight, Camera } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
+import { uploadImageToStorage } from '../lib/storage';
 
 import TypeBadge from '../components/TypeBadge';
 
@@ -19,6 +20,35 @@ export default function MyPage() {
   const [loadingRegs, setLoadingRegs] = useState(false);
   const [pointHistory, setPointHistory] = useState<any[]>([]);
   const [loadingPoints, setLoadingPoints] = useState(false);
+  const profilePictureInputRef = useRef<HTMLInputElement>(null);
+
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsSaving(true);
+    try {
+      // 1. Upload to Supabase Storage using helper
+      const publicUrl = await uploadImageToStorage(file, 'profiles');
+
+      // 2. Update Profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ photo_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      await refreshProfile();
+      setSaveMessage('프로필 사진이 변경되었습니다.');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      alert('사진 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
+  };
 
   useEffect(() => {
     if (profile?.displayName) {
@@ -195,13 +225,25 @@ export default function MyPage() {
              </div>
              <form onSubmit={handleUpdateProfile} className="p-6 space-y-5">
                <div className="flex flex-col items-center mb-6">
-                 {profile.photoURL ? (
-                    <img src={profile.photoURL} alt="Profile" className="w-20 h-20 rounded-full mb-3 shadow-sm border border-slate-200 dark:border-slate-700" referrerPolicy="no-referrer" />
-                 ) : (
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
-                      <User className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                    </div>
-                 )}
+                 <div className="relative group cursor-pointer" onClick={() => profilePictureInputRef.current?.click()}>
+                   {profile.photoURL ? (
+                      <img src={profile.photoURL} alt="Profile" className="w-24 h-24 rounded-full mb-3 shadow-md border-2 border-white dark:border-slate-700 object-cover" referrerPolicy="no-referrer" />
+                   ) : (
+                      <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3 border-2 border-white dark:border-slate-700 shadow-sm">
+                        <User className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                      </div>
+                   )}
+                   <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity mb-3">
+                     <Camera className="w-6 h-6 text-white" />
+                   </div>
+                 </div>
+                 <input 
+                   type="file"
+                   ref={profilePictureInputRef}
+                   onChange={handleProfilePictureChange}
+                   accept="image/*"
+                   className="hidden"
+                 />
                  <span className="text-[11px] px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold rounded-md uppercase tracking-wider">
                    {profile.role === 'admin' ? '관리자' : profile.role === 'host' ? '주최자' : '참여자'}
                  </span>

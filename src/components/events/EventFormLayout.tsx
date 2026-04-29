@@ -1,10 +1,16 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, XCircle, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import clsx from 'clsx';
 
 interface EventFormLayoutProps {
   title: string;
   subtitle: string;
   aiLoading?: boolean;
+  aiStatus?: {
+    type: 'loading' | 'error' | 'success' | null;
+    message: string;
+  };
   onAiAnalyzeClick?: () => void;
   onSubmit?: (e: React.FormEvent) => void;
   leftColumn: React.ReactNode;
@@ -17,6 +23,7 @@ export const EventFormLayout: React.FC<EventFormLayoutProps> = ({
   title,
   subtitle,
   aiLoading,
+  aiStatus,
   onAiAnalyzeClick,
   onSubmit,
   leftColumn,
@@ -40,7 +47,38 @@ export const EventFormLayout: React.FC<EventFormLayoutProps> = ({
           </div>
           
           {onAiAnalyzeClick && (
-            <div className="shrink-0 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
+            <div className="shrink-0 animate-in fade-in slide-in-from-right-8 duration-1000 delay-300 relative">
+              <AnimatePresence>
+                {aiStatus && aiStatus.type && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                    className="absolute bottom-full mb-4 right-0 z-50 pointer-events-none"
+                  >
+                    <div className={clsx(
+                      "relative px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 whitespace-nowrap border",
+                      aiStatus.type === 'loading' && "bg-indigo-600/90 border-indigo-400 text-white",
+                      aiStatus.type === 'error' && "bg-rose-500/90 border-rose-400 text-white",
+                      aiStatus.type === 'success' && "bg-emerald-500/90 border-emerald-400 text-white"
+                    )}>
+                      {aiStatus.type === 'loading' && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                      {aiStatus.type === 'error' && <XCircle className="w-4 h-4" />}
+                      {aiStatus.type === 'success' && <CheckCircle2 className="w-4 h-4" />}
+                      <span className="text-sm font-black tracking-tight">{aiStatus.message}</span>
+                      
+                      {/* Arrow */}
+                      <div className={clsx(
+                        "absolute top-full right-8 w-4 h-4 -mt-2 rotate-45 border-r border-b",
+                        aiStatus.type === 'loading' && "bg-indigo-600/90 border-indigo-400",
+                        aiStatus.type === 'error' && "bg-rose-500/90 border-rose-400",
+                        aiStatus.type === 'success' && "bg-emerald-500/90 border-emerald-400"
+                      )} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="p-1 px-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 rounded-[32px] shadow-2xl shadow-indigo-500/20">
                 <div className="bg-white dark:bg-slate-900 rounded-[31px] p-2">
                   <button 

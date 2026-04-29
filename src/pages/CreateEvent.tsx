@@ -18,6 +18,7 @@ export default function CreateEvent() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState<{ type: 'loading' | 'error' | 'success' | null, message: string }>({ type: null, message: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
   
@@ -79,6 +80,7 @@ export default function CreateEvent() {
 
   const handleAiAnalyze = async (file: File) => {
     setAiLoading(true);
+    setAiStatus({ type: 'loading', message: '포스터를 분석하고 있어요... 🎨' });
     try {
       const dataUrl = await compressImageToDataUrl(file);
       const base64Data = dataUrl.split(',')[1];
@@ -87,6 +89,7 @@ export default function CreateEvent() {
       let apiKey = process.env.GEMINI_API_KEY;
 
       if (user) {
+        setAiStatus({ type: 'loading', message: '설정 정보를 확인 중입니다... ⚙️' });
         const { data: aiConfig } = await supabase
           .from('user_ai_configs')
           .select('api_key')
@@ -103,6 +106,7 @@ export default function CreateEvent() {
         throw new Error('GEMINI_API_KEY_MISSING');
       }
 
+      setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
       const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
@@ -176,14 +180,17 @@ export default function CreateEvent() {
            media: parsed.media && parsed.media.length > 0 ? parsed.media : prev.media,
            tickets: parsed.tickets && parsed.tickets.length > 0 ? parsed.tickets : prev.tickets
         }));
+        setAiStatus({ type: 'success', message: '분석 완료! 폼이 채워졌습니다. 🎉' });
+        setTimeout(() => setAiStatus({ type: null, message: '' }), 3000);
       }
     } catch(err: any) {
       console.error('AI Analysis failed:', err);
+      let errorMessage = 'AI 분석 중 오류가 발생했습니다. 😢';
       if (err.message?.includes('GEMINI_API_KEY') || err.message?.includes('GEMINI_API_KEY_MISSING')) {
-        alert('AI 분석을 위해 API 키가 필요합니다. 환경설정(AI API 설정)에서 Google API 키를 등록해주세요.');
-      } else {
-        alert('AI 분석 중 오류가 발생했습니다: ' + (err.message || '알 수 없는 오류'));
+        errorMessage = 'API 키가 등록되어 있지 않습니다. ⚠️';
       }
+      setAiStatus({ type: 'error', message: errorMessage });
+      setTimeout(() => setAiStatus({ type: null, message: '' }), 5000);
     } finally {
       setAiLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -334,6 +341,7 @@ export default function CreateEvent() {
       title="새로운 행사 만들기"
       subtitle="당신의 열정을 공유할 새로운 이벤트를 시작하세요."
       aiLoading={aiLoading}
+      aiStatus={aiStatus}
       onAiAnalyzeClick={() => fileInputRef.current?.click()}
       onSubmit={handleSubmit}
       leftColumn={

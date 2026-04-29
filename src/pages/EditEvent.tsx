@@ -22,6 +22,7 @@ export default function EditEvent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState<{ type: 'loading' | 'error' | 'success' | null, message: string }>({ type: null, message: '' });
   const [eventData, setEventData] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -172,6 +173,7 @@ export default function EditEvent() {
 
   const handleAiAnalyze = async (file: File) => {
     setAiLoading(true);
+    setAiStatus({ type: 'loading', message: '포스터를 분석하고 있어요... 🎨' });
     try {
       const dataUrl = await compressImageToDataUrl(file);
       const base64Data = dataUrl.split(',')[1];
@@ -180,6 +182,7 @@ export default function EditEvent() {
       let apiKey = process.env.GEMINI_API_KEY;
 
       if (user) {
+        setAiStatus({ type: 'loading', message: '설정 정보를 확인 중입니다... ⚙️' });
         const { data: aiConfig } = await supabase
           .from('user_ai_configs')
           .select('api_key')
@@ -196,6 +199,7 @@ export default function EditEvent() {
         throw new Error('GEMINI_API_KEY_MISSING');
       }
 
+      setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
       const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
@@ -269,10 +273,17 @@ export default function EditEvent() {
            mediaExperts: parsed.media && parsed.media.length > 0 ? parsed.media : prev.mediaExperts,
            tickets: parsed.tickets && parsed.tickets.length > 0 ? parsed.tickets : prev.tickets
         }));
+        setAiStatus({ type: 'success', message: '분석 완료! 폼이 채워졌습니다. 🎉' });
+        setTimeout(() => setAiStatus({ type: null, message: '' }), 3000);
       }
     } catch(err: any) {
       console.error('AI Analysis failed:', err);
-      // alert code skipped for brevity
+      let errorMessage = 'AI 분석 중 오류가 발생했습니다. 😢';
+      if (err.message?.includes('GEMINI_API_KEY') || err.message?.includes('GEMINI_API_KEY_MISSING')) {
+        errorMessage = 'API 키가 등록되어 있지 않습니다. ⚠️';
+      }
+      setAiStatus({ type: 'error', message: errorMessage });
+      setTimeout(() => setAiStatus({ type: null, message: '' }), 5000);
     } finally {
       setAiLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -496,6 +507,7 @@ export default function EditEvent() {
       title="행사 수정하기"
       subtitle="수정사항을 입력하고 업데이트를 완료하세요."
       aiLoading={aiLoading}
+      aiStatus={aiStatus}
       onAiAnalyzeClick={() => fileInputRef.current?.click()}
       onSubmit={handleSubmit}
       leftColumn={

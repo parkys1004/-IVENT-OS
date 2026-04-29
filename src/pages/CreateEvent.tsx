@@ -148,7 +148,7 @@ export default function CreateEvent() {
       if (useProxy) {
         // [보안적용] 서버 측 브릿지(Edge Function 역할) 호출
         try {
-          const proxyResponse = await fetch('/api/ai/analyze', {
+          const proxyResponse = await fetch('/api/v1/analyze-poster', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageBase64: base64Data, mimeType })

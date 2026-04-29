@@ -27,14 +27,23 @@ async function startServer() {
     next();
   });
 
-  // AI Analysis API - Secure Token is NOT exposed to client
-  app.post("/api/ai/analyze", async (req, res) => {
+  app.get("/api/v1/analyze-poster", (req, res) => {
+    res.json({ message: "AI Analysis API is ready. Please use POST method." });
+  });
+
+  const analyzeHandler = async (req: express.Request, res: express.Response) => {
+    console.log(`[AI Analysis] Request received: ${req.method} ${req.path}`);
     try {
       const { imageBase64, mimeType } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
 
       if (!apiKey) {
-        return res.status(500).json({ error: "System API Key not configured." });
+        console.error("[AI Analysis] GEMINI_API_KEY is missing in environment variables.");
+        return res.status(500).json({ error: "시스템 API 키가 서버에 설정되지 않았습니다." });
+      }
+
+      if (!imageBase64) {
+        return res.status(400).json({ error: "이미지 데이터가 누락되었습니다." });
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -76,13 +85,13 @@ async function startServer() {
         }
       });
 
-      const prompt = "Extract event information from this dance poster. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For tickets, extract price options. For djs/performances/media, extract names as arrays. If info is missing, use empty defaults.";
+      const prompt = "Extract dance event details from this poster. Use categories: salsa, bachata, kizomba, party, lesson, festival, workshop. For dates: YYYY-MM-DD. For times: HH:mm (24h).";
 
       const result = await model.generateContent([
         {
           inlineData: {
             data: imageBase64,
-            mimeType: mimeType
+            mimeType: mimeType || 'image/webp'
           }
         },
         prompt
@@ -91,20 +100,29 @@ async function startServer() {
       const response = await result.response;
       let text = response.text();
       
-      // JSON 파싱 전 마크다운 백틱 제거 (안전장치)
+      // 마크다운 백틱 제거
       text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
       
       try {
         const parsed = JSON.parse(text);
+        console.log("[AI Analysis] Successfully parsed analysis data.");
         res.json(parsed);
       } catch (parseError) {
-        console.error("JSON Parse Error. Raw Text:", text);
-        res.status(500).json({ error: "AI가 생성한 데이터 형식이 올바르지 않습니다." });
+        console.error("[AI Analysis] JSON Parse Error. Raw text:", text);
+        res.status(500).json({ error: "AI 응답 데이터 형식이 올바르지 않습니다." });
       }
     } catch (error: any) {
-      console.error("AI Proxy Error:", error);
+      console.error("[AI Analysis] Proxy Error:", error);
       res.status(500).json({ error: error.message || "서버 분석 중 오류가 발생했습니다." });
     }
+  };
+
+  app.post("/api/v1/analyze-poster", analyzeHandler);
+  app.post("/api/v1/analyze-poster/", analyzeHandler);
+
+  // 상태 체크용 엔드포인트
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", time: new Date().toISOString() });
   });
 
   // Vite middleware for development

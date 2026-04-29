@@ -4,17 +4,22 @@ import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
 import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, GraduationCap } from 'lucide-react';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { spendPoints, DEFAULT_POINT_POLICIES } from '../lib/points';
-import { uploadImageToStorage } from '../lib/storage';
+import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
 import clsx from 'clsx';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function CreateLesson() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState<{ type: 'loading' | 'error' | 'success' | null, message: string }>({ type: null, message: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const aiFileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -63,6 +68,153 @@ export default function CreateLesson() {
         lng: typeof place.geometry.location.lng === 'function' ? place.geometry.location.lng() : place.geometry.location.lng
       } : prev.geoPoint
     }));
+  };
+  
+  const handleAiAnalyze = async (file: File) => {
+    setAiLoading(true);
+    setAiStatus({ type: 'loading', message: '포스터를 분석하고 있어요... 🎨' });
+    try {
+      const dataUrl = await compressImageToDataUrl(file);
+      const base64Data = dataUrl.split(',')[1];
+      const mimeType = 'image/webp';
+
+      // 1. API Key check
+      let apiKey = localStorage.getItem('user_gemini_api_key');
+      let isPersonalKey = !!apiKey;
+      
+      if (!apiKey && user) {
+        const { data: aiConfig } = await supabase
+          .from('user_ai_configs')
+          .select('api_key')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (aiConfig?.api_key) {
+          apiKey = aiConfig.api_key;
+          isPersonalKey = true;
+        }
+      }
+
+      if (!isPersonalKey) {
+        const today = new Date().toISOString().split('T')[0];
+        const usageData = JSON.parse(localStorage.getItem('ai_usage_stats') || '{"date":"", "count":0}');
+        if (usageData.date !== today) {
+          usageData.date = today;
+          usageData.count = 0;
+        }
+
+        const FREE_LIMIT = 5;
+        if (usageData.count < FREE_LIMIT) {
+          usageData.count += 1;
+          localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
+          setAiStatus({ type: 'loading', message: `무료 체험 중 (${FREE_LIMIT - usageData.count + 1}회 남음) ✨` });
+        } else {
+          setAiStatus({ type: 'error', message: '일일 무료 분석 횟수 초과! 개인 API 키를 등록해주세요. 🔑' });
+          setTimeout(() => setAiStatus({ type: null, message: '' }), 6000);
+          setAiLoading(false);
+          return;
+        }
+      }
+
+      setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
+      
+      let parsed;
+      const useProxy = !isPersonalKey;
+
+      if (useProxy) {
+        const proxyResponse = await fetch('/api/ai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64Data, mimeType })
+        });
+        const data = await proxyResponse.json();
+        if (!proxyResponse.ok) throw new Error(data.error || '분석 실패');
+        parsed = data;
+      } else {
+        const genAI = new GoogleGenerativeAI(apiKey || '');
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash-latest",
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: SchemaType.OBJECT,
+              properties: {
+                title: { type: SchemaType.STRING },
+                description: { type: SchemaType.STRING },
+                category: { type: SchemaType.STRING },
+                level: { type: SchemaType.STRING },
+                date: { type: SchemaType.STRING },
+                time: { type: SchemaType.STRING },
+                endDate: { type: SchemaType.STRING },
+                endTime: { type: SchemaType.STRING },
+                locationName: { type: SchemaType.STRING },
+                formattedAddress: { type: SchemaType.STRING },
+                city: { type: SchemaType.STRING },
+                country: { type: SchemaType.STRING },
+                maxAttendees: { type: SchemaType.INTEGER },
+                tickets: { 
+                  type: SchemaType.ARRAY, 
+                  items: { 
+                    type: SchemaType.OBJECT,
+                    properties: { name: { type: SchemaType.STRING }, price: { type: SchemaType.INTEGER } }
+                  }
+                }
+              },
+              required: ["title", "date", "time", "locationName"]
+            }
+          }
+        });
+
+        const result = await model.generateContent([
+          { inlineData: { data: base64Data, mimeType } }, 
+          "Extract dance lesson info from this poster. Use YYYY-MM-DD for dates and 24h format HH:mm for times. Level should be beginner, intermediate, advanced, or all."
+        ]);
+        
+        const response = await result.response;
+        if (response && response.text) {
+          let text = response.text();
+          text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
+          parsed = JSON.parse(text);
+        }
+      }
+      
+      if (parsed) {
+        const validCategories = ['lesson', 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki'];
+        const validLevels = ['beginner', 'intermediate', 'advanced', 'all'];
+
+        setFormData(prev => ({
+           ...prev,
+           title: parsed.title || prev.title,
+           description: parsed.description || prev.description,
+           category: validCategories.includes(parsed.category) ? parsed.category : 'lesson',
+           level: validLevels.includes(parsed.level) ? parsed.level : 'beginner',
+           date: parsed.date || prev.date,
+           time: parsed.time || prev.time,
+           endDate: parsed.endDate || parsed.date || prev.endDate,
+           endTime: parsed.endTime || (parsed.time ? "23:59" : prev.endTime),
+           locationName: parsed.locationName || prev.locationName,
+           formattedAddress: parsed.formattedAddress || prev.formattedAddress,
+           city: parsed.city || prev.city,
+           country: parsed.country || prev.country,
+           maxAttendees: parsed.maxAttendees || prev.maxAttendees,
+           tickets: parsed.tickets && parsed.tickets.length > 0 ? parsed.tickets : prev.tickets
+        }));
+        setAiStatus({ type: 'success', message: '분석 완료! 강습 정보가 채워졌습니다. 🎉' });
+        setTimeout(() => setAiStatus({ type: null, message: '' }), 3000);
+      }
+    } catch(err: any) {
+      console.error('AI Analysis failed:', err);
+      setAiStatus({ type: 'error', message: err.message || 'AI 분석 중 오류가 발생했습니다.' });
+      setTimeout(() => setAiStatus({ type: null, message: '' }), 6000);
+    } finally {
+      setAiLoading(false);
+      if (aiFileInputRef.current) aiFileInputRef.current.value = '';
+    }
+  };
+
+  const handleAiInputClick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleAiAnalyze(file);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +351,59 @@ export default function CreateLesson() {
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">배움의 즐거움을 나누는 새로운 강습을 등록하세요.</p>
             </div>
+            
+            <div className="flex items-center gap-4">
+               <button
+                  type="button"
+                  onClick={() => aiFileInputRef.current?.click()}
+                  disabled={aiLoading}
+                  className="group relative flex items-center gap-2.5 px-6 py-4 bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/30 hover:shadow-2xl hover:shadow-indigo-600/40 hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  {aiLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles className="w-5 h-5 text-indigo-300 group-hover:text-white transition-colors" />
+                  )}
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[13px]">AI 포스터 자동 입력</span>
+                    <span className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest">Powered by Gemini</span>
+                  </div>
+                </button>
+                <input 
+                  type="file" 
+                  ref={aiFileInputRef} 
+                  onChange={handleAiInputClick} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+            </div>
           </div>
+
+          <AnimatePresence>
+            {aiStatus.type && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className={clsx(
+                  "p-5 rounded-2xl border-2 flex items-center gap-4 shadow-xl backdrop-blur-xl",
+                  aiStatus.type === 'loading' ? "bg-amber-50/90 dark:bg-amber-900/20 border-amber-200/50 text-amber-800 dark:text-amber-200" :
+                  aiStatus.type === 'success' ? "bg-emerald-50/90 dark:bg-emerald-900/20 border-emerald-200/50 text-emerald-800 dark:text-emerald-200" :
+                  "bg-rose-50/90 dark:bg-rose-900/20 border-rose-200/50 text-rose-800 dark:text-rose-200"
+                )}
+              >
+                {aiStatus.type === 'loading' ? (
+                  <div className="w-6 h-6 border-3 border-amber-400/30 border-t-amber-500 rounded-full animate-spin" />
+                ) : aiStatus.type === 'success' ? (
+                  <Sparkles className="w-6 h-6 text-emerald-500" />
+                ) : (
+                  <X className="w-6 h-6 text-rose-500" />
+                )}
+                <span className="font-black text-[15px]">{aiStatus.message}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="bg-white dark:bg-slate-900/50 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-1000">

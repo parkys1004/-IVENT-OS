@@ -37,13 +37,13 @@ interface AISetting {
 
 const PROVIDERS = [
   { id: 'openai', name: 'OpenAI (ChatGPT)', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'] },
-  { id: 'google', name: 'Google (Gemini)', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', models: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'] }
+  { id: 'google', name: 'Google (Gemini)', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', models: ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'] }
 ];
 
 const DIAGNOSTIC_MODELS = [
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'AI 포스터 분석 (멀티모달)' },
-  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'AI 추천 모드 (속도/효율)' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: '고급 추론 (고성능)' }
+  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', desc: 'AI 추천 모드 (속도/효율)' },
+  { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', desc: '고급 추론 (고성능)' }
 ];
 
 export default function AISettings() {
@@ -181,7 +181,7 @@ export default function AISettings() {
       return;
     }
     
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
     
     for (const modelId of models) {
       setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'loading' }));

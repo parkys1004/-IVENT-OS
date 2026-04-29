@@ -10,67 +10,95 @@ export default function VisitorCounter() {
   useEffect(() => {
     const fetchAndIncrementVisits = async () => {
       try {
-        // 1. Check if we've already counted this session to avoid spamming increments
+        // 1. Check local storage to avoid spamming calls if DB isn't ready
+        const errorKey = 'dancehive_stats_error_cooldown';
+        const errorTime = localStorage.getItem(errorKey);
+        if (errorTime && (Date.now() - parseInt(errorTime)) < 60000) {
+          // If we had an error in the last minute, don't try again to avoid console spam
+          setLoading(false);
+          return;
+        }
+
         const sessionKey = 'dancehive_visit_counted_' + new Date().toISOString().split('T')[0];
         const hasCounted = sessionStorage.getItem(sessionKey);
 
         // 2. Fetch current stats
-        // Table expected: visitor_stats { id: 'main', total_visits: number, today_visits: number, last_reset_date: string }
-        let { data, error } = await supabase
+        const { data, error } = await supabase
           .from('visitor_stats')
           .select('*')
           .eq('id', 'main')
-          .single();
+          .maybeSingle();
 
-        if (error && error.code === 'PGRST116') {
-          // Row doesn't exist, create it if possible (though RLS might block this)
+        if (error) {
+          console.warn('Visitor stats table might not be ready yet. Please check Supabase setup.');
+          localStorage.setItem(errorKey, Date.now().toString());
+          setLoading(false);
+          return;
+        }
+
+        let statsData = data;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        if (!statsData) {
+          // Attempt to initialize if missing (Only works if RLS allows anon insert)
           const initialData = {
             id: 'main',
             total_visits: 1,
             today_visits: 1,
-            last_reset_date: new Date().toISOString().split('T')[0]
+            last_reset_date: todayStr
           };
           const { data: newData, error: insertError } = await supabase
             .from('visitor_stats')
             .insert([initialData])
             .select()
-            .single();
+            .maybeSingle();
           
-          if (!insertError) data = newData;
+          if (insertError) {
+             // If insert fails (likely RLS), we just stop here
+             localStorage.setItem(errorKey, Date.now().toString());
+             setLoading(false);
+             return;
+          }
+          statsData = newData;
         }
 
-        if (data) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          let updatedData = { ...data };
+        if (statsData) {
+          let updatedData = { ...statsData };
 
-          // 3. Reset today's count if date changed
-          if (data.last_reset_date !== todayStr) {
-            updatedData.today_visits = 1;
-            updatedData.last_reset_date = todayStr;
-            updatedData.total_visits = (data.total_visits || 0) + 1;
-            
-            await supabase
+          if (statsData.last_reset_date !== todayStr) {
+            // Reset daily count
+            const nextTotal = (statsData.total_visits || 0) + 1;
+            const { error: updateError } = await supabase
               .from('visitor_stats')
               .update({ 
                 today_visits: 1, 
                 last_reset_date: todayStr,
-                total_visits: updatedData.total_visits
+                total_visits: nextTotal
               })
               .eq('id', 'main');
-          } else if (!hasCounted) {
-            // 4. Increment if first time this session
-            updatedData.today_visits = (data.today_visits || 0) + 1;
-            updatedData.total_visits = (data.total_visits || 0) + 1;
             
-            await supabase
+            if (!updateError) {
+              updatedData.today_visits = 1;
+              updatedData.total_visits = nextTotal;
+            }
+          } else if (!hasCounted) {
+            // Standard increment
+            const nextToday = (statsData.today_visits || 0) + 1;
+            const nextTotal = (statsData.total_visits || 0) + 1;
+            
+            const { error: updateError } = await supabase
               .from('visitor_stats')
               .update({ 
-                today_visits: updatedData.today_visits,
-                total_visits: updatedData.total_visits
+                today_visits: nextToday,
+                total_visits: nextTotal
               })
               .eq('id', 'main');
             
-            sessionStorage.setItem(sessionKey, 'true');
+            if (!updateError) {
+              updatedData.today_visits = nextToday;
+              updatedData.total_visits = nextTotal;
+              sessionStorage.setItem(sessionKey, 'true');
+            }
           }
 
           setStats({
@@ -79,7 +107,7 @@ export default function VisitorCounter() {
           });
         }
       } catch (err) {
-        console.error('Visitor counter error:', err);
+        // Silently fail to avoid UI crash
       } finally {
         setLoading(false);
       }

@@ -174,7 +174,7 @@ export default function CreateEvent() {
         // 개인 키 사용자용 직접 호출 (하이브리드 지원) - 스키마 일원화
         const genAI = new GoogleGenerativeAI(apiKey || '');
         const model = genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash",
+          model: "gemini-1.5-flash-latest",
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {

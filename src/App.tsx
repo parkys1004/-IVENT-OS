@@ -30,6 +30,7 @@ import { useAuth } from './context/AuthContext';
 import { AlertCircle, ExternalLink, MessageSquare } from 'lucide-react';
 import { OnboardingModal } from './components/OnboardingModal';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import VisitorCounter from './components/VisitorCounter';
 
 function SupabaseConfigWarning() {
   const url = import.meta.env.VITE_SUPABASE_URL;
@@ -211,6 +212,7 @@ function AppContent() {
       <OnboardingModal isOpen={profile?.role === 'unassigned'} />
       <SupabaseConfigWarning />
       <PWAInstallPrompt />
+      <VisitorCounter />
     </div>
   );
 }

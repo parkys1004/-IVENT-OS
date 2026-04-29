@@ -309,7 +309,7 @@ export default function Community() {
                       {post.rating && (
                         <div className="flex items-center gap-0.5">
                           {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={clsx("w-2.5 h-2.5 md:w-3 md:h-3", s <= post.rating ? "text-amber-400 fill-current" : "text-slate-200")} />
+                            <Star key={s} className={clsx("w-2.5 h-2.5 md:w-3 md:h-3", s <= (post.rating ?? 0) ? "text-amber-400 fill-current" : "text-slate-200")} />
                           ))}
                         </div>
                       )}

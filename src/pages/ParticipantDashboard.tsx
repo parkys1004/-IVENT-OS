@@ -1180,10 +1180,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     const REGIONS = ['서울', '강남', '홍대', '부산', '포항', '대구', '대전', '광주', '경기', '인천'];
     const TYPES = ['파티', '소셜', '강습', '워크숍', '페스티벌', '공연'];
 
-    const toggleItem = (category: keyof UserProfile['preferences'], item: string) => {
+    const toggleItem = (category: 'genres' | 'regions' | 'types', item: string) => {
       setPreferenceForm(prev => {
         if (!prev) return prev;
-        const currentItems = (prev[category] as string[]) || [];
+        const currentItems = (prev[category as keyof typeof prev] as string[]) || [];
         const newItems = currentItems.includes(item) 
           ? currentItems.filter(i => i !== item)
           : [...currentItems, item];

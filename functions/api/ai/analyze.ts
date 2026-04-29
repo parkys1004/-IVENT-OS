@@ -1,4 +1,4 @@
-export async function onRequest(context) {
+export async function onRequest(context: any) {
   const { request, env } = context;
   
   const corsHeaders = {
@@ -57,8 +57,8 @@ export async function onRequest(context) {
       headers: { ...corsHeaders, "Content-Type": "application/json" } 
     });
 
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message || String(error) }), { 
       status: 500, 
       headers: { ...corsHeaders, "Content-Type": "application/json" } 
     });

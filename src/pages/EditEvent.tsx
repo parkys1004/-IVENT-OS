@@ -111,7 +111,7 @@ export default function EditEvent() {
         if (error) throw error;
         if (data) {
           // Auth check: only host or admin can edit
-          if (data.host_id !== user.id && profile?.role !== 'admin') {
+          if (data.host_id !== user?.id && profile?.role !== 'admin') {
             alert('수정 권한이 없습니다.');
             navigate(`/event/${id}`);
             return;
@@ -265,7 +265,7 @@ export default function EditEvent() {
         }
       } else {
         // 개인 키 사용자용 직접 호출
-        const genAI = new GoogleGenerativeAI(apiKey);
+        const genAI = new GoogleGenerativeAI(apiKey || '');
         const model = genAI.getGenerativeModel({ 
           model: "gemini-1.5-flash",
           generationConfig: {
@@ -424,7 +424,7 @@ export default function EditEvent() {
     e.preventDefault();
     if (!user || !profile || !id) return;
     
-    const { data: latestProfile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+    const { data: latestProfile } = await supabase.from('profiles').select('role').eq('id', user?.id || '').maybeSingle();
     const isAdmin = profile?.role === 'admin' || latestProfile?.role === 'admin';
 
     setSubmitting(true);
@@ -502,7 +502,7 @@ export default function EditEvent() {
           .insert(images.map(url => ({
             event_id: id,
             image_url: url,
-            user_id: user.id
+            user_id: user?.id || ''
           })));
       }
       

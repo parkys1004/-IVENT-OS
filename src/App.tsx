@@ -29,6 +29,7 @@ import { useAuth } from './context/AuthContext';
 
 import { AlertCircle, ExternalLink, MessageSquare } from 'lucide-react';
 import { OnboardingModal } from './components/OnboardingModal';
+import WelcomePopup from './components/WelcomePopup';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import VisitorCounter from './components/VisitorCounter';
 
@@ -210,6 +211,7 @@ function AppContent() {
       </a>
 
       <OnboardingModal isOpen={profile?.role === 'unassigned'} />
+      <WelcomePopup />
       <SupabaseConfigWarning />
       <PWAInstallPrompt />
       <VisitorCounter />

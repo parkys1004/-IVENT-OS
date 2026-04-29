@@ -77,6 +77,7 @@ export default function CategoryExplore() {
             .from('profiles')
             .select('*')
             .in('role', roles)
+            .order('priority', { ascending: false })
             .limit(100);
           
           if (error) throw error;
@@ -104,6 +105,7 @@ export default function CategoryExplore() {
     const fetchItems = async () => {
       try {
         const combinedData: any[] = [];
+        const now = new Date().toISOString();
         
         // Fetch Parties
         if (category !== 'lesson') {
@@ -111,6 +113,16 @@ export default function CategoryExplore() {
           if (category !== 'all' && category !== 'party') {
             partiesQuery = partiesQuery.eq('category', category);
           }
+
+          // Apply server-side ordering
+          if (sortBy === 'upcoming') {
+            partiesQuery = partiesQuery.gte('end_date', now).order('date', { ascending: true });
+          } else if (sortBy === 'latest') {
+            partiesQuery = partiesQuery.order('created_at', { ascending: false });
+          } else if (sortBy === 'popular') {
+            partiesQuery = partiesQuery.order('likes_count', { ascending: false });
+          }
+
           const { data, error } = await partiesQuery.limit(50);
           if (error) console.error("Party fetch error:", error);
           if (data) combinedData.push(...data.map(p => ({ ...p, isLesson: false })));
@@ -122,6 +134,16 @@ export default function CategoryExplore() {
           if (category !== 'all' && category !== 'lesson') {
             lessonsQuery = lessonsQuery.eq('category', category);
           }
+
+          // Apply server-side ordering
+          if (sortBy === 'upcoming') {
+            lessonsQuery = lessonsQuery.gte('end_date', now).order('date', { ascending: true });
+          } else if (sortBy === 'latest') {
+            lessonsQuery = lessonsQuery.order('created_at', { ascending: false });
+          } else if (sortBy === 'popular') {
+            lessonsQuery = lessonsQuery.order('likes_count', { ascending: false });
+          }
+
           const { data, error } = await lessonsQuery.limit(50);
           if (error) console.error("Lesson fetch error:", error);
           if (data) combinedData.push(...data.map(l => ({ ...l, isLesson: true })));
@@ -148,7 +170,7 @@ export default function CategoryExplore() {
           id: e.id,
           title: e.title,
           description: e.description || '',
-          date: e.date || (e as any).start_date, // Handle potential schema variance
+          date: e.date || (e as any).start_date, 
           end_date: e.end_date,
           category: e.category,
           locationName: e.location_name,
@@ -162,8 +184,17 @@ export default function CategoryExplore() {
           level: (e as any).level,
           classTime: (e as any).class_time
         }));
+
+        // Final sort to merge parties and lessons properly
+        const sortedItems = mappedItems.sort((a, b) => {
+          const getTime = (val: any) => val ? new Date(val).getTime() : 0;
+          if (sortBy === 'upcoming') return getTime(a.date) - getTime(b.date);
+          if (sortBy === 'latest') return getTime(b.createdAt) - getTime(a.createdAt);
+          if (sortBy === 'popular') return (b.likesCount + (b as any).currentAttendees) - (a.likesCount + (a as any).currentAttendees);
+          return 0;
+        });
         
-        setEvents(mappedItems as any);
+        setEvents(sortedItems as any);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching category items:', error);
@@ -172,7 +203,7 @@ export default function CategoryExplore() {
     };
 
     fetchItems();
-  }, [category, isProfessionalCategory]);
+  }, [category, isProfessionalCategory, sortBy]);
 
   const filteredItems = isProfessionalCategory 
     ? professionals.filter(p => 
@@ -193,37 +224,7 @@ export default function CategoryExplore() {
           matchesPreferences = genreMatch && regionMatch;
         }
 
-        const getTime = (val: any) => {
-          if (!val) return 0;
-          return new Date(val).getTime();
-        };
-
-        const now = new Date().getTime();
-        const eventTime = getTime(e.date);
-        const meta = (e as any).metadata || {};
-        const endDateStr = meta.endDate || (e as any).end_date;
-        const endTime = endDateStr ? getTime(endDateStr) : eventTime + (4 * 60 * 60 * 1000);
-        const isUpcomingOrOngoing = endTime > now;
-
-        return matchesSearch && matchesPreferences && isUpcomingOrOngoing;
-      }).sort((a, b) => {
-        const getTime = (val: any) => {
-          if (!val) return 0;
-          return new Date(val).getTime();
-        };
-
-        if (sortBy === 'upcoming') {
-          return getTime(a.date) - getTime(b.date);
-        }
-        if (sortBy === 'latest') {
-          const timeA = getTime(a.createdAt);
-          const timeB = getTime(b.createdAt);
-          return timeB - timeA;
-        }
-        if (sortBy === 'popular') {
-          return (b.likesCount || 0) - (a.likesCount || 0);
-        }
-        return 0;
+        return matchesSearch && matchesPreferences;
       });
 
   return (

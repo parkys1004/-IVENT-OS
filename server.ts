@@ -49,7 +49,7 @@ async function startServer() {
 
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-1.5-flash-latest",
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -111,8 +111,14 @@ async function startServer() {
         res.status(500).json({ error: "AI 응답 데이터 형식이 올바르지 않습니다." });
       }
     } catch (error: any) {
-      console.error("[AI Analysis] Error:", error);
-      res.status(500).json({ error: error.message || "서버 분석 오류" });
+      console.error("[AI Analysis] Error Details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        status: error.status,
+        statusText: error.statusText
+      });
+      res.status(500).json({ error: error.message || "서버 분석 오류 (AI 호출 실패)" });
     }
   };
 

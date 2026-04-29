@@ -174,7 +174,7 @@ export default function CreateEvent() {
         // 개인 키 사용자용 직접 호출 (하이브리드 지원) - 스키마 일원화
         const genAI = new GoogleGenerativeAI(apiKey || '');
         const model = genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash",
+          model: "gemini-1.5-flash-latest",
           generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -249,15 +249,18 @@ export default function CreateEvent() {
     } catch(err: any) {
       console.error('AI Analysis failed:', err);
       let errorMessage = 'AI 분석 중 오류가 발생했습니다. 😢';
-      if (err.message?.includes('GEMINI_API_KEY') || err.message?.includes('GEMINI_API_KEY_MISSING') || err.message?.includes('SYSTEM_API_KEY_MISSING')) {
-        errorMessage = 'API 키가 등록되어 있지 않습니다. ⚠️';
-      } else if (err.message?.includes('Quota') || err.message?.includes('rate limit')) {
+      const msg = err.message || '';
+      if (msg.includes('GEMINI_API_KEY') || msg.includes('KEY_MISSING')) {
+        errorMessage = 'API 키가 등록되어 있지 않거나 잘못되었습니다. ⚠️';
+      } else if (msg.includes('Quota') || msg.includes('limit')) {
         errorMessage = 'API 호출 한도가 초과되었습니다. 잠시 후 시도해주세요. ⏳';
+      } else if (msg.includes('404') || msg.includes('not found')) {
+        errorMessage = 'AI 모델을 찾을 수 없습니다. (404) API 키의 권한이나 모델 지원 여부를 확인해주세요. 🔍';
       } else {
-        errorMessage = `오류: ${err.message?.substring(0, 50) || '알 수 없는 오류'}`;
+        errorMessage = `오류: ${msg.substring(0, 70) || '알 수 없는 오류'}`;
       }
       setAiStatus({ type: 'error', message: errorMessage });
-      setTimeout(() => setAiStatus({ type: null, message: '' }), 5000);
+      setTimeout(() => setAiStatus({ type: null, message: '' }), 6000);
     } finally {
       setAiLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

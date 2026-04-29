@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
-import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, GraduationCap } from 'lucide-react';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
@@ -40,6 +40,7 @@ export default function CreateEvent() {
     djs: [] as string[],
     performances: [] as string[],
     media: [] as string[],
+    workshops: [] as { teacher: string, topic: string, time: string }[],
     paymentMethod: '',
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
     isLesson: false,
@@ -195,6 +196,17 @@ export default function CreateEvent() {
                 djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                workshops: { 
+                  type: SchemaType.ARRAY, 
+                  items: { 
+                    type: SchemaType.OBJECT,
+                    properties: {
+                      teacher: { type: SchemaType.STRING },
+                      topic: { type: SchemaType.STRING },
+                      time: { type: SchemaType.STRING }
+                    }
+                  }
+                },
                 tickets: { 
                   type: SchemaType.ARRAY, 
                   items: { 
@@ -210,7 +222,7 @@ export default function CreateEvent() {
 
         const result = await model.generateContent([
           { inlineData: { data: base64Data, mimeType } }, 
-          "Extract event info from this poster exactly as per schema. For dates use YYYY-MM-DD. For times use 24h format HH:mm."
+          "Extract event info from this poster exactly as per schema. For dates use YYYY-MM-DD. For times use 24h format HH:mm. Also extract workshops (teacher, topic, time) if available."
         ]);
         
         const response = await result.response;
@@ -363,6 +375,7 @@ export default function CreateEvent() {
           djs: formData.djs.filter(d => d.trim()),
           performances: formData.performances.filter(p => p.trim()),
           media_experts: formData.media.filter(m => m.trim()),
+          workshops: formData.workshops.filter(w => w.teacher.trim() || w.topic.trim()),
           tickets: formData.tickets.filter(t => t.name.trim()),
           payment_method: formData.paymentMethod
         });
@@ -386,8 +399,18 @@ export default function CreateEvent() {
     setFormData(prev => ({ ...prev, tickets: newTickets }));
   };
 
-  const addLineupItem = (type: 'djs' | 'performances' | 'media') => {
-    setFormData(prev => ({ ...prev, [type]: [...prev[type], ''] }));
+  const addLineupItem = (type: 'djs' | 'performances' | 'media' | 'workshops') => {
+    if (type === 'workshops') {
+      setFormData(prev => ({ ...prev, workshops: [...prev.workshops, { teacher: '', topic: '', time: '' }] }));
+    } else {
+      setFormData(prev => ({ ...prev, [type]: [...prev[type], ''] }));
+    }
+  };
+
+  const updateWorkshopItem = (index: number, field: keyof typeof formData.workshops[0], value: string) => {
+    const list = [...formData.workshops];
+    list[index] = { ...list[index], [field]: value };
+    setFormData(prev => ({ ...prev, workshops: list }));
   };
 
   const updateLineupItem = (type: 'djs' | 'performances' | 'media', index: number, value: string) => {
@@ -396,7 +419,7 @@ export default function CreateEvent() {
     setFormData(prev => ({ ...prev, [type]: list }));
   };
 
-  const removeLineupItem = (type: 'djs' | 'performances' | 'media', index: number) => {
+  const removeLineupItem = (type: 'djs' | 'performances' | 'media' | 'workshops', index: number) => {
     setFormData(prev => ({ ...prev, [type]: prev[type].filter((_, i) => i !== index) }));
   };
 
@@ -539,6 +562,45 @@ export default function CreateEvent() {
 
           {/* Lineup Section */}
           <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-teal-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">워크샵 라인업</span>
+                </div>
+                <button type="button" onClick={() => addLineupItem('workshops')} className="text-[11px] font-black text-teal-600 bg-teal-50 dark:bg-teal-900/20 px-3 py-1.5 rounded-full">+ 추가</button>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {formData.workshops.map((ws, idx) => (
+                  <div key={idx} className="p-5 rounded-[24px] bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-left-2 transition-all">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[10px] font-black text-teal-500 uppercase tracking-widest bg-teal-50 dark:bg-teal-900/30 px-3 py-1 rounded-full">Workshop #{idx + 1}</span>
+                      <button type="button" onClick={() => removeLineupItem('workshops', idx)} className="p-2 text-slate-300 hover:text-rose-500"><X className="w-4 h-4" /></button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">강사명</label>
+                        <input type="text" value={ws.teacher} onChange={(e) => updateWorkshopItem(idx, 'teacher', e.target.value)} placeholder="예: 강사님 이름" className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500/20" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">시간</label>
+                        <input type="text" value={ws.time} onChange={(e) => updateWorkshopItem(idx, 'time', e.target.value)} placeholder="예: 19:00 - 20:00" className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500/20" />
+                      </div>
+                      <div className="sm:col-span-2 space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">워크샵 주제</label>
+                        <input type="text" value={ws.topic} onChange={(e) => updateWorkshopItem(idx, 'topic', e.target.value)} placeholder="예: 바차타 센슈얼 베이직" className="w-full rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500/20" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {formData.workshops.length === 0 && (
+                  <div className="py-8 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[28px] opacity-40">
+                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">등록된 워크샵이 없습니다.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div className="flex items-center justify-between ml-1">
                 <div className="flex items-center gap-2">

@@ -18,7 +18,6 @@ import {
   Users,
   Disc,
   Camera,
-  Zap,
   X,
   User,
   MapPin,
@@ -77,7 +76,6 @@ export default function Navbar() {
       ]
     },
     { to: '/explore/lesson', icon: <GraduationCap className="w-4 h-4" />, label: t('search.category.lesson') },
-    { to: '/explore/workshop', icon: <Zap className="w-4 h-4" />, label: t('search.category.workshop') },
     { to: '/explore/instructor', icon: <Users className="w-4 h-4" />, label: t('search.category.instructor') },
     { to: '/explore/dj', icon: <Disc className="w-4 h-4" />, label: t('search.category.dj') },
     { to: '/explore/media', icon: <Camera className="w-4 h-4" />, label: t('search.category.media') },

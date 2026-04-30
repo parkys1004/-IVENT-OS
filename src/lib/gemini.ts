@@ -1,25 +1,30 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 let aiInstance: GoogleGenerativeAI | null = null;
+let lastKey: string | null = null;
 
 function getAI() {
-  if (!aiInstance) {
-    // Try personal key from localStorage first
-    let apiKey = localStorage.getItem('user_gemini_api_key');
-    
-    if (!apiKey) {
-      // In Vite, process.env is not available in the browser. 
-      // This will only work if VITE_GEMINI_API_KEY was set, 
-      // but the system provided one is GEMINI_API_KEY (server-only).
-      apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
-    }
-
-    if (!apiKey || apiKey === 'undefined') {
-      console.warn("Gemini API key is not set. AI features like translation will be limited to personal key users.");
-      return null;
-    }
-    aiInstance = new GoogleGenerativeAI(apiKey);
+  // Try personal key from localStorage first
+  let apiKey = localStorage.getItem('user_gemini_api_key');
+  
+  if (!apiKey) {
+    apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
   }
+
+  if (!apiKey || apiKey === 'undefined') {
+    if (aiInstance) {
+      aiInstance = null;
+      lastKey = null;
+    }
+    return null;
+  }
+
+  // Refresh instance if key changed
+  if (!aiInstance || apiKey !== lastKey) {
+    aiInstance = new GoogleGenerativeAI(apiKey);
+    lastKey = apiKey;
+  }
+  
   return aiInstance;
 }
 

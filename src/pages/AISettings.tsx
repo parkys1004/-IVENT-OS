@@ -64,7 +64,8 @@ export default function AISettings() {
   const [diagnosticStatus, setDiagnosticStatus] = useState<Record<string, 'waiting' | 'loading' | 'success' | 'error'>>({
     'gemini-2.0-flash': 'waiting',
     'gemini-1.5-flash-latest': 'waiting',
-    'gemini-1.5-pro-latest': 'waiting'
+    'gemini-1.5-pro-latest': 'waiting',
+    'openai-test': 'waiting'
   });
   const [diagnosticMessages, setDiagnosticMessages] = useState<Record<string, string>>({});
 
@@ -181,42 +182,71 @@ export default function AISettings() {
       return;
     }
     
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
-    
-    for (const modelId of models) {
-      setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'loading' }));
+    if (provider === 'google') {
+      const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
       
-      try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: modelId }, { apiVersion: 'v1beta' });
+      for (const modelId of models) {
+        setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'loading' }));
         
-        // 아주 짧은 텍스트로 실제 호출 테스트
-        const result = await model.generateContent("Hi");
-        const response = await result.response;
-        const text = response.text();
-        
-        if (text) {
-          setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'success' }));
-          setDiagnosticMessages(prev => ({ ...prev, [modelId]: '활성화됨 - 사용 가능' }));
-        }
-      } catch (err: any) {
-        console.error(`Diagnostic error for ${modelId}:`, err);
-        let msg = '권한 오류 (403)';
-        
-        // 에러 메시지 파싱
-        const errorStr = err.message || '';
-        if (errorStr.includes('404')) {
-          msg = '모델 미지원 (404)';
-        } else if (errorStr.includes('403')) {
-          msg = '권한 부족 (403)';
-        } else if (errorStr.includes('429')) {
-          msg = '할당량 초과 (429)';
-        } else if (errorStr.includes('API_KEY_INVALID')) {
-          msg = '유효하지 않은 키';
-        }
+        try {
+          const genAI = new GoogleGenerativeAI(apiKey);
+          const model = genAI.getGenerativeModel({ model: modelId }, { apiVersion: 'v1beta' });
+          
+          // 아주 짧은 텍스트로 실제 호출 테스트
+          const result = await model.generateContent("Hi");
+          const response = await result.response;
+          const text = response.text();
+          
+          if (text) {
+            setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'success' }));
+            setDiagnosticMessages(prev => ({ ...prev, [modelId]: '활성화됨 - 사용 가능' }));
+          }
+        } catch (err: any) {
+          console.error(`Diagnostic error for ${modelId}:`, err);
+          let msg = '권한 오류 (403)';
+          
+          // 에러 메시지 파싱
+          const errorStr = err.message || '';
+          if (errorStr.includes('404')) {
+            msg = '모델 미지원 (404)';
+          } else if (errorStr.includes('403')) {
+            msg = '권한 부족 (403)';
+          } else if (errorStr.includes('429')) {
+            msg = '할당량 초과 (429)';
+          } else if (errorStr.includes('API_KEY_INVALID')) {
+            msg = '유효하지 않은 키';
+          }
 
-        setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'error' }));
-        setDiagnosticMessages(prev => ({ ...prev, [modelId]: msg }));
+          setDiagnosticStatus(prev => ({ ...prev, [modelId]: 'error' }));
+          setDiagnosticMessages(prev => ({ ...prev, [modelId]: msg }));
+        }
+      }
+    } else {
+      // OpenAI Diagnostic
+      setDiagnosticStatus(prev => ({ ...prev, 'openai-test': 'loading' }));
+      try {
+        const response = await fetch('https://api.openai.com/v1/models', {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`
+          }
+        });
+        
+        if (response.ok) {
+          setDiagnosticStatus(prev => ({ ...prev, 'openai-test': 'success' }));
+          setDiagnosticMessages(prev => ({ ...prev, 'openai-test': '활성화됨 - 사용 가능' }));
+        } else {
+          const data = await response.json();
+          let msg = `에러 (${response.status})`;
+          if (response.status === 401) msg = '유효하지 않은 키 (401)';
+          if (response.status === 429) msg = '할당량 초과 (429)';
+          if (response.status === 403) msg = '권한 없음 (403)';
+          
+          setDiagnosticStatus(prev => ({ ...prev, 'openai-test': 'error' }));
+          setDiagnosticMessages(prev => ({ ...prev, 'openai-test': msg }));
+        }
+      } catch (err) {
+        setDiagnosticStatus(prev => ({ ...prev, 'openai-test': 'error' }));
+        setDiagnosticMessages(prev => ({ ...prev, 'openai-test': '네트워크 오류' }));
       }
     }
   };
@@ -308,7 +338,7 @@ export default function AISettings() {
                 </div>
 
                 {/* Diagnostic Tool */}
-                {provider === 'google' && apiKey.length > 20 && (
+                {((provider === 'google' && apiKey.length > 20) || (provider === 'openai' && apiKey.startsWith('sk-'))) && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -329,42 +359,74 @@ export default function AISettings() {
                     </div>
                     
                     <div className="space-y-2">
-                      {DIAGNOSTIC_MODELS.map((m) => {
-                        const status = diagnosticStatus[m.id];
-                        const resultMsg = diagnosticMessages[m.id];
-                        
-                        return (
-                          <div key={m.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
-                            <div className="flex items-center gap-3">
-                              <div className={clsx(
-                                "w-2 h-2 rounded-full",
-                                status === 'waiting' && "bg-slate-300 dark:bg-slate-600",
-                                status === 'loading' && "bg-blue-500 animate-pulse",
-                                status === 'success' && "bg-emerald-500",
-                                status === 'error' && "bg-rose-500"
-                              )} />
-                              <div>
-                                <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{m.name}</p>
-                                <p className="text-[9px] text-slate-500 font-medium">{m.desc}</p>
+                      {provider === 'google' ? (
+                        DIAGNOSTIC_MODELS.map((m) => {
+                          const status = diagnosticStatus[m.id];
+                          const resultMsg = diagnosticMessages[m.id];
+                          
+                          return (
+                            <div key={m.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                              <div className="flex items-center gap-3">
+                                <div className={clsx(
+                                  "w-2 h-2 rounded-full",
+                                  status === 'waiting' && "bg-slate-300 dark:bg-slate-600",
+                                  status === 'loading' && "bg-blue-500 animate-pulse",
+                                  status === 'success' && "bg-emerald-500",
+                                  status === 'error' && "bg-rose-500"
+                                )} />
+                                <div>
+                                  <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">{m.name}</p>
+                                  <p className="text-[9px] text-slate-500 font-medium">{m.desc}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className={clsx(
+                                  "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase",
+                                  status === 'waiting' && "text-slate-400 bg-slate-100 dark:bg-slate-800",
+                                  status === 'loading' && "text-blue-500 bg-blue-50 dark:bg-blue-500/10",
+                                  status === 'success' && "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10",
+                                  status === 'error' && "text-rose-500 bg-rose-50 dark:bg-rose-500/10"
+                                )}>
+                                  {status === 'waiting' && '대기'}
+                                  {status === 'loading' && '진행 중'}
+                                  {status === 'success' && (resultMsg || '성공')}
+                                  {status === 'error' && (resultMsg || '실패')}
+                                </span>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <span className={clsx(
-                                "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase",
-                                status === 'waiting' && "text-slate-400 bg-slate-100 dark:bg-slate-800",
-                                status === 'loading' && "text-blue-500 bg-blue-50 dark:bg-blue-500/10",
-                                status === 'success' && "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10",
-                                status === 'error' && "text-rose-500 bg-rose-50 dark:bg-rose-500/10"
-                              )}>
-                                {status === 'waiting' && '대기'}
-                                {status === 'loading' && '진행 중'}
-                                {status === 'success' && (resultMsg || '성공')}
-                                {status === 'error' && (resultMsg || '실패')}
-                              </span>
+                          );
+                        })
+                      ) : (
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                          <div className="flex items-center gap-3">
+                            <div className={clsx(
+                              "w-2 h-2 rounded-full",
+                              diagnosticStatus['openai-test'] === 'waiting' && "bg-slate-300 dark:bg-slate-600",
+                              diagnosticStatus['openai-test'] === 'loading' && "bg-blue-500 animate-pulse",
+                              diagnosticStatus['openai-test'] === 'success' && "bg-emerald-500",
+                              diagnosticStatus['openai-test'] === 'error' && "bg-rose-500"
+                            )} />
+                            <div>
+                              <p className="text-[11px] font-black text-slate-700 dark:text-slate-200">OpenAI API Connection</p>
+                              <p className="text-[9px] text-slate-500 font-medium">모델 리스트 호출 테스트</p>
                             </div>
                           </div>
-                        );
-                      })}
+                          <div className="text-right">
+                            <span className={clsx(
+                              "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase",
+                              diagnosticStatus['openai-test'] === 'waiting' && "text-slate-400 bg-slate-100 dark:bg-slate-800",
+                              diagnosticStatus['openai-test'] === 'loading' && "text-blue-500 bg-blue-50 dark:bg-blue-500/10",
+                              diagnosticStatus['openai-test'] === 'success' && "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10",
+                              diagnosticStatus['openai-test'] === 'error' && "text-rose-500 bg-rose-50 dark:bg-rose-500/10"
+                            )}>
+                              {diagnosticStatus['openai-test'] === 'waiting' && '대기'}
+                              {diagnosticStatus['openai-test'] === 'loading' && '진행 중'}
+                              {diagnosticStatus['openai-test'] === 'success' && (diagnosticMessages['openai-test'] || '성공')}
+                              {diagnosticStatus['openai-test'] === 'error' && (diagnosticMessages['openai-test'] || '실패')}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}

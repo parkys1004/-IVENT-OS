@@ -1,8 +1,16 @@
 import { supabase } from '../supabase';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' }, { apiVersion: 'v1beta' });
+function getGeminiModel() {
+  const userKey = localStorage.getItem('user_gemini_api_key');
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = userKey || envKey || '';
+  
+  if (!apiKey) return null;
+  
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' }, { apiVersion: 'v1beta' });
+}
 
 export interface RecommendationTags {
   country?: string[];
@@ -41,6 +49,9 @@ export async function extractTagsFromInput(input: string): Promise<Recommendatio
   `;
 
   try {
+    const model = getGeminiModel();
+    if (!model) throw new Error('Gemini model not initialized - missing API key');
+    
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();

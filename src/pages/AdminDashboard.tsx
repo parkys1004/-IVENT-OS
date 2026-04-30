@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
-import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout, MessageSquare, Menu, X as CloseIcon, MapPin } from 'lucide-react';
+import { RefreshCw, Users, CalendarDays, Home, Coins, ChevronRight, Image as ImageIcon, LayoutGrid, Settings, Bot, AlertCircle, Layout, MessageSquare, Menu, X as CloseIcon, MapPin, Sparkles } from 'lucide-react';
 import { useAuth, UserProfile } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -16,6 +16,7 @@ import { ConfigTab } from '../components/admin/ConfigTab';
 import { SettingsTab } from '../components/admin/SettingsTab';
 import { CommunityTab } from '../components/admin/CommunityTab';
 import { PlacesTab } from '../components/admin/PlacesTab';
+import { BrandTab } from '../components/admin/BrandTab';
 
 interface EventData {
   id: string;
@@ -47,7 +48,7 @@ interface DashboardConfig {
   sectionOrder: string[];
 }
 
-type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings' | 'community' | 'places';
+type MenuKey = 'home' | 'users' | 'events' | 'lessons' | 'banners' | 'config' | 'points' | 'settings' | 'community' | 'places' | 'brand';
 
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -283,6 +284,7 @@ export default function AdminDashboard() {
     { key: 'banners', label: '배너 관리', icon: ImageIcon },
     { key: 'community', label: '게시판 관리', icon: MessageSquare, color: 'indigo' },
     { key: 'places', label: '장소 관리', icon: MapPin, color: 'indigo', badge: pendingPlacesCount },
+    { key: 'brand', label: '브랜드 자산', icon: Sparkles, color: 'indigo' },
     { key: 'config', label: '홈 화면 설정', icon: Layout },
   ];
 
@@ -481,6 +483,9 @@ export default function AdminDashboard() {
                   events={events}
                   users={users}
                 />
+              )}
+              {activeMenu === 'brand' && (
+                <BrandTab />
               )}
               {activeMenu === 'settings' && (
                 <SettingsTab 

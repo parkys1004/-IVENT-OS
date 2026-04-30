@@ -145,7 +145,7 @@ function AppContent() {
     );
   }
 
-  const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin' || location.pathname === '/mypage' || location.pathname === '/ai-settings';
+  const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin' || location.pathname === '/ai-settings';
   const isHomePath = location.pathname === '/';
   const isCommunityPath = location.pathname.startsWith('/community');
   const isDashboardView = isDashboardPath && profile; 

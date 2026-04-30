@@ -868,8 +868,8 @@ export default function ProfessionalDashboard() {
     <div className="flex-1 flex overflow-hidden glass-panel h-full w-full min-h-0 transition-colors">
       
       {/* LNB (Left Navigation Bar) */}
-      <div className="w-64 bg-white/20 dark:bg-slate-900/20 border-r border-slate-200/30 dark:border-slate-800/20 backdrop-blur-3xl h-full flex flex-col shadow-sm z-10 shrink-0 pb-4 hidden lg:flex">
-        <div className="p-6">
+      <div className="w-64 bg-white/20 dark:bg-slate-900/20 border-r border-slate-200/30 dark:border-slate-800/20 backdrop-blur-3xl h-full flex flex-col shadow-sm z-10 shrink-0 hidden lg:flex">
+        <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
           <div className="bg-indigo-600 rounded-2xl p-6 shadow-lg shadow-indigo-600/20 text-white mb-8">
             <p className="font-bold text-indigo-100 text-[10px] uppercase tracking-widest mb-2">
               {profile?.role === 'dj' ? 'Professional DJ' : 
@@ -880,7 +880,7 @@ export default function ProfessionalDashboard() {
             <p className="font-black text-xl leading-tight truncate">{profile?.displayName || '전문가'}님</p>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-1 pb-4">
             {currentRoleMenus.map((item) => (
               <button 
                 key={item.key}

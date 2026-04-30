@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Settings, Save, AtSign, ShieldCheck, Ticket, Coins, Clock, TrendingUp, History, ChevronRight, Camera, Instagram, Facebook, MessageCircle } from 'lucide-react';
+import { User, Settings, Save, AtSign, ShieldCheck, Ticket, Coins, Clock, TrendingUp, History, ChevronRight, Camera, Instagram, Facebook, MessageCircle, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { format } from 'date-fns';
@@ -284,145 +284,66 @@ export default function MyPage() {
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Form Settings */}
-        <motion.div variants={itemVariants} className="lg:col-span-7 space-y-8">
-          <div className="glass-panel rounded-[32px] overflow-hidden border border-white/40 dark:border-slate-800">
-            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
-              <h2 className="font-black text-xl text-slate-800 dark:text-white flex items-center gap-3">
-                <Settings className="w-6 h-6 text-indigo-500" />
-                계정 및 프로필 설정
-              </h2>
-              <User className="w-5 h-5 text-slate-300 dark:text-slate-600" />
-            </div>
-            
-            <form onSubmit={handleUpdateProfile} className="p-8 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest ml-1">공개 닉네임</label>
-                  <input 
-                    type="text" 
-                    value={displayName} 
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all font-bold"
-                    placeholder="활동할 이름을 입력하세요"
-                  />
+        {/* Left Column: Quick Summary & Navigation */}
+        <motion.div variants={itemVariants} className="lg:col-span-4 space-y-6">
+          {/* Profile Quick Card */}
+          <div className="glass-panel rounded-[32px] p-8 border border-white/40 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm relative overflow-hidden group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/10 transition-colors" />
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-800">
+                  <User className="w-6 h-6 text-indigo-500" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest ml-1">가입 이메일</label>
-                  <div className="w-full px-5 py-3.5 bg-slate-100/50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl text-slate-400 text-sm cursor-not-allowed flex items-center gap-2">
-                    <AtSign className="w-3.5 h-3.5 opacity-50" />
-                    {user.email}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest ml-1">성별 선택</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setGender('male')}
-                    className={clsx(
-                      "py-4 rounded-2xl text-sm font-black transition-all border-2 flex items-center justify-center gap-3",
-                      gender === 'male' 
-                        ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20" 
-                        : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200"
-                    )}
-                  >
-                    <div className={clsx("w-2.5 h-2.5 rounded-full", gender === 'male' ? "bg-white" : "bg-indigo-400")} />
-                    MALE
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGender('female')}
-                    className={clsx(
-                      "py-4 rounded-2xl text-sm font-black transition-all border-2 flex items-center justify-center gap-3",
-                      gender === 'female' 
-                        ? "bg-rose-500 border-rose-500 text-white shadow-xl shadow-rose-500/20" 
-                        : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200"
-                    )}
-                  >
-                    <div className={clsx("w-2.5 h-2.5 rounded-full", gender === 'female' ? "bg-white" : "bg-rose-400")} />
-                    FEMALE
-                  </button>
+                <div>
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-tighter">My Account</h3>
+                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-none">Personal Info Summary</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest ml-1">SNS 채널 연동</label>
-                <div className="space-y-3">
-                  <div className="relative group">
-                    <Instagram className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-500/60 group-focus-within:text-pink-500 transition-colors" />
-                    <input 
-                      type="text" 
-                      value={instagramUrl} 
-                      onChange={(e) => setInstagramUrl(e.target.value)}
-                      className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-all font-bold placeholder:text-slate-400"
-                      placeholder="Instagram Username (@id)"
-                    />
-                  </div>
-                  <div className="relative group">
-                    <Facebook className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600/60 group-focus-within:text-blue-600 transition-colors" />
-                    <input 
-                      type="text" 
-                      value={facebookUrl} 
-                      onChange={(e) => setFacebookUrl(e.target.value)}
-                      className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-all font-bold placeholder:text-slate-400"
-                      placeholder="Facebook Profile URL"
-                    />
-                  </div>
-                  <div className="relative group">
-                    <MessageCircle className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-500/60 group-focus-within:text-amber-500 transition-colors" />
-                    <input 
-                      type="text" 
-                      value={kakaoId} 
-                      onChange={(e) => setKakaoId(e.target.value)}
-                      className="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-all font-bold placeholder:text-slate-400"
-                      placeholder="KakaoTalk ID"
-                    />
-                  </div>
+                <div className="flex items-center justify-between py-3 border-b border-slate-50 dark:border-slate-800">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">SNS Link</span>
+                  {profile.instagram_url || profile.kakao_id ? (
+                    <div className="flex gap-2">
+                       {profile.instagram_url && <Instagram className="w-4 h-4 text-pink-500" />}
+                       {profile.kakao_id && <MessageCircle className="w-4 h-4 text-amber-500" />}
+                    </div>
+                  ) : <span className="text-[10px] font-black text-slate-300">NOT LINKED</span>}
                 </div>
-              </div>
-              
-              <div className="mt-8 flex flex-col gap-4">
-                <button 
-                  type="submit" 
-                  disabled={isSaving}
-                  className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white font-black rounded-2xl hover:bg-black dark:hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/10 disabled:opacity-50 flex items-center justify-center gap-3 tracking-tight"
-                >
-                  {isSaving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : <Save className="w-5 h-5" />}
-                  {isSaving ? '저장 중...' : '변경사항 저장하기'}
-                </button>
-                <AnimatePresence>
-                  {saveMessage && (
-                    <motion.div initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} exit={{opacity:0}} className="text-sm font-black text-emerald-600 dark:text-emerald-400 text-center bg-emerald-50 dark:bg-emerald-950/30 py-3 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                      {saveMessage}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div className="flex items-center justify-between py-3 border-b border-slate-50 dark:border-slate-800">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Gender</span>
+                  <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300">
+                    {profile.gender || '미지정'}
+                  </span>
+                </div>
               </div>
 
-              <div className="pt-8 mt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="bg-rose-50 dark:bg-rose-950/20 p-6 rounded-3xl border border-rose-100 dark:border-rose-900/30 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="text-center md:text-left">
-                    <p className="text-sm font-black text-rose-800 dark:text-rose-300">위험 구역 (Account Deletion)</p>
-                    <p className="text-[12px] text-rose-600/70 dark:text-rose-400/60 font-medium">탈퇴 시 모든 활동 데이터와 포인트가 즉시 삭제됩니다.</p>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={handleWithdrawal}
-                    className="px-6 py-2.5 text-rose-600 dark:text-rose-400 text-xs font-black border-2 border-rose-200 dark:border-rose-900/40 rounded-xl hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 transition-all"
-                  >
-                    탈퇴하기
-                  </button>
-                </div>
-              </div>
-            </form>
+              <Link to="/settings" className="w-full py-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs text-center border border-slate-100 dark:border-slate-700 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center justify-center gap-2">
+                <Settings className="w-4 h-4" />
+                계정 및 개인정보 수정
+              </Link>
+            </div>
           </div>
+
+          {/* Quick Stats or Promotions */}
+          <Link to="/points" className="block p-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-[32px] border border-indigo-100 dark:border-indigo-800/30 group">
+             <div className="flex items-center gap-4 mb-4">
+               <div className="w-10 h-10 bg-white dark:bg-indigo-900 rounded-xl flex items-center justify-center shadow-sm">
+                 <Zap className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+               </div>
+               <h4 className="font-black text-indigo-900 dark:text-indigo-200">포인트 추가 충전</h4>
+             </div>
+             <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold leading-relaxed mb-4">
+                강습 예매와 커뮤니티 활동을 위해<br />포인트를 미리 충전해보세요!
+             </p>
+             <div className="flex items-center text-xs font-black text-indigo-700 dark:text-indigo-300 gap-1 group-hover:translate-x-1 transition-transform">
+                Go to Recharge <ChevronRight className="w-3.5 h-3.5" />
+             </div>
+          </Link>
         </motion.div>
 
-        {/* Right Column: Points & History */}
-        <motion.div variants={itemVariants} className="lg:col-span-5 space-y-8">
+        {/* Right Column: Points & History SUMMARY */}
+        <motion.div variants={itemVariants} className="lg:col-span-8 space-y-8">
           {/* Enhanced Point Card */}
           <div className="bg-gradient-to-br from-indigo-700 via-indigo-600 to-violet-800 rounded-[32px] p-8 text-white shadow-2xl shadow-indigo-500/30 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-[100px] translate-x-32 -translate-y-32 pointer-events-none group-hover:bg-amber-400/10 transition-colors duration-700" />
@@ -435,9 +356,9 @@ export default function MyPage() {
                   </div>
                   <p className="text-indigo-100/60 text-[12px] font-bold">누적된 소중한 포인트입니다.</p>
                 </div>
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
-                  <TrendingUp className="w-6 h-6 text-indigo-200" />
-                </div>
+                <Link to="/settings" className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/20 transition-colors">
+                  <History className="w-6 h-6 text-indigo-200" />
+                </Link>
               </div>
 
               <div className="mb-10">
@@ -454,9 +375,12 @@ export default function MyPage() {
                     className="h-full bg-gradient-to-r from-amber-300 to-orange-400 rounded-full"
                   />
                 </div>
-                <p className="text-[11px] font-black uppercase tracking-widest mt-2 text-indigo-200/60">
-                   Next Level: {1000 - ((profile.points || 0) % 1000)} P Remaining
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-indigo-200/60">
+                    Next Level: {1000 - ((profile.points || 0) % 1000)} P Remaining
+                  </p>
+                  <Link to="/settings" className="text-[10px] font-black text-indigo-300 hover:text-white transition-colors underline underline-offset-4">상세 내역 보기</Link>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -470,66 +394,21 @@ export default function MyPage() {
             </div>
           </div>
 
-          {/* Activity Logs */}
-          <div className="glass-panel rounded-[32px] overflow-hidden">
-            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20">
-              <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-3">
-                <History className="w-5 h-5 text-indigo-500" />
-                활동 로그
-              </h3>
-            </div>
-            <div className="p-6">
-              {loadingPoints ? (
-                <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
-              ) : pointHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {pointHistory.slice(0, 4).map((h) => (
-                    <div key={h.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl group">
-                      <div className="flex items-center gap-3">
-                        <div className={clsx(
-                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                          h.amount > 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                        )}>
-                          {h.amount > 0 ? <TrendingUp className="w-5 h-5" /> : <ChevronRight className="w-5 h-5 rotate-90" />}
-                        </div>
-                        <div>
-                          <p className="text-[13px] font-black text-slate-800 dark:text-white leading-tight">{h.reason}</p>
-                          <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">
-                            {format(new Date(h.created_at), 'MMM dd, HH:mm')}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={clsx("font-[950] text-sm", h.amount > 0 ? "text-emerald-600" : "text-rose-600")}>
-                        {h.amount > 0 ? `+${h.amount}` : h.amount}
-                      </span>
-                    </div>
-                  ))}
-                  {pointHistory.length > 4 && (
-                    <Link to="/community" className="block w-full py-3 text-center text-[11px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors">
-                      View Full History
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className="py-12 text-center text-slate-300 font-bold italic">활동 기록이 아직 없습니다.</div>
-              )}
-            </div>
-          </div>
-
           {/* Event Reservations */}
           <div className="glass-panel rounded-[32px] overflow-hidden">
-            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20 flex justify-between items-center">
               <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-3">
                 <Ticket className="w-5 h-5 text-rose-500" />
-                예매 내역
+                나의 예매 내역 요약
               </h3>
+              <Link to="/past-events" className="text-[10px] font-black text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-widest">View All</Link>
             </div>
             <div className="p-6">
                {loadingRegs ? (
                  <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
                ) : registrations.length > 0 ? (
-                 <div className="space-y-4">
-                    {registrations.slice(0, 3).map(reg => (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {registrations.slice(0, 4).map(reg => (
                       <div key={reg.id} className="p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-rose-200 dark:hover:border-rose-900/30 transition-all transition-transform hover:-translate-y-1">
                         <div className="flex justify-between items-start mb-3">
                            <span className={clsx(
@@ -538,25 +417,20 @@ export default function MyPage() {
                            )}>
                               {reg.status === 'confirmed' ? 'CONFIRMED' : 'CANCELLED'}
                            </span>
-                           <span className="text-[10px] font-bold text-slate-400">{format(new Date(reg.registeredAt), 'yyyy-MM-dd')}</span>
+                           <span className="text-[10px] font-bold text-slate-400">{format(new Date(reg.registeredAt), 'MM.dd')}</span>
                         </div>
-                        <Link to={`/event/${reg.eventId}`} className="block font-black text-slate-800 dark:text-white text-[15px] mb-2 hover:text-rose-500 transition-colors line-clamp-1">
+                        <Link to={`/event/${reg.eventId}`} className="block font-black text-slate-800 dark:text-white text-[14px] mb-2 hover:text-rose-500 transition-colors line-clamp-1">
                            {reg.eventTitle}
                         </Link>
-                        <div className="flex items-center gap-2 text-[12px] text-slate-500">
-                          <Clock className="w-3.5 h-3.5" />
-                          {reg.eventDate ? format(new Date(reg.eventDate), 'M월 d일 (E) a h시') : '날짜 미정'}
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                          <Clock className="w-3 h-3" />
+                          {reg.eventDate ? format(new Date(reg.eventDate), 'M월 d일') : '날짜 미정'}
                         </div>
                       </div>
                     ))}
-                    {registrations.length > 3 && (
-                      <Link to="/past-events" className="block text-center py-3 text-[11px] font-black text-slate-400 hover:text-rose-500 uppercase tracking-widest transition-colors">
-                        All Tickets ({registrations.length})
-                      </Link>
-                    )}
                  </div>
                ) : (
-                 <div className="py-12 text-center text-slate-300 font-bold italic">예매 내역이 없습니다.</div>
+                 <div className="py-12 text-center text-slate-300 font-bold italic">최근 예매 내역이 없습니다.</div>
                )}
             </div>
           </div>

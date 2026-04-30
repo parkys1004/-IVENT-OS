@@ -415,7 +415,7 @@ export default function Navbar() {
                                 onClick={() => setDropdownOpen(false)}
                                 className="flex items-center gap-4 px-6 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                               >
-                                <Settings className="w-4.5 h-4.5 text-slate-400" />
+                                <User className="w-4.5 h-4.5 text-slate-400" />
                                 {t('nav.profile')}
                               </Link>
 
@@ -430,12 +430,12 @@ export default function Navbar() {
 
                               {user && (
                                 <Link 
-                                  to="/ai-settings" 
+                                  to="/settings" 
                                   onClick={() => setDropdownOpen(false)}
                                   className="flex items-center gap-4 px-6 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                                 >
-                                  <Bot className="w-4.5 h-4.5 text-indigo-500" />
-                                  API 설정 (AI)
+                                  <Settings className="w-4.5 h-4.5 text-indigo-500" />
+                                  계정 및 서비스 설정
                                 </Link>
                               )}
                               
@@ -584,7 +584,7 @@ export default function Navbar() {
                           <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400">
                             <User className="w-5 h-5" />
                           </div>
-                          프로필 설정
+                          프로필 요약
                         </Link>
 
                         <Link
@@ -603,23 +603,21 @@ export default function Navbar() {
                           포인트 충전
                         </Link>
 
-                        {user && (
-                          <Link
-                            to="/ai-settings"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={clsx(
-                              "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
-                              location.pathname === '/ai-settings' 
-                                ? "bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/20" 
-                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            )}
-                          >
-                            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-500">
-                              <Bot className="w-5 h-5" />
-                            </div>
-                            API 설정 (AI)
-                          </Link>
-                        )}
+                        <Link
+                          to="/settings"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={clsx(
+                            "flex items-center gap-4 px-4 py-3.5 rounded-2xl text-[15px] font-black transition-all",
+                            location.pathname === '/settings' 
+                              ? "bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/20" 
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-500">
+                            <Settings className="w-5 h-5" />
+                          </div>
+                          계정 및 서비스 설정
+                        </Link>
 
                         {(profile?.role === 'instructor' || profile?.role === 'dj' || profile?.role === 'media') && (
                           <Link

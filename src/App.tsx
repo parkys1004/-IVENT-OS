@@ -16,7 +16,7 @@ import PlaceSearch from './pages/PlaceSearch';
 import PlaceDetail from './pages/PlaceDetail';
 import QRScanner from './pages/QRScanner';
 import PointRecharge from './pages/PointRecharge';
-import AISettings from './pages/AISettings';
+import UserSettings from './pages/UserSettings';
 import PublicProfile from './pages/PublicProfile';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -145,15 +145,14 @@ function AppContent() {
     );
   }
 
-  const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin' || location.pathname === '/ai-settings';
+  const isDashboardPath = location.pathname === '/dashboard' || location.pathname === '/admin' || location.pathname === '/settings';
   const isHomePath = location.pathname === '/';
   const isCommunityPath = location.pathname.startsWith('/community');
   const isDashboardView = isDashboardPath && profile; 
 
   return (
     <div className={clsx(
-      "text-slate-800 dark:text-slate-100 font-sans flex flex-col transition-colors duration-200",
-      isDashboardView ? "h-screen overflow-hidden" : "min-h-screen"
+      "text-slate-800 dark:text-slate-100 font-sans flex flex-col transition-colors duration-200 min-h-screen",
     )}>
       {authError && (
         <div className="bg-red-500 text-white text-xs py-1 px-4 text-center font-bold relative z-[9999]">
@@ -165,7 +164,7 @@ function AppContent() {
       <AnimatedBackground />
       <main className={clsx(
         "w-full mx-auto flex-1 flex flex-col relative",
-        isDashboardView ? "px-0 py-0 overflow-hidden min-h-0" : 
+        isDashboardView ? "px-0 py-0" : 
         isHomePath ? "px-0 py-0 overflow-x-hidden" :
         isCommunityPath ? "px-0 py-8 overflow-x-hidden" :
         "px-2 sm:px-4 lg:px-6 py-8 lg:py-12 overflow-x-hidden"
@@ -191,7 +190,8 @@ function AppContent() {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/scan-tickets" element={<QRScanner />} />
           <Route path="/points" element={<PointRecharge />} />
-          <Route path="/ai-settings" element={<AISettings />} />
+          <Route path="/settings" element={<UserSettings />} />
+          <Route path="/ai-settings" element={<UserSettings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
         </Routes>

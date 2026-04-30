@@ -914,7 +914,7 @@ export default function ProfessionalDashboard() {
               </div>
             </Link>
             <Link 
-              to="/ai-settings"
+              to="/settings"
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white group"
             >
               <div className="flex items-center gap-3">

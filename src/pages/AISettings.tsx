@@ -188,7 +188,7 @@ export default function AISettings() {
       
       try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: modelId }, { apiVersion: 'v1' });
+        const model = genAI.getGenerativeModel({ model: modelId }, { apiVersion: 'v1beta' });
         
         // 아주 짧은 텍스트로 실제 호출 테스트
         const result = await model.generateContent("Hi");

@@ -223,7 +223,7 @@ export default function EditLesson() {
               required: ["title", "date", "time", "locationName"]
             }
           }
-        }, { apiVersion: 'v1' });
+        }, { apiVersion: 'v1beta' });
 
         const result = await model.generateContent([
           { inlineData: { data: base64Data, mimeType } }, 

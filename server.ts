@@ -84,7 +84,7 @@ async function startServer() {
             required: ["title", "category", "date", "time", "locationName"]
           }
         }
-      }, { apiVersion: 'v1' });
+      }, { apiVersion: 'v1beta' });
 
       const prompt = "Extract event information from this dance poster. For dates use YYYY-MM-DD. For times use 24h format HH:mm.";
 

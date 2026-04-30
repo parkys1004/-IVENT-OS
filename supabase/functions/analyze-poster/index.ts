@@ -29,7 +29,7 @@ serve(async (req) => {
       generationConfig: {
         responseMimeType: "application/json",
       }
-    }, { apiVersion: 'v1' });
+    }, { apiVersion: 'v1beta' });
 
     const prompt = `Extract event information from this dance poster. Use one of these categories: 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'. For dates use YYYY-MM-DD. For times use 24h format HH:mm. For tickets, extract price options. For djs/performances/media, extract names as arrays. If info is missing, use empty defaults.`;
 

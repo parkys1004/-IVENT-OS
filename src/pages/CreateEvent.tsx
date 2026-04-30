@@ -43,6 +43,7 @@ export default function CreateEvent() {
     workshops: [] as { teacher: string, topic: string, time: string }[],
     paymentMethod: '',
     paymentLink: '',
+    youtubeUrl: '',
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
     isLesson: false,
   });
@@ -381,7 +382,8 @@ export default function CreateEvent() {
           workshops: formData.workshops.filter(w => w.teacher.trim() || w.topic.trim()),
           tickets: formData.tickets.filter(t => t.name.trim()),
           payment_method: formData.paymentMethod,
-          payment_link: formData.paymentLink
+          payment_link: formData.paymentLink,
+          youtube_url: formData.youtubeUrl
         });
 
       if (error) throw error;
@@ -738,6 +740,20 @@ export default function CreateEvent() {
                     onChange={handleChange}
                     placeholder="https://forms.gle/... 또는 카카오톡 오픈채팅"
                     className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-indigo-600 dark:text-indigo-400 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    <Music className="w-3 h-3 text-red-500" /> 유튜브 홍보 영상 (URL)
+                  </label>
+                  <input
+                    type="url"
+                    name="youtubeUrl"
+                    value={formData.youtubeUrl}
+                    onChange={handleChange}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-red-600 dark:text-red-400 outline-none focus:ring-4 focus:ring-red-500/10 transition-all"
                   />
                 </div>
                 

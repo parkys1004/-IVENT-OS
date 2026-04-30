@@ -200,7 +200,8 @@ export default function EventDetail() {
           paymentMethod: data.payment_method || '',
           paymentLink: data.payment_link || '',
           workshops: data.workshops || [],
-          level: data.level || 'beginner'
+          level: data.level || 'beginner',
+          youtubeUrl: data.youtube_url || ''
         };
         
         if (!cancelled) setEvent(mappedEvent);
@@ -562,12 +563,14 @@ export default function EventDetail() {
 
   // Detect YouTube video
   const getYouTubeId = (url: string) => {
+    if (!url) return null;
+    if (url.length === 11 && /^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
-  const videoId = getYouTubeId(event.description || '');
+  const videoId = getYouTubeId(event.youtubeUrl || event.description || '');
 
   const openFullscreen = (index: number) => {
     setCurrentImageIndex(index);

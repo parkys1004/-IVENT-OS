@@ -38,6 +38,7 @@ export default function EditLesson() {
     imageUrl: '',
     maxAttendees: 20,
     paymentMethod: '',
+    youtubeUrl: '',
     tickets: [{ name: '강습비', price: 0 }] as { name: string, price: number }[],
     level: 'beginner',
   });
@@ -89,6 +90,7 @@ export default function EditLesson() {
           imageUrl: data.image_url || '',
           maxAttendees: data.max_attendees || 20,
           paymentMethod: data.payment_method || '',
+          youtubeUrl: data.youtube_url || '',
           tickets: data.tickets || [{ name: '강습비', price: 0 }],
           level: data.level || 'beginner',
         });
@@ -345,6 +347,7 @@ export default function EditLesson() {
           level: formData.level,
           tickets: formData.tickets,
           payment_method: formData.paymentMethod,
+          youtube_url: formData.youtubeUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -666,6 +669,19 @@ export default function EditLesson() {
                     <span className="text-slate-500 font-bold">명</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 ml-1 flex items-center">
+                  <Music className="w-4 h-4 mr-2 text-red-500"/> 유튜브 홍보 영상 (URL)
+                </label>
+                <input
+                  type="url"
+                  value={formData.youtubeUrl}
+                  onChange={e => setFormData({ ...formData, youtubeUrl: e.target.value })}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full px-5 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-red-500/10 outline-none transition-all font-bold text-red-600 dark:text-red-400 shadow-sm"
+                />
               </div>
 
               <div className="space-y-3 bg-slate-50 dark:bg-slate-800/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50">

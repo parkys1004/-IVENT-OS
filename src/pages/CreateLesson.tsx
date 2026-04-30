@@ -37,6 +37,7 @@ export default function CreateLesson() {
     imageUrl: '',
     maxAttendees: 20,
     paymentMethod: '',
+    youtubeUrl: '',
     tickets: [{ name: '강습비', price: 0 }] as { name: string, price: number }[],
     level: 'beginner', // New field for lesson
   });
@@ -311,7 +312,8 @@ export default function CreateLesson() {
           price: formData.tickets[0]?.price || 0,
           level: formData.level,
           tickets: formData.tickets,
-          payment_method: formData.paymentMethod
+          payment_method: formData.paymentMethod,
+          youtube_url: formData.youtubeUrl
         })
         .select()
         .single();
@@ -677,6 +679,19 @@ export default function CreateLesson() {
                       <span className="text-slate-400 font-bold pr-4 border-l border-slate-200 dark:border-slate-700 pl-4 py-2">명</span>
                     </div>
                   </div>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-3xl border border-slate-100 dark:border-slate-800/50 space-y-4">
+                  <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 flex items-center">
+                    <Music className="w-4 h-4 mr-2 text-red-500"/> 유튜브 홍보 영상 (URL)
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.youtubeUrl}
+                    onChange={e => setFormData({ ...formData, youtubeUrl: e.target.value })}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-4 text-[14px] font-bold text-red-600 dark:text-red-400 focus:ring-4 focus:ring-red-500/10 outline-none transition-all shadow-sm"
+                  />
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-800/30 p-6 rounded-3xl border border-slate-100 dark:border-slate-800/50 space-y-4">

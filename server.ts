@@ -156,7 +156,6 @@ async function startServer() {
           .order('updated_at', { ascending: false })
       ]);
 
-      // Use VITE_SITE_URL if available, otherwise detect from request
       const siteUrl = process.env.VITE_SITE_URL || `${req.protocol}://${req.get('host')}`;
       
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -202,10 +201,11 @@ async function startServer() {
       sitemap += `\n</urlset>`;
 
       res.header('Content-Type', 'application/xml');
+      res.header('X-Content-Type-Options', 'nosniff');
       res.send(sitemap.trim());
     } catch (err) {
       console.error("[Sitemap Error]", err);
-      res.status(500).send("Error generating sitemap");
+      res.status(500).type('text/plain').send("Error generating sitemap");
     }
   });
 

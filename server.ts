@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import cors from "cors";
+import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,10 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
   // CORS 설정 (Preflight 요청 포함)
   app.use(cors({
@@ -133,6 +138,86 @@ async function startServer() {
   // 상태 체크
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", time: new Date().toISOString() });
+  });
+
+  // Dynamic sitemap.xml
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const [{ data: parties }, { data: lessons }] = await Promise.all([
+        supabase
+          .from('parties')
+          .select('id, updated_at')
+          .eq('status', 'published')
+          .order('updated_at', { ascending: false }),
+        supabase
+          .from('lessons')
+          .select('id, updated_at')
+          .eq('status', 'published')
+          .order('updated_at', { ascending: false })
+      ]);
+
+      const host = req.get('host');
+      const protocol = req.protocol === 'https' ? 'https' : 'http';
+      const baseUrl = `${protocol}://${host}`;
+
+      let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/explore</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/community</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>`;
+
+      parties?.forEach((party: any) => {
+        const lastMod = party.updated_at ? new Date(party.updated_at).toISOString() : new Date().toISOString();
+        sitemap += `
+  <url>
+    <loc>${baseUrl}/party/${party.id}</loc>
+    <lastmod>${lastMod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+      });
+
+      lessons?.forEach((lesson: any) => {
+        const lastMod = lesson.updated_at ? new Date(lesson.updated_at).toISOString() : new Date().toISOString();
+        sitemap += `
+  <url>
+    <loc>${baseUrl}/lesson/${lesson.id}</loc>
+    <lastmod>${lastMod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`;
+      });
+
+      sitemap += `\n</urlset>`;
+
+      res.header('Content-Type', 'application/xml');
+      res.send(sitemap);
+    } catch (err) {
+      console.error("[Sitemap Error]", err);
+      res.status(500).send("Error generating sitemap");
+    }
+  });
+
+  // robots.txt
+  app.get("/robots.txt", (req, res) => {
+    const host = req.get('host');
+    const protocol = req.protocol === 'https' ? 'https' : 'http';
+    res.type('text/plain');
+    res.send(`User-agent: *
+Allow: /
+Sitemap: ${protocol}://${host}/sitemap.xml`);
   });
 
   // API 404

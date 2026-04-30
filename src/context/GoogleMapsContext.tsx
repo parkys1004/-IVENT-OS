@@ -8,7 +8,7 @@ interface GoogleMapsContextType {
 
 const GoogleMapsContext = createContext<GoogleMapsContextType | undefined>(undefined);
 
-const LIBRARIES: ("places")[] = ["places"];
+const LIBRARIES: ("places" | "marker")[] = ["places", "marker"];
 
 export const GoogleMapsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';

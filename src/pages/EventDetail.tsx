@@ -23,7 +23,7 @@ import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
-import { GoogleMap, MarkerF } from '@react-google-maps/api';
+import AdvancedGoogleMap from '../components/AdvancedGoogleMap';
 
 interface Review {
   id: string;
@@ -858,14 +858,11 @@ export default function EventDetail() {
               </div>
             ) : isLoaded && event.geoPoint && event.geoPoint.lat ? (
               <div className="h-[400px]">
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                <AdvancedGoogleMap
                   center={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }}
                   zoom={16}
-                  options={{ disableDefaultUI: true, zoomControl: true }}
-                >
-                  <MarkerF position={{ lat: event.geoPoint.lat, lng: event.geoPoint.lng }} />
-                </GoogleMap>
+                  title={event.locationName}
+                />
               </div>
             ) : (
               <div className="h-[400px] bg-slate-50 dark:bg-slate-800/50 animate-pulse flex items-center justify-center text-slate-400">

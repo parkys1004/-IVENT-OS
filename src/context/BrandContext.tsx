@@ -8,6 +8,7 @@ interface BrandAssets {
   appIcon: string;
   siteTitle: string;
   siteDescription: string;
+  keywords: string;
 }
 
 const DEFAULT_BRAND: BrandAssets = {
@@ -16,7 +17,8 @@ const DEFAULT_BRAND: BrandAssets = {
   ogImage: '',
   appIcon: '',
   siteTitle: 'Dancehive',
-  siteDescription: '지능형 라틴 댄스 이벤트 대시보드'
+  siteDescription: '지능형 라틴 댄스 이벤트 대시보드',
+  keywords: '댄스하이브, dancehive, 살사, 바차타, 라틴댄스, 소셜댄스, 이벤트, 파티'
 };
 
 interface BrandContextType {
@@ -77,6 +79,19 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) {
         metaDesc.setAttribute('content', brand.siteDescription);
+      }
+    }
+
+    // Update Meta Keywords
+    if (brand.keywords) {
+      let metaKeywords = document.querySelector('meta[name="keywords"]');
+      if (metaKeywords) {
+        metaKeywords.setAttribute('content', brand.keywords);
+      } else {
+        metaKeywords = document.createElement('meta');
+        metaKeywords.setAttribute('name', 'keywords');
+        metaKeywords.setAttribute('content', brand.keywords);
+        document.head.appendChild(metaKeywords);
       }
     }
 

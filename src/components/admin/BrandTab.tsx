@@ -12,6 +12,7 @@ interface BrandAssets {
   appIcon: string;
   siteTitle: string;
   siteDescription: string;
+  keywords: string;
 }
 
 const DEFAULT_BRAND: BrandAssets = {
@@ -20,7 +21,8 @@ const DEFAULT_BRAND: BrandAssets = {
   ogImage: '',
   appIcon: '',
   siteTitle: 'Dancehive',
-  siteDescription: '지능형 라틴 댄스 이벤트 대시보드'
+  siteDescription: '지능형 라틴 댄스 이벤트 대시보드',
+  keywords: '댄스하이브, dancehive, 살사, 바차타, 라틴댄스, 소셜댄스, 이벤트, 파티'
 };
 
 export function BrandTab() {
@@ -158,9 +160,20 @@ export function BrandTab() {
               <textarea
                 value={assets.siteDescription}
                 onChange={(e) => setAssets(prev => ({ ...prev, siteDescription: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all min-h-[100px]"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all min-h-[80px]"
                 placeholder="검색 결과 및 SNS 공유 시 표시될 설명입니다."
               />
+            </div>
+            <div>
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">SEO 키워드 (쉼표로 구분)</label>
+              <input
+                type="text"
+                value={assets.keywords}
+                onChange={(e) => setAssets(prev => ({ ...prev, keywords: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
+                placeholder="예: 댄스하이브, dancehive, 살사, 바차타, 라틴댄스"
+              />
+              <p className="text-[10px] text-slate-400 mt-1.5 ml-1">구글, 네이버 등 검색 엔진이 사이트를 인덱싱할 때 참조하는 핵심 단어입니다.</p>
             </div>
           </div>
         </section>

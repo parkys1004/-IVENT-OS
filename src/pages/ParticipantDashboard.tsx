@@ -615,7 +615,24 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
     return matchesSearch && isUpcomingOrOngoing;
   }).sort((a, b) => {
-    // Recommendation Scoring
+    // 1. Primary Sort logic based on selected sortBy
+    let comparison = 0;
+
+    if (sortBy === 'upcoming') {
+      const timeA = getTime(a.date);
+      const timeB = getTime(b.date);
+      comparison = timeA - timeB;
+    } else if (sortBy === 'latest') {
+      const timeA = getTime(a.createdAt);
+      const timeB = getTime(b.createdAt);
+      comparison = timeB - timeA;
+    } else if (sortBy === 'popular') {
+      comparison = (b.likesCount || 0) - (a.likesCount || 0);
+    }
+
+    if (comparison !== 0) return comparison;
+
+    // 2. Secondary Sort: Recommendation Scoring (Tie-breaker)
     let scoreA = 0;
     let scoreB = 0;
 
@@ -641,27 +658,9 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       });
     }
 
-    // If there's a score difference, use it
     if (scoreA !== scoreB) return scoreB - scoreA;
 
-    // 1. Primary Sort logic based on selected sortBy
-    let comparison = 0;
-
-    if (sortBy === 'upcoming') {
-      const timeA = getTime(a.date);
-      const timeB = getTime(b.date);
-      comparison = timeA - timeB;
-    } else if (sortBy === 'latest') {
-      const timeA = getTime(a.createdAt);
-      const timeB = getTime(b.createdAt);
-      comparison = timeB - timeA;
-    } else if (sortBy === 'popular') {
-      comparison = (b.likesCount || 0) - (a.likesCount || 0);
-    }
-
-    if (comparison !== 0) return comparison;
-
-    // 2. Secondary Sort: Priority (Featured/Pinned items higher among ties)
+    // 3. Tertiary Sort: Priority (Featured/Pinned items higher among ties)
     const priorityA = (a as any).priority || 0;
     const priorityB = (b as any).priority || 0;
     if (priorityA !== priorityB) return priorityB - priorityA;

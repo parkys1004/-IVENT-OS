@@ -63,8 +63,8 @@ export default function AISettings() {
   // Diagnostic State
   const [diagnosticStatus, setDiagnosticStatus] = useState<Record<string, 'waiting' | 'loading' | 'success' | 'error'>>({
     'gemini-2.0-flash': 'waiting',
-    'gemini-1.5-flash': 'waiting',
-    'gemini-1.5-pro': 'waiting'
+    'gemini-1.5-flash-latest': 'waiting',
+    'gemini-1.5-pro-latest': 'waiting'
   });
   const [diagnosticMessages, setDiagnosticMessages] = useState<Record<string, string>>({});
 
@@ -188,7 +188,7 @@ export default function AISettings() {
       
       try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: modelId });
+        const model = genAI.getGenerativeModel({ model: modelId }, { apiVersion: 'v1' });
         
         // 아주 짧은 텍스트로 실제 호출 테스트
         const result = await model.generateContent("Hi");

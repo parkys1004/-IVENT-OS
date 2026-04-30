@@ -198,6 +198,7 @@ export default function EventDetail() {
           mediaExperts: data.media_experts || [],
           tickets: data.tickets || [],
           paymentMethod: data.payment_method || '',
+          paymentLink: data.payment_link || '',
           level: data.level || 'beginner'
         };
         
@@ -1281,7 +1282,7 @@ export default function EventDetail() {
 
               {/* Payment Guidance (입금안내) */}
               {event.paymentMethod && (
-                <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-5 mb-8 border border-slate-100 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-5 mb-4 border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2 mb-4 text-slate-500 dark:text-slate-400">
                     <CreditCard className="w-4 h-4" />
                     <span className="text-[13px] font-bold">입금 안내</span>
@@ -1289,6 +1290,21 @@ export default function EventDetail() {
                   <div className="whitespace-pre-wrap text-[14px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                     {event.paymentMethod}
                   </div>
+                </div>
+              )}
+
+              {/* Payment Link (예매 링크 버튼) */}
+              {event.paymentLink && (
+                <div className="mb-8">
+                  <a 
+                    href={event.paymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 text-teal-600 dark:text-teal-400 font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-all shadow-sm group"
+                  >
+                    <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    외부 예매/신청 링크 바로가기
+                  </a>
                 </div>
               )}
 

@@ -30,7 +30,7 @@ export async function translateText(text: string, targetLanguage: string) {
   if (!ai) return text; 
   
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" }, { apiVersion: 'v1' });
     const result = await model.generateContent(
       `Translate the following text to ${targetLanguage}. Maintain the original tone and format. Only return the translated text. Original text: ${text}`
     );

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
-import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, GraduationCap } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, FileText, Sparkles, Upload, X, Star, ImageIcon as ImageIcon, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, GraduationCap, ExternalLink } from 'lucide-react';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
@@ -42,6 +42,7 @@ export default function CreateEvent() {
     media: [] as string[],
     workshops: [] as { teacher: string, topic: string, time: string }[],
     paymentMethod: '',
+    paymentLink: '',
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
     isLesson: false,
   });
@@ -193,6 +194,7 @@ export default function CreateEvent() {
                 city: { type: SchemaType.STRING },
                 country: { type: SchemaType.STRING },
                 maxAttendees: { type: SchemaType.INTEGER },
+                paymentLink: { type: SchemaType.STRING },
                 djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
@@ -218,7 +220,7 @@ export default function CreateEvent() {
               required: ["title", "category", "date", "time", "locationName"]
             }
           }
-        });
+        }, { apiVersion: 'v1' });
 
         const result = await model.generateContent([
           { inlineData: { data: base64Data, mimeType } }, 
@@ -250,6 +252,7 @@ export default function CreateEvent() {
            city: parsed.city || prev.city,
            country: parsed.country || prev.country,
            maxAttendees: parsed.maxAttendees || prev.maxAttendees,
+           paymentLink: parsed.paymentLink || prev.paymentLink,
            djs: parsed.djs && parsed.djs.length > 0 ? parsed.djs : prev.djs,
            performances: parsed.performances && parsed.performances.length > 0 ? parsed.performances : prev.performances,
            media: parsed.media && parsed.media.length > 0 ? parsed.media : prev.media,
@@ -377,7 +380,8 @@ export default function CreateEvent() {
           media_experts: formData.media.filter(m => m.trim()),
           workshops: formData.workshops.filter(w => w.teacher.trim() || w.topic.trim()),
           tickets: formData.tickets.filter(t => t.name.trim()),
-          payment_method: formData.paymentMethod
+          payment_method: formData.paymentMethod,
+          payment_link: formData.paymentLink
         });
 
       if (error) throw error;
@@ -692,36 +696,66 @@ export default function CreateEvent() {
           </div>
 
           {/* Pricing & Tickets */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between ml-1">
-              <div className="flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-amber-500" />
-                <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">티켓 및 참가비</span>
-              </div>
-              <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: [...p.tickets, { name: '', price: 0 }] }))} className="text-[11px] font-black text-indigo-500 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-full transition-all">
-                + 티켓 추가
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              {formData.tickets.map((ticket, idx) => (
-                <div key={idx} className="flex gap-3 items-end animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex-[2]">
-                    <input type="text" value={ticket.name} onChange={(e) => updateTicket(idx, 'name', e.target.value)} placeholder="티켓 명칭 (예: 입장권)" className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10" />
-                  </div>
-                  <div className="relative flex-1">
-                    <input type="number" value={ticket.price} onChange={(e) => updateTicket(idx, 'price', Number(e.target.value))} className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-black text-slate-800 dark:text-white text-right outline-none focus:ring-4 focus:ring-indigo-500/10" />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">KRW</span>
-                  </div>
-                  {formData.tickets.length > 1 && (
-                    <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: p.tickets.filter((_, i) => i !== idx) }))} className="p-3.5 text-slate-300 hover:text-rose-500 transition-colors">
-                      <MinusCircle className="w-5 h-5" />
-                    </button>
-                  )}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between ml-1">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-amber-500" />
+                  <span className="text-[13px] font-bold text-slate-400 uppercase tracking-widest">티켓 및 참가비</span>
                 </div>
-              ))}
+                <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: [...p.tickets, { name: '', price: 0 }] }))} className="text-[11px] font-black text-indigo-500 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-full transition-all">
+                  + 티켓 추가
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {formData.tickets.map((ticket, idx) => (
+                  <div key={idx} className="flex gap-3 items-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex-[2]">
+                      <input type="text" value={ticket.name} onChange={(e) => updateTicket(idx, 'name', e.target.value)} placeholder="티켓 명칭 (예: 입장권)" className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10" />
+                    </div>
+                    <div className="relative flex-1">
+                      <input type="number" value={ticket.price} onChange={(e) => updateTicket(idx, 'price', Number(e.target.value))} className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-black text-slate-800 dark:text-white text-right outline-none focus:ring-4 focus:ring-indigo-500/10" />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">KRW</span>
+                    </div>
+                    {formData.tickets.length > 1 && (
+                      <button type="button" onClick={() => setFormData(p => ({ ...p, tickets: p.tickets.filter((_, i) => i !== idx) }))} className="p-3.5 text-slate-300 hover:text-rose-500 transition-colors">
+                        <MinusCircle className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    <ExternalLink className="w-3 h-3 text-indigo-500" /> 입금/예매 링크 (URL)
+                  </label>
+                  <input
+                    type="url"
+                    name="paymentLink"
+                    value={formData.paymentLink}
+                    onChange={handleChange}
+                    placeholder="https://forms.gle/... 또는 카카오톡 오픈채팅"
+                    className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-indigo-600 dark:text-indigo-400 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                    <CreditCard className="w-3 h-3" /> 입금 정보 (계좌번호 등)
+                  </label>
+                  <input
+                    type="text"
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={handleChange}
+                    placeholder="예: 우리은행 1002-xxx (홍길동)"
+                    className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
           {/* Attendees */}
           <div className="space-y-4">

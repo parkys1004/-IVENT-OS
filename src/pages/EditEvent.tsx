@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError, OperationType } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
-import { Calendar, Clock, MapPin, Users, FileText, ImageIcon as ImageIcon, Upload, X, Star, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, Sparkles, GraduationCap } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, FileText, ImageIcon as ImageIcon, Upload, X, Star, PlusCircle, MinusCircle, Music, Mic2, CreditCard, Plus, Sparkles, GraduationCap, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
@@ -45,6 +45,7 @@ export default function EditEvent() {
     mediaExperts: [] as string[],
     workshops: [] as { teacher: string, topic: string, time: string }[],
     paymentMethod: '',
+    paymentLink: '',
     tickets: [{ name: '일반 예매', price: 0 }] as { name: string, price: number }[],
   });
 
@@ -144,6 +145,7 @@ export default function EditEvent() {
             mediaExperts: data.media_experts || [],
             workshops: data.workshops || [],
             paymentMethod: data.payment_method || '',
+            paymentLink: data.payment_link || '',
             tickets: data.tickets || [],
           });
 
@@ -287,6 +289,7 @@ export default function EditEvent() {
                 city: { type: SchemaType.STRING },
                 country: { type: SchemaType.STRING },
                 maxAttendees: { type: SchemaType.INTEGER },
+                paymentLink: { type: SchemaType.STRING },
                 djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
                 media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
@@ -312,7 +315,7 @@ export default function EditEvent() {
               required: ["title", "category", "date", "time", "locationName"]
             }
           }
-        });
+        }, { apiVersion: 'v1' });
 
         const result = await model.generateContent([
           { inlineData: { data: base64Data, mimeType } }, 
@@ -344,6 +347,7 @@ export default function EditEvent() {
            city: parsed.city || prev.city,
            country: parsed.country || prev.country,
            maxAttendees: parsed.maxAttendees || prev.maxAttendees,
+           paymentLink: parsed.paymentLink || prev.paymentLink,
            djs: parsed.djs && parsed.djs.length > 0 ? parsed.djs : prev.djs,
            performances: parsed.performances && parsed.performances.length > 0 ? parsed.performances : prev.performances,
            mediaExperts: parsed.media && parsed.media.length > 0 ? parsed.media : prev.mediaExperts,
@@ -475,7 +479,8 @@ export default function EditEvent() {
             max_attendees: Number(formData.maxAttendees),
             price: formData.tickets[0]?.price || 0,
             tickets: formData.tickets.filter(t => t.name.trim()),
-            payment_method: formData.paymentMethod
+            payment_method: formData.paymentMethod,
+            payment_link: formData.paymentLink
           })
           .eq('id', id);
         updateError = error;
@@ -503,7 +508,8 @@ export default function EditEvent() {
             media_experts: formData.mediaExperts.filter(m => m.trim()),
             workshops: formData.workshops.filter(w => w.teacher.trim() || w.topic.trim()),
             tickets: formData.tickets.filter(t => t.name.trim()),
-            payment_method: formData.paymentMethod
+            payment_method: formData.paymentMethod,
+            payment_link: formData.paymentLink
           })
           .eq('id', id);
         updateError = error;
@@ -884,6 +890,36 @@ export default function EditEvent() {
                   )}
                 </div>
               ))}
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  <Plus className="w-3 h-3 text-indigo-500" /> 입금/예매 링크 (URL)
+                </label>
+                <input
+                  type="url"
+                  name="paymentLink"
+                  value={formData.paymentLink}
+                  onChange={handleChange}
+                  placeholder="https://forms.gle/... 또는 카카오톡 오픈채팅"
+                  className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-indigo-600 dark:text-indigo-400 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">
+                  <CreditCard className="w-3 h-3" /> 입금 정보 (계좌번호 등)
+                </label>
+                <input
+                  type="text"
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  onChange={handleChange}
+                  placeholder="예: 우리은행 1002-xxx (홍길동)"
+                  className="w-full rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-5 py-3.5 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                />
+              </div>
             </div>
           </div>
 

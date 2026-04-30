@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
+import { DEFAULT_POINT_POLICIES } from '../lib/points';
 
 // 기존 타입 정의 유지
 export type UserRole = 'participant' | 'host' | 'admin' | 'dj' | 'instructor' | 'media' | 'banned' | 'unassigned';
@@ -154,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const isAdminEmail = activeUser.email?.toLowerCase() === adminEmail;
         const assignedRole = isAdminEmail ? 'admin' : ((storedRole as UserRole) || 'unassigned');
 
-        let signupPoints = 1000;
+        let signupPoints = DEFAULT_POINT_POLICIES.signup_reward;
         try {
           const { data: settingData } = await supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle();
           if (settingData?.value?.signup_reward !== undefined) {

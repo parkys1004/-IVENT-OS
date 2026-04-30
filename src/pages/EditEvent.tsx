@@ -386,9 +386,9 @@ export default function EditEvent() {
 
   const handleImageUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    const availableSlots = 5 - images.length;
+    const availableSlots = 10 - images.length;
     if (availableSlots <= 0) {
-      alert("최대 5장의 이미지만 등록할 수 있습니다.");
+      alert("최대 10장의 이미지만 등록할 수 있습니다.");
       return;
     }
 
@@ -619,7 +619,7 @@ export default function EditEvent() {
           
           {/* Poster Section */}
           <div className="space-y-4">
-            <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">이벤트 포스터 (최대 5장)</label>
+            <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest ml-1">이벤트 포스터 (최대 10장)</label>
             <div 
               className={clsx(
                 "relative group cursor-pointer transition-all aspect-[3/4] rounded-[32px] overflow-hidden border-4 border-dashed",

@@ -556,10 +556,12 @@ export default function EventDetail() {
   // If maxAttendees is 0, it means unlimited
   const isFull = maxAttendees > 0 && currentAttendees >= maxAttendees;
 
-  // Handle images array fallback
-  const images = event.media && event.media.length > 0 
-    ? event.media 
-    : (event.imageUrl ? [event.imageUrl] : []);
+  // Combine main image and event_photos
+  const hostPhotos = photos.filter(p => p.user_id === event.hostId).map(p => p.image_url);
+  const images = Array.from(new Set([
+    event.imageUrl,
+    ...hostPhotos
+  ])).filter(Boolean);
 
   // Detect YouTube video
   const getYouTubeId = (url: string) => {
@@ -955,22 +957,27 @@ export default function EventDetail() {
                 </div>
               </div>
             )}
-            
-            {/* 행사 사진 리스트 */}
+
+            {/* 행사 사진 리스트 - Moved below YouTube */}
             {images.length > 1 && (
               <div className="mt-8">
                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 px-1">행사 사진</h3>
-                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                    {images.map((img: string, idx: number) => {
-                      if (idx === currentImageIndex) return null;
                       return (
-                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer"
+                        <div key={idx} className="relative aspect-square rounded-[24px] overflow-hidden cursor-pointer group shadow-sm border border-slate-100 dark:border-slate-800"
                           onClick={() => {
                             setFullscreenImage(img);
                             setCurrentImageIndex(idx);
                           }}
                         >
-                          <img src={img} alt={`event-${idx}`} className="w-full h-full object-cover"/>
+                          <img 
+                            src={img} 
+                            alt={`event-${idx}`} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         </div>
                       );
                    })}

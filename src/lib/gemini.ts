@@ -1,25 +1,20 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-let aiInstance: GoogleGenerativeAI | null = null;
-let lastKey: string | null = null;
+// Vite 환경 변수에서 API 키를 가져와 기본 인스턴스를 생성합니다.
+const SYSTEM_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+let aiInstance: GoogleGenerativeAI | null = SYSTEM_API_KEY ? new GoogleGenerativeAI(SYSTEM_API_KEY) : null;
+let lastKey: string | null = SYSTEM_API_KEY;
 
 function getAI() {
-  // Try personal key from localStorage first
-  let apiKey = localStorage.getItem('user_gemini_api_key');
-  
-  if (!apiKey) {
-    apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
-  }
+  // 사용자가 설정에서 직접 입력한 개인 키가 있는지 확인합니다.
+  const userKey = localStorage.getItem('user_gemini_api_key');
+  const apiKey = userKey || SYSTEM_API_KEY;
 
   if (!apiKey || apiKey === 'undefined') {
-    if (aiInstance) {
-      aiInstance = null;
-      lastKey = null;
-    }
     return null;
   }
 
-  // Refresh instance if key changed
+  // 키가 변경되었을 경우에만 인스턴스를 새로 생성합니다.
   if (!aiInstance || apiKey !== lastKey) {
     aiInstance = new GoogleGenerativeAI(apiKey);
     lastKey = apiKey;

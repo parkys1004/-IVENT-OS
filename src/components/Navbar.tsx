@@ -30,6 +30,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage, Language } from '../context/LanguageContext';
+import { useBrand } from '../context/BrandContext';
 import { languageNames } from '../lib/gemini';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'motion/react';
@@ -38,6 +39,7 @@ export default function Navbar() {
   const { user, profile, viewMode, setViewMode, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { assets } = useBrand();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const navigate = useNavigate();
@@ -119,11 +121,15 @@ export default function Navbar() {
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-lg blur opacity-10 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
                   <div className="relative p-1.5 bg-white dark:bg-[#1A1612] rounded-lg ring-1 ring-amber-100 dark:ring-amber-900/50 flex items-center justify-center shadow-sm">
-                    <Wind className="h-5 w-5 text-orange-500" />
+                    {assets.logo ? (
+                      <img src={assets.logo} alt="Logo" className="h-5 w-5 object-contain" />
+                    ) : (
+                      <Wind className="h-5 w-5 text-orange-500" />
+                    )}
                   </div>
                 </div>
                 <span className="font-black text-xl sm:text-2xl tracking-tighter bg-gradient-to-r from-amber-600 to-orange-500 dark:from-amber-400 dark:to-yellow-300 bg-clip-text text-transparent hidden sm:block">
-                  Dancehive
+                  {assets.siteTitle}
                 </span>
               </Link>
 
@@ -485,10 +491,14 @@ export default function Navbar() {
               <div className="flex items-center justify-between mb-8 shrink-0">
                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 group">
                   <div className="p-1.5 bg-orange-50 dark:bg-orange-500/10 rounded-lg">
-                    <Wind className="h-6 w-6 text-orange-500" />
+                    {assets.logo ? (
+                      <img src={assets.logo} alt="Logo" className="h-6 w-6 object-contain" />
+                    ) : (
+                      <Wind className="h-6 w-6 text-orange-500" />
+                    )}
                   </div>
                   <span className="font-black text-2xl tracking-tighter bg-gradient-to-r from-amber-600 to-orange-500 dark:from-amber-400 dark:to-yellow-300 bg-clip-text text-transparent">
-                    Dancehive
+                    {assets.siteTitle}
                   </span>
                 </Link>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg bg-slate-50 dark:bg-slate-800">

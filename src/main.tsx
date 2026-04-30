@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { GoogleMapsProvider } from './context/GoogleMapsContext';
+import { BrandProvider } from './context/BrandContext';
 import './index.css';
 
 // Kakao initialization
@@ -46,9 +47,11 @@ try {
           <AuthProvider>
             <ThemeProvider>
               <LanguageProvider>
-                <GoogleMapsProvider>
-                  <App />
-                </GoogleMapsProvider>
+                <BrandProvider>
+                  <GoogleMapsProvider>
+                    <App />
+                  </GoogleMapsProvider>
+                </BrandProvider>
               </LanguageProvider>
             </ThemeProvider>
           </AuthProvider>

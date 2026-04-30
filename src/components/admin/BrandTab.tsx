@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { Upload, Image as ImageIcon, Globe, Smartphone, Share2, Save, RefreshCw, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useBrand } from '../../context/BrandContext';
 import clsx from 'clsx';
 
 interface BrandAssets {
@@ -23,6 +24,7 @@ const DEFAULT_BRAND: BrandAssets = {
 };
 
 export function BrandTab() {
+  const { refresh } = useBrand();
   const [assets, setAssets] = useState<BrandAssets>(DEFAULT_BRAND);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,6 +67,7 @@ export function BrandTab() {
         });
 
       if (error) throw error;
+      await refresh();
       setMessage({ type: 'success', text: '브랜드 자산이 성공적으로 저장되었습니다.' });
     } catch (err: any) {
       console.error('Error saving brand assets:', err);

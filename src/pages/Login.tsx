@@ -48,7 +48,8 @@ export default function Login() {
       if (error) throw error;
 
     } catch (error: any) {
-      setErrorMsg(`로그인 처리 중 문제가 발생했습니다. (${error.message || '오류'})`);
+      console.error("Login error details:", error);
+      setErrorMsg(`로그인 처리 중 문제가 발생했습니다: ${error.message || 'OAuth 설정 오류'}`);
       window.sessionStorage.removeItem('intendedRole');
     } finally {
       setLoading(false);

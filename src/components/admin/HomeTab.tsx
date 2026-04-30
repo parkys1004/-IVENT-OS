@@ -269,6 +269,25 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                      : '현재 계정은 관리자 권한이 아닙니다. profiles 테이블에서 role을 admin으로 변경해야 합니다.'}
                  </p>
               </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl">
+                 <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-500">내 고유 ID (UUID)</span>
+                    <button 
+                      onClick={() => {
+                        if (profile?.uid) {
+                          navigator.clipboard.writeText(profile.uid);
+                          alert('UUID가 복사되었습니다!');
+                        }
+                      }}
+                      className="text-[10px] font-black text-indigo-600 hover:underline"
+                    >
+                      복사하기
+                    </button>
+                 </div>
+                 <p className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 break-all bg-white dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-800">
+                    {profile?.uid || '조회 중...'}
+                 </p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                  <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
                     <div className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-tighter">Profile Sync</div>

@@ -25,6 +25,10 @@ export interface UserProfile {
   portfolioImages?: string[];
   studioLocation?: string;
   phone?: string;
+  gender?: 'male' | 'female';
+  instagram_url?: string;
+  facebook_url?: string;
+  kakao_id?: string;
   preferences?: {
     genres?: string[];
     regions?: string[];
@@ -136,6 +140,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           career: data.career, portfolioUrl: data.portfolio_url,
           portfolioImages: data.portfolio_images, studioLocation: data.studio_location,
           phone: data.phone,
+          gender: data.gender,
+          instagram_url: data.instagram_url,
+          facebook_url: data.facebook_url,
+          kakao_id: data.kakao_id,
           preferences: data.preferences
         };
         

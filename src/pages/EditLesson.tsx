@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
-import { Calendar, FileText, MapPin, Upload, X, GraduationCap, PlusCircle, MinusCircle, CreditCard, Plus, ImageIcon as ImageIcon, Sparkles } from 'lucide-react';
+import { Calendar, FileText, MapPin, Upload, X, GraduationCap, PlusCircle, MinusCircle, CreditCard, Plus, ImageIcon as ImageIcon, Sparkles, Music } from 'lucide-react';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';

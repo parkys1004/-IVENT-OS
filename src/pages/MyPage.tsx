@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Settings, Save, AtSign, ShieldCheck, Ticket, Coins, Clock, TrendingUp, History, ChevronRight, Camera } from 'lucide-react';
+import { User, Settings, Save, AtSign, ShieldCheck, Ticket, Coins, Clock, TrendingUp, History, ChevronRight, Camera, Instagram, Facebook, MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../supabase';
 import { format } from 'date-fns';
@@ -14,6 +14,10 @@ import TypeBadge from '../components/TypeBadge';
 export default function MyPage() {
   const { user, profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | null>(null);
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [kakaoId, setKakaoId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [registrations, setRegistrations] = useState<any[]>([]);
@@ -51,10 +55,14 @@ export default function MyPage() {
   };
 
   useEffect(() => {
-    if (profile?.displayName) {
-      setDisplayName(profile.displayName);
+    if (profile) {
+      setDisplayName(profile.displayName || '');
+      setGender(profile.gender as any || null);
+      setInstagramUrl(profile.instagram_url || '');
+      setFacebookUrl(profile.facebook_url || '');
+      setKakaoId(profile.kakao_id || '');
     }
-  }, [profile?.displayName]);
+  }, [profile]);
 
   useEffect(() => {
     async function fetchPoints() {
@@ -157,7 +165,13 @@ export default function MyPage() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ display_name: displayName })
+        .update({ 
+          display_name: displayName,
+          gender: gender,
+          instagram_url: instagramUrl,
+          facebook_url: facebookUrl,
+          kakao_id: kakaoId
+        })
         .eq('id', user.id);
       
       if (error) throw error;
@@ -270,6 +284,76 @@ export default function MyPage() {
                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                    placeholder="이름을 입력하세요"
                  />
+               </div>
+
+               <div className="space-y-4 pt-2">
+                 <div>
+                   <label className="block text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">성별</label>
+                   <div className="grid grid-cols-2 gap-3">
+                     <button
+                       type="button"
+                       onClick={() => setGender('male')}
+                       className={clsx(
+                         "py-3 rounded-2xl text-sm font-bold transition-all border-2 flex items-center justify-center gap-2",
+                         gender === 'male' 
+                           ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
+                           : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200 hover:text-slate-600"
+                       )}
+                     >
+                       <span className={clsx("w-2 h-2 rounded-full", gender === 'male' ? "bg-white" : "bg-indigo-400")}></span>
+                       남성 (Male)
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => setGender('female')}
+                       className={clsx(
+                         "py-3 rounded-2xl text-sm font-bold transition-all border-2 flex items-center justify-center gap-2",
+                         gender === 'female' 
+                           ? "bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20" 
+                           : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 hover:border-slate-200 hover:text-slate-600"
+                       )}
+                     >
+                       <span className={clsx("w-2 h-2 rounded-full", gender === 'female' ? "bg-white" : "bg-rose-400")}></span>
+                       여성 (Female)
+                     </button>
+                   </div>
+                 </div>
+
+                 <div className="space-y-3">
+                    <label className="block text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">SNS 연결 정보</label>
+                    <div className="space-y-3">
+                      <div className="relative group">
+                        <Instagram className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-500/60 group-focus-within:text-pink-500 transition-colors" />
+                        <input 
+                          type="text" 
+                          value={instagramUrl} 
+                          onChange={(e) => setInstagramUrl(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                          placeholder="인스타그램 ID / 주소"
+                        />
+                      </div>
+                      <div className="relative group">
+                        <Facebook className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-600/60 group-focus-within:text-blue-600 transition-colors" />
+                        <input 
+                          type="text" 
+                          value={facebookUrl} 
+                          onChange={(e) => setFacebookUrl(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                          placeholder="페이스북 프로필 주소"
+                        />
+                      </div>
+                      <div className="relative group">
+                        <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/60 group-focus-within:text-amber-500 transition-colors" />
+                        <input 
+                          type="text" 
+                          value={kakaoId} 
+                          onChange={(e) => setKakaoId(e.target.value)}
+                          className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                          placeholder="카카오톡 ID"
+                        />
+                      </div>
+                    </div>
+                 </div>
                </div>
                
                <button 

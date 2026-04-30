@@ -156,24 +156,23 @@ async function startServer() {
           .order('updated_at', { ascending: false })
       ]);
 
-      const host = req.get('host');
-      const protocol = req.protocol === 'https' ? 'https' : 'http';
-      const baseUrl = `${protocol}://${host}`;
-
+      // Use VITE_SITE_URL if available, otherwise detect from request
+      const siteUrl = process.env.VITE_SITE_URL || `${req.protocol}://${req.get('host')}`;
+      
       let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>${baseUrl}/</loc>
-    <changefreq>daily</changefreq>
+    <loc>${siteUrl}/</loc>
+    <changefreq>always</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>${baseUrl}/explore</loc>
+    <loc>${siteUrl}/explore</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>${baseUrl}/community</loc>
+    <loc>${siteUrl}/community</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>`;
@@ -182,10 +181,10 @@ async function startServer() {
         const lastMod = party.updated_at ? new Date(party.updated_at).toISOString() : new Date().toISOString();
         sitemap += `
   <url>
-    <loc>${baseUrl}/party/${party.id}</loc>
+    <loc>${siteUrl}/party/${party.id}</loc>
     <lastmod>${lastMod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>`;
       });
 
@@ -193,17 +192,17 @@ async function startServer() {
         const lastMod = lesson.updated_at ? new Date(lesson.updated_at).toISOString() : new Date().toISOString();
         sitemap += `
   <url>
-    <loc>${baseUrl}/lesson/${lesson.id}</loc>
+    <loc>${siteUrl}/lesson/${lesson.id}</loc>
     <lastmod>${lastMod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>`;
       });
 
       sitemap += `\n</urlset>`;
 
       res.header('Content-Type', 'application/xml');
-      res.send(sitemap);
+      res.send(sitemap.trim());
     } catch (err) {
       console.error("[Sitemap Error]", err);
       res.status(500).send("Error generating sitemap");
@@ -212,12 +211,11 @@ async function startServer() {
 
   // robots.txt
   app.get("/robots.txt", (req, res) => {
-    const host = req.get('host');
-    const protocol = req.protocol === 'https' ? 'https' : 'http';
+    const siteUrl = process.env.VITE_SITE_URL || `${req.protocol}://${req.get('host')}`;
     res.type('text/plain');
     res.send(`User-agent: *
 Allow: /
-Sitemap: ${protocol}://${host}/sitemap.xml`);
+Sitemap: ${siteUrl}/sitemap.xml`);
   });
 
   // API 404

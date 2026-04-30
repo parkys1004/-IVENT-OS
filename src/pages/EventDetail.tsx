@@ -804,10 +804,10 @@ export default function EventDetail() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{ws.instructor ? `${ws.instructor} 님` : '강사 미확정'}</span>
+                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{ws.teacher ? `${ws.teacher} 님` : '강사 미확정'}</span>
                       </div>
                       <p className="text-[15px] md:text-[18px] font-bold text-slate-900 dark:text-white leading-tight">
-                        {ws.title || '워크샵 주제 정보가 없습니다.'}
+                        {ws.topic || '워크샵 주제 정보가 없습니다.'}
                       </p>
                     </div>
                   </div>

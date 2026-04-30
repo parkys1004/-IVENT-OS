@@ -199,6 +199,7 @@ export default function EventDetail() {
           tickets: data.tickets || [],
           paymentMethod: data.payment_method || '',
           paymentLink: data.payment_link || '',
+          workshops: data.workshops || [],
           level: data.level || 'beginner'
         };
         
@@ -783,6 +784,37 @@ export default function EventDetail() {
               </a>
             </div>
           </div>
+
+          {/* Workshops Block */}
+          {event.workshops && event.workshops.length > 0 && (
+            <div className="bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[24px] md:rounded-[32px] p-5 md:p-8 shadow-sm space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-amber-50 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">워크샵 타임테이블</h3>
+              </div>
+              
+              <div className="space-y-4">
+                {event.workshops.map((ws: any, idx: number) => (
+                  <div key={idx} className="flex gap-4 p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-500/30 transition-all group">
+                    <div className="flex flex-col items-center justify-center min-w-[70px] md:min-w-[90px] border-r border-slate-200 dark:border-slate-700 pr-4 shrink-0">
+                      <span className="text-[13px] md:text-sm font-black text-amber-600 dark:text-amber-400">{ws.time || '시간 미지정'}</span>
+                      <div className="mt-1 w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 group-hover:scale-150 group-hover:bg-amber-500 transition-all shadow-sm"></div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{ws.instructor ? `${ws.instructor} 님` : '강사 미확정'}</span>
+                      </div>
+                      <p className="text-[15px] md:text-[18px] font-bold text-slate-900 dark:text-white leading-tight">
+                        {ws.title || '워크샵 주제 정보가 없습니다.'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Map Block */}
           <div className="rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm min-h-[300px]">

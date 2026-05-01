@@ -9,7 +9,7 @@ function getGeminiModel() {
   if (!apiKey) return null;
   
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' }, { apiVersion: 'v1beta' });
+  return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }, { apiVersion: 'v1beta' });
 }
 
 export interface RecommendationTags {

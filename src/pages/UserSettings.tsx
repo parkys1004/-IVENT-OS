@@ -38,12 +38,12 @@ type TabType = 'profile' | 'activity' | 'ai' | 'account';
 
 const DIAGNOSTIC_MODELS = [
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'AI 포스터 분석 (멀티모달)' },
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', desc: 'AI 추천 모드 (속도/효율)' }
+  { id: 'gemini-1.5-flash-002', name: 'Gemini 1.5 Flash 002', desc: 'AI 추천 모드 (안정성)' }
 ];
 
 const PROVIDERS = [
   { id: 'openai', name: 'OpenAI (ChatGPT)', icon: 'https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg', models: ['gpt-4o', 'gpt-4o-mini'] },
-  { id: 'google', name: 'Google (Gemini)', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', models: ['gemini-2.0-flash', 'gemini-1.5-flash-latest'] }
+  { id: 'google', name: 'Google (Gemini)', icon: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg', models: ['gemini-2.0-flash', 'gemini-1.5-flash-002'] }
 ];
 
 export default function UserSettings() {

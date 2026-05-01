@@ -9,6 +9,20 @@ import { GoogleMapsProvider } from './context/GoogleMapsContext';
 import { BrandProvider } from './context/BrandContext';
 import './index.css';
 
+// Trusted Types Policy for Google Maps compatibility in restricted environments
+if ((window as any).trustedTypes && (window as any).trustedTypes.createPolicy) {
+  try {
+    (window as any).trustedTypes.createPolicy('default', {
+      createHTML: (s: string) => s,
+      createScriptURL: (s: string) => s,
+      createScript: (s: string) => s,
+    });
+  } catch (e) {
+    // Policy might already exist
+    console.warn('Trusted Types policy creation failed:', e);
+  }
+}
+
 // Kakao initialization
 const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
 if (kakaoKey && (window as any).Kakao && !(window as any).Kakao.isInitialized()) {

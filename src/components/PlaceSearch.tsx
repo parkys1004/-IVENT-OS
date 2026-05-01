@@ -14,14 +14,29 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPlaceSelect, onInputChange,
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const { isLoaded } = useGoogleMaps();
   const [inputValue, setInputValue] = useState(defaultValue || '');
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
-  const [isFocused, setIsFocused] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
-  const service = useRef<google.maps.places.AutocompleteService | null>(null);
 
   useEffect(() => {
-    if (isLoaded && !service.current) {
-      service.current = new window.google.maps.places.AutocompleteService();
+    if (defaultValue) {
+      setInputValue(defaultValue);
+    }
+  }, [defaultValue]);
+
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
+  const sessionToken = useRef<any>(null);
+
+  useEffect(() => {
+    if (isLoaded && !sessionToken.current) {
+      const initPlaces = async () => {
+        try {
+          const { AutocompleteSessionToken } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+          sessionToken.current = new AutocompleteSessionToken();
+        } catch (e) {
+          console.error("Failed to load AutocompleteSessionToken", e);
+        }
+      };
+      initPlaces();
     }
   }, [isLoaded]);
 
@@ -42,47 +57,71 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPlaceSelect, onInputChange,
     localStorage.setItem('place_search_history', JSON.stringify(newHistory));
   };
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTextChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
     if (onInputChange) onInputChange(val);
 
-    if (val.length > 0 && service.current) {
-      service.current.getPlacePredictions({ input: val }, (predictions) => {
-        setSuggestions(predictions || []);
-      });
+    if (val.length > 0 && isLoaded) {
+      try {
+        const { AutocompleteSuggestion } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+        const request = {
+          input: val,
+          sessionToken: sessionToken.current,
+        };
+        const { suggestions: newSuggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+        setSuggestions(newSuggestions || []);
+      } catch (e) {
+        console.error("Autocomplete fetch failed", e);
+      }
     } else {
       setSuggestions([]);
     }
   };
 
-  const handleSelect = (suggestion: google.maps.places.AutocompletePrediction) => {
-    setInputValue(suggestion.description);
-    addToHistory(suggestion.description);
+  const handleSelect = async (suggestion: any) => {
+    const placeSuggestion = suggestion.placePrediction;
+    const description = placeSuggestion.text.text;
+    
+    setInputValue(description);
+    addToHistory(description);
     setSuggestions([]);
     setIsFocused(false);
 
     if (onPlaceSelect || onInputChange) {
       if (isLoaded) {
-        // Create a temporary div for the PlacesService as it requires an HTML element or a map
-        const div = document.createElement('div');
-        const placesService = new window.google.maps.places.PlacesService(div);
-        
-        placesService.getDetails({
-          placeId: suggestion.place_id,
-          fields: ['name', 'formatted_address', 'address_components', 'geometry']
-        }, (place, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
-            if (onPlaceSelect) onPlaceSelect(place);
-            if (onInputChange) onInputChange(place.name || suggestion.description);
-          } else {
-            console.error("Places details failed", status);
-            // Fallback to just returning the description if detail fetch fails
-            if (onPlaceSelect) onPlaceSelect({ name: suggestion.description, formatted_address: suggestion.description });
-          }
-        });
+        try {
+          const { Place } = await google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+          const place = new Place({
+            id: placeSuggestion.placeId,
+            requestedLanguage: 'ko',
+          });
+
+          await place.fetchFields({
+            fields: ['displayName', 'formattedAddress', 'addressComponents', 'location']
+          });
+
+          const result = {
+            name: place.displayName,
+            formatted_address: place.formattedAddress,
+            address_components: place.addressComponents?.map((c: any) => ({
+              long_name: c.longText,
+              short_name: c.shortText,
+              types: c.types
+            })),
+            geometry: {
+              location: place.location
+            }
+          };
+
+          if (onPlaceSelect) onPlaceSelect(result);
+          if (onInputChange) onInputChange(place.displayName || description);
+        } catch (error) {
+          console.error("Place fetchFields failed", error);
+          if (onPlaceSelect) onPlaceSelect({ name: description, formatted_address: description });
+        }
       } else {
-        if (onPlaceSelect) onPlaceSelect({ name: suggestion.description, formatted_address: suggestion.description });
+        if (onPlaceSelect) onPlaceSelect({ name: description, formatted_address: description });
       }
     }
   };
@@ -121,7 +160,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ onPlaceSelect, onInputChange,
             suggestions.map((s, i) => (
               <button key={i} type="button" className="w-full text-left px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-0 border-slate-100 dark:border-slate-800 text-[14px] font-medium transition-colors flex items-center gap-3" onClick={() => handleSelect(s)}>
                 <span className="w-5 h-5 flex items-center justify-center text-indigo-500">📍</span>
-                {s.description}
+                {s.placePrediction?.text?.text || "장소 정보 없음"}
               </button>
             ))
           )}

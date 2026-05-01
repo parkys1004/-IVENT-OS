@@ -27,7 +27,7 @@ import AnimatedBackground from './components/AnimatedBackground';
 import clsx from 'clsx';
 import { useAuth } from './context/AuthContext';
 
-import { AlertCircle, ExternalLink, MessageSquare } from 'lucide-react';
+import { AlertCircle, ExternalLink, MessageSquare, Sparkles, Zap } from 'lucide-react';
 import { OnboardingModal } from './components/OnboardingModal';
 import WelcomePopup from './components/WelcomePopup';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -72,6 +72,56 @@ function ScrollToTopOnNavigation() {
   return null;
 }
 
+const MAINTENANCE_MODE = true; // 서비스 점검/정비 모드 활성화
+
+function MaintenanceScreen() {
+  return (
+    <div className="fixed inset-0 z-[9998] bg-slate-900 flex items-center justify-center overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-indigo-600 blur-[120px] animate-pulse rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-rose-600 blur-[100px] animate-pulse rounded-full delay-700" />
+      </div>
+      
+      <div className="relative z-10 text-center px-6 max-w-2xl">
+        <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-full mb-8 backdrop-blur-md">
+          <Sparkles className="w-4 h-4 text-indigo-400" />
+          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-indigo-300">System Optimization</span>
+        </div>
+        
+        <h1 className="text-4xl md:text-6xl font-[1000] text-white tracking-tighter mb-6 leading-tight">
+          더 정교하고 강력하게<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-rose-400">다시 준비 중입니다.</span>
+        </h1>
+        
+        <p className="text-slate-400 text-lg md:text-xl font-bold leading-relaxed mb-12">
+          예상치 못한 인프라 이슈를 성장의 기회로 삼아,<br />
+          더욱 안정적이고 최적화된 서비스로 보답하겠습니다.
+        </p>
+
+        <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+          <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 p-6 rounded-3xl w-full md:w-48">
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2">Check Date</p>
+            <p className="text-white font-black text-xl">2026.05.01</p>
+          </div>
+          <div className="bg-indigo-600/10 backdrop-blur-md border border-indigo-500/30 p-6 rounded-3xl w-full md:w-48 ring-4 ring-indigo-600/5">
+            <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-2">Target Launch</p>
+            <p className="text-indigo-300 font-black text-xl">2026.05.15</p>
+          </div>
+        </div>
+
+        <div className="mt-16 flex items-center justify-center gap-4 text-slate-500">
+           <Zap className="w-4 h-4 animate-bounce" />
+           <span className="text-[11px] font-black uppercase tracking-[0.4em]">Efficiency • Scalability • Optimization</span>
+        </div>
+      </div>
+      
+      {/* WelcomePopup should render on top of this */}
+      <WelcomePopup />
+    </div>
+  );
+}
+
 function AppContent() {
   // Handle auth server configuration errors in hash
   if (typeof window !== 'undefined' && window.location.hash.includes('error=server_error')) {
@@ -85,6 +135,8 @@ function AppContent() {
 
   // Redirect unauthenticated users
   React.useEffect(() => {
+    if (MAINTENANCE_MODE) return; // 점검 모드일 때는 리다이렉트 중지
+
     const publicPaths = [
       '/', 
       '/login', 
@@ -132,6 +184,11 @@ function AppContent() {
       }
     }
   }, []);
+
+  // 점검 모드 처리 (최상단)
+  if (MAINTENANCE_MODE) {
+    return <MaintenanceScreen />;
+  }
 
   // loading 중 스피너 표시 (흰 화면 방지)
   if (loading) {

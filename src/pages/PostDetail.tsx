@@ -68,25 +68,34 @@ export default function PostDetail() {
       // Fetch Post
       const { data: postData, error: postError } = await supabase
         .from('community_posts')
-        .select('*, author:profiles(display_name, photo_url)')
+        .select('id, title, content, category, author_id, created_at, is_private, author:profiles(display_name, photo_url)')
         .eq('id', id)
         .single();
 
       if (postError) throw postError;
-      setPost(postData);
+      const postWithAuthor = {
+        ...postData,
+        author: Array.isArray(postData.author) ? postData.author[0] : postData.author
+      };
+      setPost(postWithAuthor as any);
 
       // Fetch Comments
       const { data: commentData, error: commentError } = await supabase
         .from('community_comments')
-        .select('*, author:profiles(display_name, photo_url)')
+        .select('id, content, author_id, created_at, author:profiles(display_name, photo_url)')
         .eq('post_id', id)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(200);
 
       if (commentError) {
         console.error("Error fetching comments:", commentError);
         // Table might not exist yet, we'll handle this gracefully
       } else {
-        setComments(commentData || []);
+        const mappedComments = ((commentData || []) as any[]).map(c => ({
+          ...c,
+          author: Array.isArray(c.author) ? c.author[0] : c.author
+        }));
+        setComments(mappedComments as any);
       }
     } catch (error) {
       console.error("Error loading post:", error);

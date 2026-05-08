@@ -67,104 +67,110 @@ export default function CategoryExplore() {
     setLoading(true);
     if (!category) return;
 
-    if (isProfessionalCategory) {
-      const fetchProfessionals = async () => {
-        try {
-          let roles = [category];
-          if (category === 'dj_media') roles = ['dj', 'media'];
-          
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('role', roles)
-            .order('priority', { ascending: false })
-            .limit(100);
-          
-          if (error) throw error;
-          
-          const usersData = data.map(u => ({
-            uid: u.id,
-            email: u.email,
-            displayName: u.display_name,
-            photoURL: u.photo_url,
-            role: u.role,
-            priority: u.priority
-          })) as any;
-          
-          setProfessionals(usersData);
-          setLoading(false);
-        } catch (error) {
-          console.error('Error fetching professionals:', error);
-          setLoading(false);
-        }
-      };
-      fetchProfessionals();
-      return;
-    }
-
-    const fetchItems = async () => {
-      try {
-        const combinedData: any[] = [];
-        const now = new Date().toISOString();
-        
-        // Fetch Parties
-        if (category !== 'lesson') {
-          let partiesQuery = supabase.from('parties').select('*').eq('status', 'published');
-          if (category !== 'all' && category !== 'party') {
-            partiesQuery = partiesQuery.eq('category', category);
-          }
-
-          // Apply server-side ordering
-          if (sortBy === 'upcoming') {
-            partiesQuery = partiesQuery.gte('end_date', now).order('date', { ascending: true });
-          } else if (sortBy === 'latest') {
-            partiesQuery = partiesQuery.order('created_at', { ascending: false });
-          } else if (sortBy === 'popular') {
-            partiesQuery = partiesQuery.order('likes_count', { ascending: false });
-          }
-
-          const { data, error } = await partiesQuery.limit(50);
-          if (error) console.error("Party fetch error:", error);
-          if (data) combinedData.push(...data.map(p => ({ ...p, isLesson: false })));
-        }
-
-        // Fetch Lessons
-        if (category !== 'party') {
-          let lessonsQuery = supabase.from('lessons').select('*').eq('status', 'published');
-          if (category !== 'all' && category !== 'lesson') {
-            lessonsQuery = lessonsQuery.eq('category', category);
-          }
-
-          // Apply server-side ordering
-          if (sortBy === 'upcoming') {
-            lessonsQuery = lessonsQuery.gte('end_date', now).order('date', { ascending: true });
-          } else if (sortBy === 'latest') {
-            lessonsQuery = lessonsQuery.order('created_at', { ascending: false });
-          } else if (sortBy === 'popular') {
-            lessonsQuery = lessonsQuery.order('likes_count', { ascending: false });
-          }
-
-          const { data, error } = await lessonsQuery.limit(50);
-          if (error) console.error("Lesson fetch error:", error);
-          if (data) combinedData.push(...data.map(l => ({ ...l, isLesson: true })));
-        }
-
-        if (combinedData.length === 0) {
-          setEvents([]);
-          setLoading(false);
+        // Fetch Professionals
+        if (isProfessionalCategory) {
+          const fetchProfessionals = async () => {
+            try {
+              let roles = [category];
+              if (category === 'dj_media') roles = ['dj', 'media'];
+              
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('id, email, display_name, photo_url, role, priority, short_bio, studio_location')
+                .in('role', roles)
+                .order('priority', { ascending: false })
+                .limit(40); // 1. Limit 추가
+              
+              if (error) throw error;
+              
+              const usersData = data.map(u => ({
+                uid: u.id,
+                email: u.email,
+                displayName: u.display_name,
+                photoURL: u.photo_url,
+                role: u.role,
+                priority: u.priority,
+                shortBio: u.short_bio,
+                studioLocation: u.studio_location
+              })) as any;
+              
+              setProfessionals(usersData);
+              setLoading(false);
+            } catch (error) {
+              console.error('Error fetching professionals:', error);
+              setLoading(false);
+            }
+          };
+          fetchProfessionals();
           return;
         }
-        
-        // Fetch registration counts
-        const { data: allRegs } = await supabase
-          .from('registrations')
-          .select('event_id')
-          .in('event_id', combinedData.map(e => e.id));
 
-        const regCounts: Record<string, number> = {};
-        allRegs?.forEach(r => {
-          regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
-        });
+        const fetchItems = async () => {
+          try {
+            const combinedData: any[] = [];
+            const now = new Date().toISOString();
+            
+            // Fetch Parties (필요한 컬럼만 선택)
+            const baseColumns = 'id, title, description, date, end_date, category, location_name, image_url, likes_count, created_at, max_attendees';
+
+            if (category !== 'lesson') {
+              let partiesQuery = supabase.from('parties').select(baseColumns).eq('status', 'published');
+              if (category !== 'all' && category !== 'party') {
+                partiesQuery = partiesQuery.eq('category', category);
+              }
+
+              // Apply server-side ordering
+              if (sortBy === 'upcoming') {
+                partiesQuery = partiesQuery.gte('end_date', now).order('date', { ascending: true });
+              } else if (sortBy === 'latest') {
+                partiesQuery = partiesQuery.order('created_at', { ascending: false });
+              } else if (sortBy === 'popular') {
+                partiesQuery = partiesQuery.order('likes_count', { ascending: false });
+              }
+
+              const { data, error } = await partiesQuery.limit(30);
+              if (error) console.error("Party fetch error:", error);
+              if (data) combinedData.push(...(data as any[]).map(p => ({ ...p, isLesson: false })));
+            }
+
+            // Fetch Lessons (필요한 컬럼만 선택)
+            if (category !== 'party') {
+              let lessonsQuery = supabase.from('lessons').select(baseColumns + ', level, class_time').eq('status', 'published');
+              if (category !== 'all' && category !== 'lesson') {
+                lessonsQuery = lessonsQuery.eq('category', category);
+              }
+
+              // Apply server-side ordering
+              if (sortBy === 'upcoming') {
+                lessonsQuery = lessonsQuery.gte('end_date', now).order('date', { ascending: true });
+              } else if (sortBy === 'latest') {
+                lessonsQuery = lessonsQuery.order('created_at', { ascending: false });
+              } else if (sortBy === 'popular') {
+                lessonsQuery = lessonsQuery.order('likes_count', { ascending: false });
+              }
+
+              const { data, error } = await lessonsQuery.limit(30);
+              if (error) console.error("Lesson fetch error:", error);
+              if (data) combinedData.push(...(data as any[]).map(l => ({ ...l, isLesson: true })));
+            }
+
+            if (combinedData.length === 0) {
+              setEvents([]);
+              setLoading(false);
+              return;
+            }
+            
+            // Fetch registration counts (최적화: count만 가져옴)
+            const { data: allRegs } = await supabase
+              .from('registrations')
+              .select('event_id')
+              .in('event_id', combinedData.map(e => e.id))
+              .limit(500);
+
+            const regCounts: Record<string, number> = {};
+            (allRegs as any[])?.forEach(r => {
+              regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
+            });
 
         const mappedItems = combinedData.map(e => ({
           id: e.id,

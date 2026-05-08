@@ -79,7 +79,14 @@ export default function Navbar() {
     },
     { to: '/explore/lesson', icon: <GraduationCap className="w-4 h-4" />, label: t('search.category.lesson') },
     { to: '/explore/instructor', icon: <Users className="w-4 h-4" />, label: t('search.category.instructor') },
-    { to: '/explore/dj', icon: <Disc className="w-4 h-4" />, label: t('search.category.dj') },
+    { 
+      to: '/explore/dj', 
+      icon: <Disc className="w-4 h-4" />, 
+      label: t('search.category.dj'),
+      subLinks: [
+        { to: '/playlist', label: '플레이리스트' }
+      ]
+    },
     { to: '/explore/media', icon: <Camera className="w-4 h-4" />, label: t('search.category.media') },
     { to: '/places', icon: <MapPin className="w-4 h-4" />, label: '장소' },
     { to: '/community', icon: <MessageSquare className="w-4 h-4" />, label: '커뮤니티' },

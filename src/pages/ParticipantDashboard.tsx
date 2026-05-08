@@ -326,89 +326,71 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 1. Fetch Parties
+        // 1. Fetch Parties (필요한 컬럼 명시)
+        const eventColumns = 'id, title, description, date, end_date, category, location_name, formatted_address, status, price, max_attendees, host_id, image_url, is_banner, priority, likes_count, created_at';
+        
         const { data: partiesData, error: partiesError } = await supabase
           .from('parties')
-          .select('*')
+          .select(eventColumns)
           .eq('status', 'published')
-          .limit(60);
+          .limit(40);
 
         if (partiesError) throw partiesError;
 
-        // 1.1 Fetch Lessons
+        // 1.1 Fetch Lessons (필요한 컬럼 명시)
         const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
-          .select('*')
+          .select(eventColumns + ', level')
           .eq('status', 'published')
-          .limit(40);
+          .limit(30);
 
         if (lessonsError) {
           console.warn("Lessons table error:", lessonsError);
         }
 
         // Fetch registration counts for these items
-        const allItemIds = [...(partiesData?.map(e => e.id) || []), ...(lessonsData?.map(c => c.id) || [])];
+        const parties = (partiesData || []) as any[];
+        const lessons = (lessonsData || []) as any[];
+        
+        const allItemIds = [...parties.map(e => e.id), ...lessons.map(c => c.id)];
         
         const { data: allRegs } = await supabase
           .from('registrations')
           .select('event_id')
-          .in('event_id', allItemIds);
+          .in('event_id', allItemIds)
+          .limit(1000);
 
         const regCounts: Record<string, number> = {};
-        allRegs?.forEach(r => {
+        (allRegs as any[])?.forEach(r => {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
         
-        const mappedParties = (partiesData || []).map(e => ({
-          id: e.id,
-          title: e.title,
-          description: e.description,
-          date: e.date || (e as any).start_date,
-          end_date: e.end_date,
-          category: e.category,
-          locationName: e.location_name,
-          formattedAddress: e.formatted_address,
-          status: e.status,
-          price: e.price,
-          maxAttendees: e.max_attendees || 0,
+        const mappedParties = parties.map(e => ({
+          ...e,
           currentAttendees: regCounts[e.id] || 0,
-          hostId: e.host_id,
-          imageUrl: e.image_url,
-          isBanner: e.is_banner,
           isLesson: false,
-          priority: e.priority,
+          isBanner: e.is_banner,
           likesCount: e.likes_count,
           createdAt: e.created_at,
-          djs: e.djs || [],
-          performances: e.performances || [],
-          media: e.media || [],
-          tickets: e.tickets || [],
-          paymentMethod: e.payment_method || ''
+          maxAttendees: e.max_attendees || 0,
+          locationName: e.location_name,
+          formattedAddress: e.formatted_address,
+          hostId: e.host_id,
+          imageUrl: e.image_url
         }));
 
-        const mappedLessons = (lessonsData || []).map(c => ({
-          id: c.id,
-          title: c.title,
-          description: c.description,
-          date: c.date || (c as any).start_date,
-          end_date: c.end_date,
-          category: c.category || 'lesson',
+        const mappedLessons = lessons.map(c => ({
+          ...c,
+          currentAttendees: regCounts[c.id] || 0,
+          isLesson: true,
+          isBanner: (c as any).is_banner,
+          likesCount: (c as any).likes_count,
+          createdAt: (c as any).created_at,
+          maxAttendees: c.max_attendees || 50,
           locationName: c.location_name,
           formattedAddress: c.formatted_address,
-          status: c.status,
-          price: c.price,
-          maxAttendees: c.max_attendees || 50,
-          currentAttendees: regCounts[c.id] || 0,
           hostId: c.host_id,
-          imageUrl: c.image_url,
-          isBanner: c.is_banner,
-          isLesson: true,
-          priority: c.priority,
-          likesCount: c.likes_count,
-          createdAt: c.created_at,
-          level: c.level,
-          tickets: c.tickets || [],
-          paymentMethod: c.payment_method || ''
+          imageUrl: c.image_url
         }));
         
         // Combine and sort by date
@@ -420,26 +402,16 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
         setEvents(combined as unknown as EventData[]);
 
-        // 2. Fetch Professionals
+        // 2. Fetch Professionals (필요한 컬럼 명시)
         const { data: proData, error: proError } = await supabase
           .from('profiles')
-          .select(`
-            *,
-            instructors(*),
-            djs(*),
-            creators(*)
-          `)
+          .select(`id, email, display_name, photo_url, role, created_at, points, followers_count, specialties, priority`)
           .in('role', ['instructor', 'dj', 'media'])
           .order('priority', { ascending: false })
-          .limit(20);
+          .limit(10);
 
         if (proError) throw proError;
         const mappedPros = proData.map(p => {
-          let specialized = null;
-          if (p.role === 'instructor') specialized = p.instructors?.[0];
-          else if (p.role === 'dj') specialized = p.djs?.[0];
-          else if (p.role === 'media') specialized = p.creators?.[0];
-
           return {
             uid: p.id,
             email: p.email,
@@ -450,7 +422,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             points: p.points,
             followersCount: p.followers_count || 0,
             specialties: p.specialties,
-            specialized: specialized
+            priority: p.priority
           } as any;
         });
         setProfessionals(mappedPros);
@@ -458,7 +430,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         // 3. Fetch Banners
         const { data: bannerData, error: bannerError } = await supabase
           .from('promo_banners')
-          .select('*')
+          .select('id, image_url, link_url, is_active')
           .eq('is_active', true);
 
         if (bannerError) throw bannerError;

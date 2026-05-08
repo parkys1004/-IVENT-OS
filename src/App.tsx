@@ -21,6 +21,7 @@ import PublicProfile from './pages/PublicProfile';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import PastEvents from './pages/PastEvents';
+import Playlist from './pages/Playlist';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import AnimatedBackground from './components/AnimatedBackground';
@@ -72,7 +73,7 @@ function ScrollToTopOnNavigation() {
   return null;
 }
 
-const MAINTENANCE_MODE = true; // 서비스 점검/정비 모드 활성화
+const MAINTENANCE_MODE = false; // 서비스 점검/정비 모드 활성화
 
 function MaintenanceScreen() {
   return (
@@ -115,9 +116,6 @@ function MaintenanceScreen() {
            <span className="text-[11px] font-black uppercase tracking-[0.4em]">Efficiency • Scalability • Optimization</span>
         </div>
       </div>
-      
-      {/* WelcomePopup should render on top of this */}
-      <WelcomePopup />
     </div>
   );
 }
@@ -251,6 +249,7 @@ function AppContent() {
           <Route path="/ai-settings" element={<UserSettings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/playlist" element={<Playlist />} />
         </Routes>
       </main>
       {!isDashboardView && <Footer />}
@@ -268,7 +267,6 @@ function AppContent() {
       </a>
 
       <OnboardingModal isOpen={profile?.role === 'unassigned'} />
-      <WelcomePopup />
       <SupabaseConfigWarning />
       <PWAInstallPrompt />
       <VisitorCounter />

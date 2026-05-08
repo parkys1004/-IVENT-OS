@@ -85,9 +85,10 @@ export default function MyPage() {
       try {
         const { data, error } = await supabase
           .from('point_history')
-          .select('*')
+          .select('id, amount, description, created_at')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(20);
         if (error) throw error;
         setPointHistory(data || []);
       } catch (err) {
@@ -103,9 +104,10 @@ export default function MyPage() {
       try {
         const { data: regsData, error: regsError } = await supabase
           .from('registrations')
-          .select('*')
+          .select('id, event_id, status, registered_at')
           .eq('user_id', user.id)
-          .order('registered_at', { ascending: false });
+          .order('registered_at', { ascending: false })
+          .limit(10);
 
         if (regsError) throw regsError;
         
@@ -116,8 +118,8 @@ export default function MyPage() {
 
         const eventIds = regsData.map(r => r.event_id);
         const [partiesRes, lessonsRes] = await Promise.all([
-          supabase.from('parties').select('*').in('id', eventIds),
-          supabase.from('lessons').select('*').in('id', eventIds)
+          supabase.from('parties').select('id, title, date, start_date').in('id', eventIds),
+          supabase.from('lessons').select('id, title, date, start_date').in('id', eventIds)
         ]);
 
         const partiesMap: Record<string, any> = {};

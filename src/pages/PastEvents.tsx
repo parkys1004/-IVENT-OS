@@ -19,16 +19,18 @@ export default function PastEvents() {
         // Fetch parties that likely passed
         const { data: partiesData, error: partiesError } = await supabase
           .from('parties')
-          .select('*')
-          .eq('status', 'published');
+          .select('id, title, date, location_name, category, image_url, status, end_date, max_attendees')
+          .eq('status', 'published')
+          .limit(30);
 
         if (partiesError) throw partiesError;
 
         // Fetch lessons that likely passed
         const { data: lessonsData } = await supabase
           .from('lessons')
-          .select('*')
-          .eq('status', 'published');
+          .select('id, title, date, location_name, category, image_url, status, end_date, max_attendees')
+          .eq('status', 'published')
+          .limit(30);
 
         const combinedData = [
           ...(partiesData || []).map(p => ({ ...p, isLesson: false, date: p.date || (p as any).start_date })),
@@ -36,7 +38,7 @@ export default function PastEvents() {
         ];
         
         // Filter in memory to be 100% sure the event has ended
-        const reallyPassed = combinedData.filter(e => {
+        const reallyPassed = (combinedData as any[]).filter(e => {
           const endDateStr = e.end_date;
           const eventDate = e.date;
           
@@ -58,7 +60,7 @@ export default function PastEvents() {
           .in('event_id', reallyPassed.map(e => e.id));
 
         const regCounts: Record<string, number> = {};
-        allRegs?.forEach(r => {
+        (allRegs as any[])?.forEach(r => {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
 

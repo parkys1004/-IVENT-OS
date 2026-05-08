@@ -69,8 +69,9 @@ export default function Community() {
       if (activeCategory === 'review') {
         let query = supabase
           .from('event_reviews')
-          .select('*, author:profiles(display_name, photo_url)')
-          .order('created_at', { ascending: false });
+          .select('id, rating, content, created_at, author_id, event_id, author:profiles(display_name, photo_url)')
+          .order('created_at', { ascending: false })
+          .limit(50); // 1. Limit 추가
 
         if (currentSearch) {
           query = query.or(`content.ilike.%${currentSearch}%`);
@@ -99,26 +100,30 @@ export default function Community() {
           }
         }
 
-        setPosts(reviewData.map(r => ({
-          id: r.id,
-          title: `[${eventTitles[r.event_id] || '행사'}] 참여 후기`,
-          content: r.content,
-          category: 'review',
-          author_id: r.author_id,
-          created_at: r.created_at,
-          author_name: r.author?.display_name || '알 수 없는 사용자',
-          author_photo: r.author?.photo_url || '',
-          rating: r.rating,
-          event_title: eventTitles[r.event_id],
-          event_id: r.event_id,
-          comment_count: 0
-        })));
+        setPosts(reviewData.map(r => {
+          const author: any = Array.isArray(r.author) ? r.author[0] : r.author;
+          return {
+            id: r.id,
+            title: `[${eventTitles[r.event_id] || '행사'}] 참여 후기`,
+            content: r.content,
+            category: 'review',
+            author_id: r.author_id,
+            created_at: r.created_at,
+            author_name: author?.display_name || '알 수 없는 사용자',
+            author_photo: author?.photo_url || '',
+            rating: r.rating,
+            event_title: eventTitles[r.event_id],
+            event_id: r.event_id,
+            comment_count: 0
+          };
+        }));
       } else {
         let query = supabase
           .from('community_posts')
-          .select('*, author:profiles(display_name, photo_url)')
+          .select('id, title, content, category, author_id, created_at, is_private, author:profiles(display_name, photo_url)')
           .eq('category', activeCategory)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50); // 1. Limit 추가
 
         if (currentSearch) {
           query = query.or(`title.ilike.%${currentSearch}%,content.ilike.%${currentSearch}%`);
@@ -128,28 +133,33 @@ export default function Community() {
         if (error) throw error;
 
         // Fetch comment counts for these posts
-        const postIds = (data || []).map(p => p.id);
+        const postData = (data || []) as any[];
+        const postIds = postData.map(p => p.id);
         let counts: Record<string, number> = {};
         
         if (postIds.length > 0) {
           const { data: countData } = await supabase
             .from('community_comments')
             .select('post_id')
-            .in('post_id', postIds);
+            .in('post_id', postIds)
+            .limit(1000); // 2. Limit 추가
           
           if (countData) {
-            countData.forEach(c => {
+            (countData as any[]).forEach(c => {
               counts[c.post_id] = (counts[c.post_id] || 0) + 1;
             });
           }
         }
 
-        setPosts((data || []).map(post => ({
-          ...post,
-          author_name: post.author?.display_name || '알 수 없는 사용자',
-          author_photo: post.author?.photo_url || '',
-          comment_count: counts[post.id] || 0
-        })));
+        setPosts(postData.map(post => {
+          const author: any = Array.isArray(post.author) ? post.author[0] : post.author;
+          return {
+            ...post,
+            author_name: author?.display_name || '알 수 없는 사용자',
+            author_photo: author?.photo_url || '',
+            comment_count: counts[post.id] || 0
+          };
+        }));
       }
     } catch (error) {
       console.error("Fetch error:", error);

@@ -159,10 +159,10 @@ export default function EventDetail() {
           }
         }
 
-        // Fetch actual registration count
+        // Fetch actual registration count (Exact headcount optimized)
         const { count: regCount } = await supabase
           .from('registrations')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('event_id', id);
 
         const mappedEvent = {
@@ -224,9 +224,10 @@ export default function EventDetail() {
         // Fetch Community Data (Comments & Reviews)
         const { data: commentsData } = await supabase
           .from('event_comments')
-          .select(`*, author:profiles(display_name, photo_url)`)
+          .select(`id, content, created_at, author_id, author:profiles(display_name, photo_url)`)
           .eq('event_id', id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50);
 
         if (commentsData && !cancelled) {
           setComments(commentsData.map((c: any) => ({
@@ -238,9 +239,10 @@ export default function EventDetail() {
 
         const { data: reviewsData } = await supabase
           .from('event_reviews')
-          .select(`*, author:profiles(display_name, photo_url)`)
+          .select(`id, rating, content, created_at, author_id, author:profiles(display_name, photo_url)`)
           .eq('event_id', id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(30);
 
         if (reviewsData && !cancelled) {
           setReviews(reviewsData.map((r: any) => ({
@@ -253,9 +255,10 @@ export default function EventDetail() {
         // Fetch Photos
         const { data: photosData } = await supabase
           .from('event_photos')
-          .select(`*, author:profiles(display_name, photo_url)`)
+          .select(`id, user_id, image_url, caption, created_at, author:profiles(display_name, photo_url)`)
           .eq('event_id', id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(20);
 
         if (photosData && !cancelled) {
           setPhotos(photosData.map((p: any) => ({

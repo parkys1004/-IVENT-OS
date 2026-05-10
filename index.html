@@ -25,12 +25,15 @@
    <script>
     // Trusted Types Policy for Google Maps and other dynamic scripts
     if (window.trustedTypes && window.trustedTypes.createPolicy) {
-      if (!window.trustedTypes.defaultPolicy) {
+      try {
         window.trustedTypes.createPolicy('default', {
           createHTML: (string) => string,
           createScriptURL: (string) => string,
           createScript: (string) => string,
         });
+      } catch (e) {
+        // Policy might already exist, which is fine
+        console.debug('Trusted Types default policy already defined');
       }
     }
   </script>

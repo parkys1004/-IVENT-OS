@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, CalendarDays, Clock, Flame, Users, Sparkles, BrainCircuit, X } from 'lucide-react';
+import { Search, CalendarDays, Clock, Flame, Users, Sparkles, BrainCircuit, X, Music, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import EventCard, { EventData } from '../components/EventCard';
 import ProfessionalCard from '../components/ProfessionalCard';
@@ -17,6 +17,10 @@ export default function CategoryExplore() {
   const [events, setEvents] = useState<EventData[]>([]);
   const [professionals, setProfessionals] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('upcoming');
 
@@ -64,7 +68,14 @@ export default function CategoryExplore() {
   };
 
   useEffect(() => {
-    setLoading(true);
+    setPage(0);
+    setHasMore(true);
+  }, [category, sortBy]);
+
+  useEffect(() => {
+    if (page === 0) setLoading(true);
+    else setLoadingMore(true);
+    
     if (!category) return;
 
         // Fetch Professionals
@@ -79,11 +90,11 @@ export default function CategoryExplore() {
                 .select('id, email, display_name, photo_url, role, priority, short_bio, studio_location')
                 .in('role', roles)
                 .order('priority', { ascending: false })
-                .limit(40); // 1. Limit 추가
+                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
               
               if (error) throw error;
               
-              const usersData = data.map(u => ({
+              const usersData = (data || []).map(u => ({
                 uid: u.id,
                 email: u.email,
                 displayName: u.display_name,
@@ -94,11 +105,19 @@ export default function CategoryExplore() {
                 studioLocation: u.studio_location
               })) as any;
               
-              setProfessionals(usersData);
+              if (page === 0) {
+                setProfessionals(usersData);
+              } else {
+                setProfessionals(prev => [...prev, ...usersData]);
+              }
+              
+              setHasMore(usersData.length === PAGE_SIZE);
               setLoading(false);
+              setLoadingMore(false);
             } catch (error) {
               console.error('Error fetching professionals:', error);
               setLoading(false);
+              setLoadingMore(false);
             }
           };
           fetchProfessionals();
@@ -110,8 +129,14 @@ export default function CategoryExplore() {
             const combinedData: any[] = [];
             const now = new Date().toISOString();
             
-            // Fetch Parties (필요한 컬럼만 선택)
+            // Fetch Parties
             const baseColumns = 'id, title, description, date, end_date, category, location_name, image_url, likes_count, created_at, max_attendees';
+
+            const from = page * (PAGE_SIZE / 2);
+            const to = from + (PAGE_SIZE / 2) - 1;
+
+            let partyHasMore = false;
+            let lessonHasMore = false;
 
             if (category !== 'lesson') {
               let partiesQuery = supabase.from('parties').select(baseColumns).eq('status', 'published');
@@ -119,7 +144,6 @@ export default function CategoryExplore() {
                 partiesQuery = partiesQuery.eq('category', category);
               }
 
-              // Apply server-side ordering
               if (sortBy === 'upcoming') {
                 partiesQuery = partiesQuery.gte('end_date', now).order('date', { ascending: true });
               } else if (sortBy === 'latest') {
@@ -128,19 +152,21 @@ export default function CategoryExplore() {
                 partiesQuery = partiesQuery.order('likes_count', { ascending: false });
               }
 
-              const { data, error } = await partiesQuery.limit(30);
+              const { data, error } = await partiesQuery.range(from, to);
               if (error) console.error("Party fetch error:", error);
-              if (data) combinedData.push(...(data as any[]).map(p => ({ ...p, isLesson: false })));
+              if (data) {
+                combinedData.push(...(data as any[]).map(p => ({ ...p, isLesson: false })));
+                if (data.length === PAGE_SIZE / 2) partyHasMore = true;
+              }
             }
 
-            // Fetch Lessons (필요한 컬럼만 선택)
+            // Fetch Lessons
             if (category !== 'party') {
               let lessonsQuery = supabase.from('lessons').select(baseColumns + ', level, class_time').eq('status', 'published');
               if (category !== 'all' && category !== 'lesson') {
                 lessonsQuery = lessonsQuery.eq('category', category);
               }
 
-              // Apply server-side ordering
               if (sortBy === 'upcoming') {
                 lessonsQuery = lessonsQuery.gte('end_date', now).order('date', { ascending: true });
               } else if (sortBy === 'latest') {
@@ -149,18 +175,24 @@ export default function CategoryExplore() {
                 lessonsQuery = lessonsQuery.order('likes_count', { ascending: false });
               }
 
-              const { data, error } = await lessonsQuery.limit(30);
+              const { data, error } = await lessonsQuery.range(from, to);
               if (error) console.error("Lesson fetch error:", error);
-              if (data) combinedData.push(...(data as any[]).map(l => ({ ...l, isLesson: true })));
+              if (data) {
+                combinedData.push(...(data as any[]).map(l => ({ ...l, isLesson: true })));
+                if (data.length === PAGE_SIZE / 2) lessonHasMore = true;
+              }
             }
 
-            if (combinedData.length === 0) {
+            if (combinedData.length === 0 && page === 0) {
               setEvents([]);
               setLoading(false);
+              setHasMore(false);
               return;
             }
+
+            setHasMore(partyHasMore || lessonHasMore);
             
-            // Fetch registration counts (최적화: count만 가져옴)
+            // Fetch registration counts
             const { data: allRegs } = await supabase
               .from('registrations')
               .select('event_id')
@@ -191,7 +223,6 @@ export default function CategoryExplore() {
           classTime: (e as any).class_time
         }));
 
-        // Final sort to merge parties and lessons properly
         const sortedItems = mappedItems.sort((a, b) => {
           const getTime = (val: any) => val ? new Date(val).getTime() : 0;
           if (sortBy === 'upcoming') return getTime(a.date) - getTime(b.date);
@@ -200,16 +231,20 @@ export default function CategoryExplore() {
           return 0;
         });
         
-        setEvents(sortedItems as any);
+        if (page === 0) setEvents(sortedItems as any);
+        else setEvents(prev => [...prev, ...sortedItems] as any);
+        
         setLoading(false);
+        setLoadingMore(false);
       } catch (error) {
         console.error('Error fetching category items:', error);
         setLoading(false); 
+        setLoadingMore(false);
       }
     };
 
     fetchItems();
-  }, [category, isProfessionalCategory, sortBy]);
+  }, [category, isProfessionalCategory, sortBy, page]);
 
   const filteredItems = isProfessionalCategory 
     ? professionals.filter(p => 
@@ -254,6 +289,28 @@ export default function CategoryExplore() {
              '당신의 순간을 담아낼 다양한 이벤트.'}
           </p>
         </div>
+
+        {category === 'dj' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="shrink-0"
+          >
+            <Link 
+              to="/playlist"
+              className="group relative flex items-center gap-3 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 px-6 py-3 rounded-2xl shadow-xl shadow-amber-500/5 hover:translate-y-[-2px] transition-all"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:rotate-12 transition-transform">
+                <Music className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-none mb-1">Community Insights</p>
+                <p className="text-sm font-black text-slate-800 dark:text-white leading-none">플레이리스트 보기</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </motion.div>
+        )}
       </div>
 
       <div className={clsx(
@@ -413,6 +470,22 @@ export default function CategoryExplore() {
                     ? '협회 및 주최진이 곧 새로운 전문가를 등록할 예정입니다.' 
                     : t(`search.category.${category}`) + ' 카테고리에 활성화된 항목이 없습니다.'}
               </p>
+            </div>
+          )}
+
+          {hasMore && filteredItems.length > 0 && !loading && (
+            <div className="col-span-full flex justify-center pt-12">
+              <button
+                onClick={() => setPage(prev => prev + 1)}
+                disabled={loadingMore}
+                className="px-12 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-black text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-3 shadow-xl shadow-slate-200/20 dark:shadow-none active:scale-95 disabled:opacity-50"
+              >
+                {loadingMore ? (
+                  <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                ) : (
+                  <>더 많은 {isProfessionalCategory ? '전문가' : '이벤트'} 보기</>
+                )}
+              </button>
             </div>
           )}
         </div>

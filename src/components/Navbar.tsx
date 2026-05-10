@@ -46,14 +46,14 @@ export default function Navbar() {
   const location = useLocation();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [partyDropdownOpen, setPartyDropdownOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (!(e.target as Element).closest('[data-dropdown]')) {
         setDropdownOpen(false);
         setLangDropdownOpen(false);
-        setPartyDropdownOpen(false);
+        setActiveDropdown(null);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -146,8 +146,8 @@ export default function Navbar() {
                   <div 
                     key={link.to} 
                     className="relative group" data-dropdown
-                    onMouseEnter={() => link.subLinks && setPartyDropdownOpen(true)}
-                    onMouseLeave={() => link.subLinks && setPartyDropdownOpen(false)}
+                    onMouseEnter={() => link.subLinks && setActiveDropdown(link.to)}
+                    onMouseLeave={() => link.subLinks && setActiveDropdown(null)}
                   >
                     <Link 
                       to={link.to} 
@@ -163,7 +163,7 @@ export default function Navbar() {
 
                     {link.subLinks && (
                       <AnimatePresence>
-                        {partyDropdownOpen && (
+                        {activeDropdown === link.to && (
                           <motion.div
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}

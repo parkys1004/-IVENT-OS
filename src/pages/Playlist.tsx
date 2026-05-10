@@ -36,7 +36,29 @@ const MOCK_SALSA_HITS: Partial<Song>[] = [
   { title: "Gitana", artist: "Willie Colón" },
   { title: "Periodico de Ayer", artist: "Héctor Lavoe" },
   { title: "Aguanile", artist: "Héctor Lavoe" },
-  { title: "Fuego en el 23", artist: "La Sonora Ponceña" }
+  { title: "Fuego en el 23", artist: "La Sonora Ponceña" },
+  { title: "Dile a Ella", artist: "Víctor Manuelle" },
+  { title: "Salió el Sol", artist: "Don Omar (Salsa Remix)" },
+  { title: "La Murga", artist: "Héctor Lavoe" },
+  { title: "Cali Pachanguero", artist: "Grupo Niche" },
+  { title: "Oiga, Mire, Vea", artist: "Orquesta Guayacán" },
+  { title: "Pedro Navaja", artist: "Rubén Blades" },
+  { title: "Tu Amor Me Hace Bien", artist: "Marc Anthony" },
+  { title: "Valió la Pena", artist: "Marc Anthony" },
+  { title: "Gotas de Lluvia", artist: "Grupo Niche" },
+  { title: "Sin Sentimiento", artist: "Grupo Niche" },
+  { title: "Una Aventura", artist: "Grupo Niche" },
+  { title: "En Barranquilla Me Quedo", artist: "Joe Arroyo" },
+  { title: "El Preso", artist: "Fruko y sus Tesos" },
+  { title: "Toro Mata", artist: "Celia Cruz" },
+  { title: "Quimbara", artist: "Celia Cruz" },
+  { title: "Bemba Colorá", artist: "Celia Cruz" },
+  { title: "La Vida Es Un Carnaval", artist: "Celia Cruz" },
+  { title: "Yo No Sé Mañana", artist: "Luis Enrique" },
+  { title: "Fabricando Fantasías", artist: "Tito Nieves" },
+  { title: "He Tratado", artist: "Víctor Manuelle" },
+  { title: "Que Alguien Me Diga", artist: "Gilberto Santa Rosa" },
+  { title: "Conteo Regresivo", artist: "Gilberto Santa Rosa" }
 ];
 
 const MOCK_BACHATA_HITS: Partial<Song>[] = [
@@ -47,7 +69,29 @@ const MOCK_BACHATA_HITS: Partial<Song>[] = [
   { title: "Obsesión", artist: "Aventura" },
   { title: "Stand by Me", artist: "Prince Royce" },
   { title: "Deja Vu", artist: "Shakira, Prince Royce" },
-  { title: "Carita de Inocente", artist: "Prince Royce" }
+  { title: "Carita de Inocente", artist: "Prince Royce" },
+  { title: "Inmortal", artist: "Aventura" },
+  { title: "Un Beso", artist: "Aventura" },
+  { title: "Dile al Amor", artist: "Aventura" },
+  { title: "El Perdedor", artist: "Aventura" },
+  { title: "Bachata en Fukuoka", artist: "Juan Luis Guerra" },
+  { title: "Burbujas de Amor", artist: "Juan Luis Guerra" },
+  { title: "La Bilirrubina", artist: "Juan Luis Guerra" },
+  { title: "Frío Frío", artist: "Juan Luis Guerra" },
+  { title: "Te Extraño", artist: "Xtreme" },
+  { title: "Shorty Shorty", artist: "Xtreme" },
+  { title: "Eres Algo Más", artist: "Optimo" },
+  { title: "Mi Corazoncito", artist: "Aventura" },
+  { title: "Héroe Favorito", artist: "Romeo Santos" },
+  { title: "Imitadora", artist: "Romeo Santos" },
+  { title: "Centavito", artist: "Romeo Santos" },
+  { title: "Sobredosis", artist: "Romeo Santos, Ozuna" },
+  { title: "Carmín", artist: "Romeo Santos, Juan Luis Guerra" },
+  { title: "Ella y Yo", artist: "Don Omar, Romeo Santos" },
+  { title: "X", artist: "Prince Royce, Zendaya" },
+  { title: "La Carretera", artist: "Prince Royce" },
+  { title: "Moneda", artist: "Prince Royce, Gerardo Ortiz" },
+  { title: "Culpa al Corazón", artist: "Prince Royce" }
 ];
 
 export default function Playlist() {

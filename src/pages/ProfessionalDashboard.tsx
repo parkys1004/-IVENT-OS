@@ -825,9 +825,19 @@ export default function ProfessionalDashboard() {
           <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400">
             <Music className="w-10 h-10" />
           </div>
-          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-4">스마트 플레이리스트</h3>
-          <p className="text-slate-500 max-w-sm mb-8">행사 장르에 맞는 셋리스트를 구성하고,<br />현장에서 바로 사용할 수 있도록 준비하세요.</p>
-          <button className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-600/20">플레이리스트 생성</button>
+          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-4">커뮤니티 스마트 플레이리스트</h3>
+          <p className="text-slate-500 max-w-sm mb-8">회원들이 선정한 인기 살사/바차타 트렌드를 확인하고,<br />공연 및 강제 장르 선택에 영감을 얻으세요.</p>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => navigate('/playlist')}
+              className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-600/20 hover:scale-105 transition-transform"
+            >
+              플레이리스트 보기
+            </button>
+            <button className="px-6 py-3 bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900 text-purple-600 dark:text-purple-400 font-bold rounded-xl hover:bg-purple-50 transition-colors">
+              새 목록 생성
+            </button>
+          </div>
         </div>
       );
       case 'bookings': return (

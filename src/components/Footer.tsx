@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Wind } from 'lucide-react';
+import { Wind, Music } from 'lucide-react';
 import { useBrand } from '../context/BrandContext';
 
 export default function Footer() {
@@ -43,6 +43,12 @@ export default function Footer() {
           </div>
         </div>
         <div className="flex items-center gap-6">
+          <Link 
+            to="/playlist" 
+            className="text-sm font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors flex items-center gap-1.5"
+          >
+            <Music className="w-3.5 h-3.5" /> 플레이리스트
+          </Link>
           <Link 
             to="/terms" 
             className="text-sm font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors"

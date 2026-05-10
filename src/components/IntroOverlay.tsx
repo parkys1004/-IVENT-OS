@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'motion/react';
-import { Sparkles, MapPin, Users, Layout, Hexagon, Zap, Heart, ArrowDown } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
+import { Sparkles, MapPin, Users, Layout, Hexagon, Zap, Heart, ArrowDown, Move } from 'lucide-react';
 
 export const features = [
   {
@@ -30,6 +30,51 @@ export const features = [
 ];
 
 export function HeroHeader() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  // Smooth springs for mouse tracking
+  const springConfig = { damping: 25, stiffness: 150 };
+  const smoothMouseX = useSpring(mouseX, springConfig);
+  const smoothMouseY = useSpring(mouseY, springConfig);
+
+  // Parallax transforms
+  const logoRotate = useTransform(smoothMouseX, [-500, 500], [-30, 60]);
+  const logoX = useTransform(smoothMouseX, [-500, 500], [-20, 20]);
+  const logoY = useTransform(smoothMouseY, [-300, 300], [-20, 20]);
+  
+  const textX = useTransform(smoothMouseX, [-500, 500], [-15, 15]);
+  const textY = useTransform(smoothMouseY, [-300, 300], [-10, 10]);
+
+  const glowX = useTransform(smoothMouseX, [-500, 500], [-120, 120]);
+  const glowY = useTransform(smoothMouseY, [-300, 300], [-80, 80]);
+
+  // Salsa beat animation (1-2-3-pause)
+  const beatScale = {
+    scale: [1, 1.02, 1, 1.05, 1, 1.02, 1, 1],
+    transition: {
+      duration: 2.4,
+      repeat: Infinity,
+      times: [0, 0.1, 0.2, 0.3, 0.5, 0.6, 0.7, 1],
+      ease: "easeInOut"
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
+  };
+
   const scrollToContent = () => {
     const target = document.getElementById('dashboard-content');
     if (target) {
@@ -45,15 +90,25 @@ export function HeroHeader() {
   const hexPattern = "data:image/svg+xml,%3Csvg width='24' height='42' viewBox='0 0 24 42' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f59e0b' fill-opacity='0.04' fill-rule='evenodd'%3E%3Cpath d='M12 3L2 8.75V20.25L12 26L22 20.25V8.75L12 3zM12 0L24 7V22L12 29L0 22V7L12 0z'/%3E%3C/g%3E%3C/svg%3E";
 
   return (
-    <div className="relative w-full overflow-hidden flex flex-col items-center justify-center min-h-[80vh] sm:min-h-[90vh] bg-[#0A0806] mb-12">
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="relative w-full overflow-hidden flex flex-col items-center justify-center min-h-[80vh] sm:min-h-[90vh] bg-[#0A0806] mb-12 cursor-default"
+    >
       {/* Latin Dance Background Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0A0806]/90 via-[#0A0806]/70 to-[#0A0806] z-10" />
         <motion.img 
-          initial={{ scale: 1.1, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.4 }}
+          style={{ 
+            x: useTransform(smoothMouseX, [-500, 500], [10, -10]),
+            y: useTransform(smoothMouseY, [-300, 300], [10, -10]),
+            scale: 1.05
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
           transition={{ duration: 2, ease: "easeOut" }}
-          src="https://picsum.photos/seed/salsadance/1920/1080?blur=2" 
+          src="https://images.unsplash.com/photo-1547153760-18fc86024957?auto=format&fit=crop&q=80&w=2000" 
           className="w-full h-full object-cover grayscale-[0.3]" 
           referrerPolicy="no-referrer"
           alt="Latin Dance Context"
@@ -67,68 +122,103 @@ export function HeroHeader() {
           backgroundPosition: ['0px 0px', '24px 42px'],
         }}
         transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
-        style={{ backgroundImage: `url("${hexPattern}")`, backgroundSize: '24px 42px' }}
+        style={{ 
+          backgroundImage: `url("${hexPattern}")`, 
+          backgroundSize: '24px 42px',
+          x: useTransform(smoothMouseX, [-500, 500], [-15, 15]),
+          y: useTransform(smoothMouseY, [-300, 300], [-15, 15]),
+        }}
       />
 
-      {/* Decorative Orbs */}
+      {/* Interactive Orbs / Lights */}
       <div className="absolute inset-0 z-[2] overflow-hidden pointer-events-none">
         <motion.div 
+          style={{ x: glowX, y: glowY }}
           animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.2, 0.1]
+            scale: [1, 1.15, 1],
+            opacity: [0.2, 0.4, 0.2]
           }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-orange-600/20 rounded-full blur-[160px]" 
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] h-[70%] bg-gradient-to-r from-orange-600/40 via-amber-600/20 to-orange-400/30 rounded-full blur-[140px]" 
         />
         <motion.div 
-          animate={{ x: [-20, 20], y: [-20, 20] }}
-          transition={{ duration: 15, repeat: Infinity, repeatType: "reverse" }}
-          className="absolute top-[10%] right-[5%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px]" 
+          style={{ 
+            x: useTransform(smoothMouseX, [-500, 500], [80, -80]),
+            y: useTransform(smoothMouseY, [-300, 300], [80, -80])
+          }}
+          animate={{ opacity: [0.1, 0.2, 0.1] }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute bottom-[20%] left-[10%] w-[35%] h-[35%] bg-amber-500/10 rounded-full blur-[100px]" 
         />
       </div>
 
       <div className="relative z-20 w-full max-w-7xl mx-auto px-6 flex flex-col items-center">
         {/* Top Logo Icon */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ 
+            rotate: logoRotate,
+            x: logoX,
+            y: logoY
+          }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            y: [0, -15, 0]
+          }}
+          transition={{ 
+            opacity: { duration: 0.8 },
+            scale: { duration: 0.8 },
+            y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+          }}
           className="mb-8"
         >
-          <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-600 rounded-2xl flex items-center justify-center transform rotate-[15deg] shadow-xl shadow-orange-600/30 ring-4 ring-white/5">
-             <Hexagon className="w-8 h-8 text-white fill-white/20" />
+          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 via-amber-500 to-orange-700 rounded-[1.5rem] flex items-center justify-center shadow-[0_0_40px_rgba(249,115,22,0.3)] ring-1 ring-white/30 relative group">
+             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-[1.5rem] blur-xl" />
+             <Hexagon className="w-10 h-10 text-white fill-white/20 relative z-10" />
           </div>
         </motion.div>
 
         {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-orange-500/30 bg-orange-500/10 backdrop-blur-md text-orange-400 font-bold text-xs sm:text-sm mb-10 tracking-tight"
+          whileHover={{ scale: 1.05, borderColor: "rgba(249, 115, 22, 0.6)" }}
+          className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-orange-500/30 bg-black/40 backdrop-blur-xl text-orange-400 font-black text-[10px] sm:text-xs mb-8 tracking-widest uppercase overflow-hidden relative group shadow-2xl"
         >
-          <Sparkles className="w-4 h-4" /> 커뮤니티와 댄스의 지능형 이벤트 플랫폼
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" /> Salsa & Bachata Connected
         </motion.div>
         
         {/* Hero Titles */}
-        <div className="text-center mb-10 max-w-5xl">
+        <div className="text-center mb-8 max-w-5xl">
           <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="text-5xl sm:text-7xl md:text-8xl font-black text-white tracking-tighter mb-4 leading-none"
+            style={{ x: textX, y: textY }}
+            animate={beatScale as any}
+            initial={{ opacity: 0, filter: "blur(20px)" }}
+            whileInView={{ opacity: 1, filter: "blur(0px)" }}
+            transition={{ delay: 0.5, duration: 1 }}
+            className="text-6xl sm:text-7xl md:text-9xl font-black text-white tracking-tighter mb-2 leading-[0.85] drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] selection:bg-orange-500 selection:text-black"
           >
             Dancehive
           </motion.h1>
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
-            className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.8, duration: 1 }}
+            className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter relative"
           >
-            <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">
-              Connect & Shine
-            </span>
+            <motion.span 
+              animate={{ 
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              style={{ backgroundSize: "200% auto" }}
+              className="bg-gradient-to-r from-orange-500 via-amber-400 to-orange-400 bg-clip-text text-transparent inline-block"
+            >
+              Passion in Every Step
+            </motion.span>
           </motion.div>
         </div>
         
@@ -136,36 +226,64 @@ export function HeroHeader() {
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 1 }}
-          className="text-slate-400 text-lg sm:text-xl md:text-2xl text-center max-w-2xl leading-relaxed mb-12 font-medium"
+          transition={{ delay: 1.2, duration: 1 }}
+          className="text-slate-300 text-lg sm:text-xl md:text-2xl text-center max-w-3xl leading-relaxed mb-12 font-medium px-6 drop-shadow-lg"
         >
-          당신의 열정을 무대로, Dancehive는 댄서와 주최자를 잇는 <br className="hidden sm:block" />
-          가장 스마트한 연결을 제공합니다.
+          당신의 열정을 무대로, <span className="text-white font-black underline decoration-orange-500/60 decoration-2 underline-offset-4">Dancehive</span>는 <br className="sm:hidden" />
+          살사, 바차타 댄서와 오거나이저를 위한 <span className="text-orange-400">가장 뜨거운 연결</span>을 제공합니다.
         </motion.p>
         
-        {/* Call to Action Button */}
-        <motion.button
-          onClick={scrollToContent}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-10 py-5 bg-orange-500 hover:bg-orange-600 text-slate-950 font-black rounded-2xl shadow-2xl shadow-orange-600/20 flex items-center gap-3 text-lg transition-all"
-        >
-          참여하기 <ArrowDown className="w-5 h-5" />
-        </motion.button>
+        {/* Enhanced Call to Action Button */}
+        <div className="relative group/btn">
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.15, 1], 
+              opacity: [0.4, 0.7, 0.4],
+              rotate: [0, 5, -5, 0]
+            }}
+            transition={{ duration: 4, repeat: Infinity }}
+            className="absolute -inset-6 bg-orange-500/30 rounded-[3rem] blur-3xl group-hover/btn:bg-orange-500/60 transition-all duration-700"
+          />
+          <motion.button
+            onClick={scrollToContent}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.4 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className="group relative px-10 py-5 bg-gradient-to-r from-orange-500 via-amber-600 to-orange-700 hover:from-orange-400 hover:via-amber-500 hover:to-orange-600 text-white font-black rounded-2xl shadow-[0_15px_40px_rgba(249,115,22,0.25)] flex items-center gap-4 text-xl transition-all overflow-hidden border border-white/10"
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+            <span className="relative z-10 tracking-tight">춤의 무대로 참여하기</span> 
+            <motion.div
+              animate={{ y: [0, 6, 0] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              <ArrowDown className="w-6 h-6 relative z-10" />
+            </motion.div>
+          </motion.button>
+        </div>
       </div>
 
-      {/* Floating Sparks/Grid enhancements */}
-      <div className="absolute inset-0 pointer-events-none opacity-30">
-          {[...Array(8)].map((_, i) => (
+      {/* Advanced Floating Particles - Rhythmic Beat Particles */}
+      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+          {[...Array(24)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 bg-orange-400 rounded-full"
-              initial={{ x: Math.random() * 100 + "%", y: Math.random() * 100 + "%", opacity: 0 }}
-              animate={{ y: [null, "-20%"], opacity: [0, 1, 0] }}
-              transition={{ duration: 7 + Math.random() * 5, repeat: Infinity, delay: Math.random() * 5 }}
+              className={`absolute rounded-full sm:blur-[1px] ${i % 3 === 0 ? 'bg-orange-500/30 w-2 h-2' : 'bg-amber-400/20 w-1 h-1'}`}
+              initial={{ x: Math.random() * 100 + "%", y: "115%", opacity: 0 }}
+              animate={{ 
+                y: "-15%", 
+                opacity: [0, 0.8, 0],
+                x: (Math.random() * 100 - 5) + "%",
+                scale: [0.5, 1.2, 0.8]
+              }}
+              transition={{ 
+                duration: 8 + Math.random() * 15, 
+                repeat: Infinity, 
+                delay: Math.random() * 12,
+                ease: "linear"
+              }}
             />
           ))}
       </div>

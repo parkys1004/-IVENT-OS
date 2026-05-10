@@ -48,6 +48,10 @@ export default function Community() {
   const [activeCategory, setActiveCategory] = useState<PostCategory>('review');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 15;
   const [searchQuery, setSearchQuery] = useState('');
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   
@@ -58,12 +62,18 @@ export default function Community() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchPosts();
+    setPage(0);
+    setHasMore(true);
+    fetchPosts(0);
   }, [activeCategory]);
 
-  const fetchPosts = async (searchOverride?: string) => {
-    setLoading(true);
+  const fetchPosts = async (targetPage: number, searchOverride?: string) => {
+    if (targetPage === 0) setLoading(true);
+    else setLoadingMore(true);
+
     const currentSearch = searchOverride !== undefined ? searchOverride : searchQuery;
+    const from = targetPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
     
     try {
       if (activeCategory === 'review') {
@@ -71,7 +81,7 @@ export default function Community() {
           .from('event_reviews')
           .select('id, rating, content, created_at, author_id, event_id, author:profiles(display_name, photo_url)')
           .order('created_at', { ascending: false })
-          .limit(50); // 1. Limit 추가
+          .range(from, to);
 
         if (currentSearch) {
           query = query.or(`content.ilike.%${currentSearch}%`);
@@ -80,10 +90,10 @@ export default function Community() {
         const { data, error } = await query;
         if (error) throw error;
 
-        // Fetch event titles manually since multiple tables are involved and FKs might be missing
         const reviewData = data || [];
+        setHasMore(reviewData.length === PAGE_SIZE);
+
         const eventIds = [...new Set(reviewData.map(r => r.event_id))];
-        
         let eventTitles: Record<string, string> = {};
         
         if (eventIds.length > 0) {
@@ -100,13 +110,13 @@ export default function Community() {
           }
         }
 
-        setPosts(reviewData.map(r => {
+        const mappedPosts = reviewData.map(r => {
           const author: any = Array.isArray(r.author) ? r.author[0] : r.author;
           return {
             id: r.id,
             title: `[${eventTitles[r.event_id] || '행사'}] 참여 후기`,
             content: r.content,
-            category: 'review',
+            category: 'review' as PostCategory,
             author_id: r.author_id,
             created_at: r.created_at,
             author_name: author?.display_name || '알 수 없는 사용자',
@@ -116,14 +126,18 @@ export default function Community() {
             event_id: r.event_id,
             comment_count: 0
           };
-        }));
+        });
+
+        if (targetPage === 0) setPosts(mappedPosts);
+        else setPosts(prev => [...prev, ...mappedPosts] as Post[]);
+
       } else {
         let query = supabase
           .from('community_posts')
           .select('id, title, content, category, author_id, created_at, is_private, author:profiles(display_name, photo_url)')
           .eq('category', activeCategory)
           .order('created_at', { ascending: false })
-          .limit(50); // 1. Limit 추가
+          .range(from, to);
 
         if (currentSearch) {
           query = query.or(`title.ilike.%${currentSearch}%,content.ilike.%${currentSearch}%`);
@@ -132,8 +146,9 @@ export default function Community() {
         const { data, error } = await query;
         if (error) throw error;
 
-        // Fetch comment counts for these posts
         const postData = (data || []) as any[];
+        setHasMore(postData.length === PAGE_SIZE);
+
         const postIds = postData.map(p => p.id);
         let counts: Record<string, number> = {};
         
@@ -142,7 +157,7 @@ export default function Community() {
             .from('community_comments')
             .select('post_id')
             .in('post_id', postIds)
-            .limit(1000); // 2. Limit 추가
+            .limit(1000);
           
           if (countData) {
             (countData as any[]).forEach(c => {
@@ -151,21 +166,32 @@ export default function Community() {
           }
         }
 
-        setPosts(postData.map(post => {
+        const mappedPosts = postData.map(post => {
           const author: any = Array.isArray(post.author) ? post.author[0] : post.author;
           return {
             ...post,
+            category: post.category as PostCategory,
             author_name: author?.display_name || '알 수 없는 사용자',
             author_photo: author?.photo_url || '',
             comment_count: counts[post.id] || 0
           };
-        }));
+        });
+
+        if (targetPage === 0) setPosts(mappedPosts);
+        else setPosts(prev => [...prev, ...mappedPosts] as Post[]);
       }
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchPosts(nextPage);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -200,8 +226,8 @@ export default function Community() {
       setNewContent('');
       setSearchQuery(''); 
       setIsWriteModalOpen(false);
-      
-      fetchPosts('');
+      setPage(0);
+      fetchPosts(0, '');
     } catch (error: any) {
       alert(`오류: ${error.message}`);
     } finally {
@@ -262,7 +288,7 @@ export default function Community() {
               placeholder={activeCategory === 'review' ? "리뷰 검색..." : "게시글 검색..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchPosts()}
+              onKeyDown={(e) => e.key === 'Enter' && fetchPosts(0)}
               className="w-full md:w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl pl-10 pr-4 py-2.5 md:py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium transition-all text-sm"
             />
           </div>
@@ -356,6 +382,22 @@ export default function Community() {
                 </div>
               </motion.div>
             ))}
+            
+            {hasMore && !loading && (
+              <div className="p-8 flex justify-center border-t border-slate-50 dark:border-slate-800">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-10 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-[13px] font-black text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-3 shadow-lg shadow-slate-200/20 active:scale-95 disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  ) : (
+                    '더 많은 게시글 보기'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-20 text-center">

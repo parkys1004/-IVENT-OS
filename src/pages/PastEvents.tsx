@@ -8,63 +8,68 @@ import { useLanguage } from '../context/LanguageContext';
 export default function PastEvents() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 16;
   const { t } = useLanguage();
 
   useEffect(() => {
     const fetchPastEvents = async () => {
       try {
-        setLoading(true);
-        const now = new Date().toISOString();
+        if (page === 0) setLoading(true);
+        else setLoadingMore(true);
 
-        // Fetch parties that likely passed
+        const now = new Date().toISOString();
+        const from = page * (PAGE_SIZE / 2);
+        const to = from + (PAGE_SIZE / 2) - 1;
+
+        // Fetch parties that passed
         const { data: partiesData, error: partiesError } = await supabase
           .from('parties')
           .select('id, title, date, location_name, category, image_url, status, end_date, max_attendees')
           .eq('status', 'published')
-          .limit(30);
+          .lt('end_date', now)
+          .order('end_date', { ascending: false })
+          .range(from, to);
 
         if (partiesError) throw partiesError;
 
-        // Fetch lessons that likely passed
-        const { data: lessonsData } = await supabase
+        // Fetch lessons that passed
+        const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
           .select('id, title, date, location_name, category, image_url, status, end_date, max_attendees')
           .eq('status', 'published')
-          .limit(30);
+          .lt('end_date', now)
+          .order('end_date', { ascending: false })
+          .range(from, to);
+
+        if (lessonsError) throw lessonsError;
 
         const combinedData = [
           ...(partiesData || []).map(p => ({ ...p, isLesson: false, date: p.date || (p as any).start_date })),
           ...(lessonsData || []).map(l => ({ ...l, isLesson: true, date: l.date || (l as any).start_date }))
         ];
-        
-        // Filter in memory to be 100% sure the event has ended
-        const reallyPassed = (combinedData as any[]).filter(e => {
-          const endDateStr = e.end_date;
-          const eventDate = e.date;
-          
-          if (endDateStr) {
-            return new Date(endDateStr) < new Date();
-          }
-          // Fallback if no end date: check if start date was more than 4 hours ago
-          if (eventDate) {
-            const startDate = new Date(eventDate);
-            return startDate < new Date(Date.now() - 4 * 60 * 60 * 1000);
-          }
-          return false;
-        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setHasMore((partiesData?.length || 0) === PAGE_SIZE / 2 || (lessonsData?.length || 0) === PAGE_SIZE / 2);
+
+        if (combinedData.length === 0 && page === 0) {
+          setEvents([]);
+          return;
+        }
 
         // Fetch registration counts
         const { data: allRegs } = await supabase
           .from('registrations')
           .select('event_id')
-          .in('event_id', reallyPassed.map(e => e.id));
+          .in('event_id', combinedData.map(e => e.id));
 
         const regCounts: Record<string, number> = {};
         (allRegs as any[])?.forEach(r => {
           regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
         });
 
-        const mappedEvents = reallyPassed.map(e => {
+        const mappedEvents = combinedData.map(e => {
           return {
             id: e.id,
             title: e.title,
@@ -77,18 +82,20 @@ export default function PastEvents() {
             currentAttendees: regCounts[e.id] || 0,
             status: e.status
           };
-        });
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        setEvents(mappedEvents);
+        if (page === 0) setEvents(mappedEvents);
+        else setEvents(prev => [...prev, ...mappedEvents]);
       } catch (error) {
         console.error('Error fetching past events:', error);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     };
 
     fetchPastEvents();
-  }, []);
+  }, [page]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0F0A05] pb-24">
@@ -151,6 +158,22 @@ export default function PastEvents() {
             {events.map((event, idx) => (
               <EventCard key={event.id} event={event} index={idx} />
             ))}
+            
+            {hasMore && !loading && (
+              <div className="col-span-full flex justify-center pt-12">
+                <button
+                  onClick={() => setPage(prev => prev + 1)}
+                  disabled={loadingMore}
+                  className="px-12 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-black text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-3 shadow-xl active:scale-95 disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  ) : (
+                    '과거 이벤트 더 보기'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-white dark:bg-slate-900/50 rounded-[40px] border-2 border-dashed border-slate-200 dark:border-slate-800 py-32 text-center">

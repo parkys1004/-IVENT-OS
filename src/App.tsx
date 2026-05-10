@@ -146,7 +146,8 @@ function AppContent() {
       '/past-events',
       '/privacy',
       '/terms',
-      '/scan-tickets'
+      '/scan-tickets',
+      '/playlist'
     ];
     
     const isPublicPath = publicPaths.some(path => 

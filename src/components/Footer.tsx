@@ -30,12 +30,19 @@ export default function Footer() {
             <div className="text-slate-600 dark:text-slate-300 text-sm font-bold leading-relaxed max-w-sm text-center md:text-left">
               댄스 커뮤니티의 새로운 기준을 만듭니다. 본 서비스는 개인 프로젝트로 운영되며, 모든 데이터의 권리는 <span className="text-indigo-600 dark:text-indigo-400">{assets.siteTitle}</span>에 있습니다.
             </div>
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 text-[11px] font-black text-slate-400 uppercase tracking-widest mt-2">
-              <span className="flex items-center gap-1.5">
-                Email: <a href="mailto:aimaster1004@gmail.com" className="hover:text-indigo-500 transition-colors">aimaster1004@gmail.com</a>
-              </span>
-              <span className="hidden md:block text-slate-200 dark:text-slate-800">|</span>
-              <span>Built with: React, Vite, Supabase</span>
+            <div className="flex flex-col gap-2 text-[11px] font-black text-slate-400 uppercase tracking-widest mt-2">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                <span className="flex items-center gap-1.5">
+                  Email: <a href="mailto:aimaster1004@gmail.com" className="hover:text-amber-500 transition-colors">aimaster1004@gmail.com</a>
+                </span>
+                <span className="hidden md:block text-slate-200 dark:text-slate-800">|</span>
+                <span className="text-slate-500 dark:text-slate-300">문의: 도베르만(5bartv) 010-2547-3507</span>
+                <span className="hidden md:block text-slate-200 dark:text-slate-800">|</span>
+                <span className="text-slate-500 dark:text-slate-300">카카오톡: gandi11</span>
+              </div>
+              <div className="mt-1">
+                <span>Built with: React, Vite, Supabase</span>
+              </div>
             </div>
             <div className="text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-tighter">
               © {currentYear} {assets.siteTitle}. Created by <span className="text-slate-500">DJ Doberman</span>.

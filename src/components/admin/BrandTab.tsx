@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { Upload, Image as ImageIcon, Globe, Smartphone, Share2, Save, RefreshCw, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
+import { uploadImageToStorage } from '../../lib/storage';
 import { motion } from 'motion/react';
 import { useBrand } from '../../context/BrandContext';
 import clsx from 'clsx';
@@ -82,17 +83,12 @@ export function BrandTab() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: keyof BrandAssets) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // In a real app, you would upload to Supabase Storage:
-    // const { data, error } = await supabase.storage.from('brand').upload(path, file);
-    // For now, we'll convert to base64 for demo/simplicity if storage is not configured,
-    // or just handle the UI flow.
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAssets(prev => ({ ...prev, [key]: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadImageToStorage(file, 'brand');
+      setAssets(prev => ({ ...prev, [key]: url }));
+    } catch (err) {
+      setMessage({ type: 'error', text: '이미지 업로드에 실패했습니다.' });
+    }
   };
 
   if (loading) {

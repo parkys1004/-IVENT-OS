@@ -3,40 +3,7 @@ import { Home, Upload, FileImage, Link as LinkIcon, Image as ImageIcon, Save, X,
 import clsx from 'clsx';
 import TypeBadge from '../TypeBadge';
 import { supabase } from '../../supabase';
-
-// Utility for image processing moved internal or could be shared
-const resizeAndCompressImage = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 400;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-        } else {
-          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/webp', 0.8);
-        resolve(dataUrl);
-      };
-      img.onerror = error => reject(error);
-    };
-    reader.onerror = error => reject(error);
-  });
-};
+import { uploadImageToStorage } from '../../lib/storage';
 
 interface BannersTabProps {
   events: any[];
@@ -98,10 +65,10 @@ export const BannersTab: React.FC<BannersTabProps> = ({
   const handleImageFile = async (file: File) => {
     setIsResizing(true);
     try {
-      const base64 = await resizeAndCompressImage(file);
-      setEditImageUrl(base64);
+      const url = await uploadImageToStorage(file, 'brand');
+      setEditImageUrl(url);
     } catch (error) {
-      alert("이미지 처리 중 오류가 발생했습니다.");
+      alert("이미지 업로드 중 오류가 발생했습니다.");
     } finally {
       setIsResizing(false);
     }
@@ -207,7 +174,7 @@ export const BannersTab: React.FC<BannersTabProps> = ({
                         {isResizing ? (
                           <div className="flex flex-col items-center gap-2">
                             <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-                            <span className="text-[10px] font-bold text-slate-500">이미지 압축 중...</span>
+                            <span className="text-[10px] font-bold text-slate-500">이미지 업로드 중...</span>
                           </div>
                         ) : editImageUrl ? (
                           <>

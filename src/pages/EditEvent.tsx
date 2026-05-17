@@ -181,9 +181,9 @@ export default function EditEvent() {
     setAiLoading(true);
     setAiStatus({ type: 'loading', message: '포스터를 분석하고 있어요... 🎨' });
     try {
+      const mimeType = file.type || 'image/jpeg';
       const dataUrl = await compressImageToDataUrl(file);
       const base64Data = dataUrl.split(',')[1];
-      const mimeType = 'image/webp';
 
       // 1. Check Personal API Key from LocalStorage first (Security & Privacy)
       let apiKey = localStorage.getItem('user_gemini_api_key');

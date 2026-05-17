@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
-import { 
-  Calendar, MapPin, FileText, Sparkles, Upload, X, Star, 
-  ImageIcon, Plus, MinusCircle, Music, CreditCard, 
-  PlusCircle, GraduationCap, ExternalLink, Stars
+import {
+  Calendar, MapPin, FileText, Sparkles, Upload, X, Star,
+  ImageIcon, Plus, MinusCircle, Music, CreditCard,
+  PlusCircle, GraduationCap, ExternalLink, Stars, Users
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
@@ -229,8 +229,18 @@ export default function CreateEvent() {
     nt[i] = { ...nt[i], [f]: v };
     setFormData(p => ({ ...p, tickets: nt }));
   };
-  const addLineupItem = (t: string) => t === 'workshops' ? setFormData(p => ({ ...p, workshops: [...p.workshops, { teacher: '', topic: '', time: '' }] })) : setFormData(p => ({ ...p, [t]: [...p[t as keyof typeof formData], ''] }));
+  const addLineupItem = (t: string) => t === 'workshops' ? setFormData(p => ({ ...p, workshops: [...p.workshops, { teacher: '', topic: '', time: '' }] })) : setFormData(p => ({ ...p, [t]: [...(p[t as 'djs' | 'performances' | 'media']), ''] }));
   const removeLineupItem = (t: string, i: number) => setFormData(p => ({ ...p, [t]: (p[t as keyof typeof formData] as any[]).filter((_: any, idx: number) => idx !== i) }));
+  const updateLineupItem = (t: string, i: number, v: string) => setFormData(p => {
+    const arr = [...(p[t as keyof typeof p] as string[])];
+    arr[i] = v;
+    return { ...p, [t]: arr };
+  });
+  const updateWorkshopItem = (i: number, field: string, value: string) => setFormData(p => {
+    const ws = [...p.workshops];
+    ws[i] = { ...ws[i], [field]: value };
+    return { ...p, workshops: ws };
+  });
 
   if (loading && !aiLoading) return <div className="flex justify-center py-20 animate-pulse"><div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -386,11 +396,10 @@ export default function CreateEvent() {
                   <span className="text-[11px] font-black uppercase tracking-widest">상세 위치 설정</span>
                 </div>
                 {isLoaded ? (
-                  <PlaceSearch 
-                    onPlaceSelect={handlePlaceSelect} 
-                    defaultValue={formData.locationName} 
-                    onInputChange={(v) => setFormData(p => ({ ...p, locationName: v }))} 
-                    className="rounded-[1.75rem] border-none shadow-xl"
+                  <PlaceSearch
+                    onPlaceSelect={handlePlaceSelect}
+                    defaultValue={formData.locationName}
+                    onInputChange={(v) => setFormData(p => ({ ...p, locationName: v }))}
                   />
                 ) : (
                   <div className="w-full h-20 bg-white dark:bg-slate-800 rounded-[1.75rem] animate-pulse shadow-xl" />
@@ -570,6 +579,3 @@ export default function CreateEvent() {
   );
 }
 
-const updateWorkshopItem = (index: number, field: string, value: string) => {
-  // This is a helper for local scope updates if needed
-};

@@ -62,7 +62,8 @@ export default function PastEvents() {
         const { data: allRegs } = await supabase
           .from('registrations')
           .select('event_id')
-          .in('event_id', combinedData.map(e => e.id));
+          .in('event_id', combinedData.map(e => e.id))
+          .limit(500);
 
         const regCounts: Record<string, number> = {};
         (allRegs as any[])?.forEach(r => {

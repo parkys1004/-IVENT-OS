@@ -106,9 +106,10 @@ export default function EventDetail() {
     const fetchEvent = async () => {
       try {
         setLoading(true);
+        const EVENT_COLUMNS = 'id, title, description, date, end_date, category, location_name, location, formatted_address, address, lat, lng, city, country, status, price, max_attendees, host_id, image_url, is_banner, priority, likes_count, created_at, djs, performances, media, media_experts, tickets, payment_method, payment_link, workshops, level, youtube_url';
         let { data, error } = await supabase
           .from('parties')
-          .select('*')
+          .select(EVENT_COLUMNS)
           .eq('id', id)
           .maybeSingle();
 
@@ -116,7 +117,7 @@ export default function EventDetail() {
         if (!data) {
           const { data: lessonData, error: lessonError } = await supabase
             .from('lessons')
-            .select('*')
+            .select(EVENT_COLUMNS)
             .eq('id', id)
             .maybeSingle();
           if (lessonData) { data = lessonData; isActuallyLesson = true; }

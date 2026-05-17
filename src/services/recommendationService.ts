@@ -68,7 +68,7 @@ export async function extractTagsFromInput(input: string): Promise<Recommendatio
  * Queries Supabase using the extracted tags to find relevant events.
  */
 export async function getRecommendations(tags: RecommendationTags) {
-  let query = supabase.from('parties').select('*');
+  let query = supabase.from('parties').select('id, title, description, date, end_date, category, location_name, formatted_address, image_url, likes_count, created_at, max_attendees, metadata');
 
   // filter by genres (using or or array logic depending on schema)
   if (tags.genres && tags.genres.length > 0) {

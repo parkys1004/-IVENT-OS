@@ -89,7 +89,7 @@ export default function AdminDashboard() {
       // 1. profiles fetch (profileMap 구성에 필요)
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, display_name, photo_url, role, is_approved, created_at, priority, points')
         .order('created_at', { ascending: false });
 
       const profileMap: Record<string, string> = {};
@@ -110,10 +110,10 @@ export default function AdminDashboard() {
 
       // 2. 나머지 핵심 데이터 병렬 fetch (point_history·health check 제외)
       const fetchResults = await Promise.allSettled([
-        supabase.from('parties').select('*').order('priority', { ascending: false }),
-        supabase.from('lessons').select('*').order('priority', { ascending: false }),
+        supabase.from('parties').select('id, title, category, date, end_date, status, host_id, is_banner, priority, max_attendees').order('priority', { ascending: false }),
+        supabase.from('lessons').select('id, title, category, date, end_date, status, host_id, is_banner, priority, max_attendees').order('priority', { ascending: false }),
         supabase.from('registrations').select('event_id, status'),
-        supabase.from('promo_banners').select('*').order('updated_at', { ascending: false }),
+        supabase.from('promo_banners').select('id, image_url, link_url, is_active').order('updated_at', { ascending: false }),
         supabase.from('settings').select('value').eq('key', 'dashboard').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'point_policies').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle(),
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
   // Points 탭 전환 시에만 point_history + health check 로드
   useEffect(() => {
     if (activeMenu === 'points' && pointStats.history.length === 0) {
-      supabase.from('point_history').select('*').order('created_at', { ascending: false }).limit(100)
+      supabase.from('point_history').select('id, user_id, amount, description, created_at').order('created_at', { ascending: false }).limit(100)
         .then(({ data }) => {
           if (data) {
             const issued = data.filter(h => h.amount > 0).reduce((acc: number, curr: any) => acc + curr.amount, 0);

@@ -27,9 +27,10 @@ export default function HostDashboard() {
     
     const fetchEvents = async () => {
       try {
+        const HOST_EVENT_COLS = 'id, title, category, date, status, max_attendees, current_attendees, metadata';
         const [partiesRes, lessonsRes] = await Promise.all([
-          supabase.from('parties').select('*').eq('host_id', user.id).order('created_at', { ascending: false }),
-          supabase.from('lessons').select('*').eq('host_id', user.id).order('created_at', { ascending: false })
+          supabase.from('parties').select(HOST_EVENT_COLS).eq('host_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('lessons').select(HOST_EVENT_COLS).eq('host_id', user.id).order('created_at', { ascending: false })
         ]);
 
         if (partiesRes.error) throw partiesRes.error;

@@ -474,23 +474,23 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         try {
           const { data: regsData, error: regsError } = await supabase
             .from('registrations')
-            .select('*')
+            .select('id, event_id, status, registered_at, ticket_type, ticket_name')
             .eq('user_id', user.id)
-            .order('registered_at', { ascending: false });
+            .order('registered_at', { ascending: false })
+            .limit(50);
 
           if (regsError) throw regsError;
-          
+
           if (!regsData || regsData.length === 0) {
             setRegistrations([]);
             return;
           }
 
-          // Fetch parties and lessons for these registrations
           const eventIds = regsData.map(r => r.event_id);
-          
+          const BOOKING_COLS = 'id, title, category, date, image_url, location_name';
           const [partiesRes, lessonsRes] = await Promise.all([
-            supabase.from('parties').select('*').in('id', eventIds),
-            supabase.from('lessons').select('*').in('id', eventIds)
+            supabase.from('parties').select(BOOKING_COLS).in('id', eventIds),
+            supabase.from('lessons').select(BOOKING_COLS).in('id', eventIds)
           ]);
 
           const partiesMap: Record<string, any> = {};

@@ -27,7 +27,7 @@ export function PlacesTab() {
   }, []);
 
   async function fetchPlaces() {
-    const { data } = await supabase.from('places').select('*').order('is_approved', { ascending: true }).order('created_at', { ascending: false });
+    const { data } = await supabase.from('places').select('id, name, country, type, address, kakao_map_url, naver_map_url, google_map_url, is_approved, created_at, submitted_by').order('is_approved', { ascending: true }).order('created_at', { ascending: false });
     if (data) setPlaces(data);
   }
 

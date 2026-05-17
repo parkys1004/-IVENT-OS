@@ -98,177 +98,97 @@ export default function EventDetail() {
 
   const { isLoaded, loadError } = useGoogleMaps();
 
+  // id 변경 시에만 이벤트/공개 데이터 fetch
   useEffect(() => {
     if (!id) return;
-
     let cancelled = false;
 
-    const fetchEventAndReg = async () => {
+    const fetchEvent = async () => {
       try {
         setLoading(true);
-        // Try parties table first
         let { data, error } = await supabase
           .from('parties')
           .select('*')
           .eq('id', id)
           .maybeSingle();
-        
-        let isActuallyLesson = false;
 
+        let isActuallyLesson = false;
         if (!data) {
-          // Try lessons table
           const { data: lessonData, error: lessonError } = await supabase
             .from('lessons')
             .select('*')
             .eq('id', id)
             .maybeSingle();
-          
-          if (lessonData) {
-            data = lessonData;
-            isActuallyLesson = true;
-          } else if (lessonError) {
-            console.error("Error fetching lesson:", lessonError);
-          }
+          if (lessonData) { data = lessonData; isActuallyLesson = true; }
+          else if (lessonError) console.error("Error fetching lesson:", lessonError);
         }
 
         if (error) {
           console.error("Error fetching party:", error);
-          if (!cancelled) {
-             handleSupabaseError(error, OperationType.GET, 'parties');
-             navigate('/');
-          }
+          if (!cancelled) { handleSupabaseError(error, OperationType.GET, 'parties'); navigate('/'); }
           return;
         }
+        if (!data) { if (!cancelled) navigate('/'); return; }
 
-        if (!data) {
-          console.warn("Item not found or access denied:", id);
-          if (!cancelled) navigate('/');
-          return;
-        }
+        // host 이름 + reg count + 커뮤니티 데이터 병렬 fetch
+        const [hostRes, regCountRes, commentsRes, reviewsRes, photosRes] = await Promise.all([
+          data.host_id
+            ? supabase.from('profiles').select('display_name').eq('id', data.host_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('event_id', id),
+          supabase.from('event_comments')
+            .select('id, content, created_at, author_id, author:profiles(display_name, photo_url)')
+            .eq('event_id', id).order('created_at', { ascending: false }).limit(50),
+          supabase.from('event_reviews')
+            .select('id, rating, content, created_at, author_id, author:profiles(display_name, photo_url)')
+            .eq('event_id', id).order('created_at', { ascending: false }).limit(30),
+          supabase.from('event_photos')
+            .select('id, user_id, image_url, caption, created_at, author:profiles(display_name, photo_url)')
+            .eq('event_id', id).order('created_at', { ascending: false }).limit(20),
+        ]);
 
-        // Fetch host display name separately
-        let hostDisplayName = '알 수 없는 호스트';
-        if (data.host_id) {
-          const { data: hostData } = await supabase
-            .from('profiles')
-            .select('display_name')
-            .eq('id', data.host_id)
-            .maybeSingle();
-          if (hostData?.display_name) {
-            hostDisplayName = hostData.display_name;
-          }
-        }
-
-        // Fetch actual registration count (Exact headcount optimized)
-        const { count: regCount } = await supabase
-          .from('registrations')
-          .select('id', { count: 'exact', head: true })
-          .eq('event_id', id);
+        if (cancelled) return;
 
         const mappedEvent = {
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          date: data.date || (data as any).start_date,
-          endDate: data.end_date,
+          id: data.id, title: data.title, description: data.description,
+          date: data.date || (data as any).start_date, endDate: data.end_date,
           category: data.category,
           locationName: data.location_name || data.location || '정보 없음',
           formattedAddress: data.formatted_address || data.address || data.location_name || '주소 정보가 없습니다.',
-          geoPoint: (data.lat !== null && data.lng !== null && data.lat !== undefined && data.lng !== undefined) 
-            ? { lat: Number(data.lat), lng: Number(data.lng) } 
-            : null,
-          city: data.city || '',
-          country: data.country || '',
-          status: data.status,
-          price: data.price,
-          capacity: data.max_attendees || 0,
+          geoPoint: (data.lat != null && data.lng != null)
+            ? { lat: Number(data.lat), lng: Number(data.lng) } : null,
+          city: data.city || '', country: data.country || '',
+          status: data.status, price: data.price, capacity: data.max_attendees || 0,
           hostId: data.host_id,
-          hostName: hostDisplayName,
-          imageUrl: data.image_url,
-          isBanner: data.is_banner,
-          isLesson: isActuallyLesson,
-          priority: data.priority,
-          likesCount: data.likes_count,
-          createdAt: data.created_at,
+          hostName: (hostRes as any).data?.display_name || '알 수 없는 호스트',
+          imageUrl: data.image_url, isBanner: data.is_banner,
+          isLesson: isActuallyLesson, priority: data.priority,
+          likesCount: data.likes_count, createdAt: data.created_at,
           maxAttendees: data.max_attendees || 50,
-          currentAttendees: regCount || 0,
-          djs: data.djs || [],
-          performances: data.performances || [],
-          media: data.media || [],
-          mediaExperts: data.media_experts || [],
-          tickets: data.tickets || [],
-          paymentMethod: data.payment_method || '',
-          paymentLink: data.payment_link || '',
-          workshops: data.workshops || [],
-          level: data.level || 'beginner',
-          youtubeUrl: data.youtube_url || ''
+          currentAttendees: (regCountRes as any).count || 0,
+          djs: data.djs || [], performances: data.performances || [],
+          media: data.media || [], mediaExperts: data.media_experts || [],
+          tickets: data.tickets || [], paymentMethod: data.payment_method || '',
+          paymentLink: data.payment_link || '', workshops: data.workshops || [],
+          level: data.level || 'beginner', youtubeUrl: data.youtube_url || ''
         };
-        
-        if (!cancelled) setEvent(mappedEvent);
+        setEvent(mappedEvent);
 
-        if (user && !cancelled) {
-          // Check registration
-          const { data: regData, error: regError } = await supabase
-            .from('registrations')
-            .select('*')
-            .eq('event_id', id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (regData) setRegistration(regData);
-          if (regError && regError.code !== 'PGRST116') {
-            console.error("Error fetching registration:", regError);
-          }
-        }
-
-        // Fetch Community Data (Comments & Reviews)
-        const { data: commentsData } = await supabase
-          .from('event_comments')
-          .select(`id, content, created_at, author_id, author:profiles(display_name, photo_url)`)
-          .eq('event_id', id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (commentsData && !cancelled) {
-          setComments(commentsData.map((c: any) => ({
-            ...c,
-            author_name: c.author?.display_name || '알 수 없는 사용자',
-            author_photo: c.author?.photo_url || ''
+        if (commentsRes.data) {
+          setComments(commentsRes.data.map((c: any) => ({
+            ...c, author_name: c.author?.display_name || '알 수 없는 사용자', author_photo: c.author?.photo_url || ''
           })));
         }
-
-        const { data: reviewsData } = await supabase
-          .from('event_reviews')
-          .select(`id, rating, content, created_at, author_id, author:profiles(display_name, photo_url)`)
-          .eq('event_id', id)
-          .order('created_at', { ascending: false })
-          .limit(30);
-
-        if (reviewsData && !cancelled) {
-          setReviews(reviewsData.map((r: any) => ({
-            ...r,
-            author_name: r.author?.display_name || '알 수 없는 사용자',
-            author_photo: r.author?.photo_url || ''
+        if (reviewsRes.data) {
+          setReviews(reviewsRes.data.map((r: any) => ({
+            ...r, author_name: r.author?.display_name || '알 수 없는 사용자', author_photo: r.author?.photo_url || ''
           })));
         }
-
-        // Fetch Photos
-        const { data: photosData } = await supabase
-          .from('event_photos')
-          .select(`id, user_id, image_url, caption, created_at, author:profiles(display_name, photo_url)`)
-          .eq('event_id', id)
-          .order('created_at', { ascending: false })
-          .limit(20);
-
-        if (photosData && !cancelled) {
-          setPhotos(photosData.map((p: any) => ({
-            id: p.id,
-            user_id: p.user_id,
-            image_url: p.image_url,
-            caption: p.caption,
+        if (photosRes.data) {
+          setPhotos(photosRes.data.map((p: any) => ({
+            id: p.id, user_id: p.user_id, image_url: p.image_url, caption: p.caption,
             created_at: p.created_at,
-            author_name: p.author?.display_name || '알 수 없는 사용자',
-            author_photo: p.author?.photo_url || ''
+            author_name: p.author?.display_name || '알 수 없는 사용자', author_photo: p.author?.photo_url || ''
           })));
         }
       } catch (err) {
@@ -278,9 +198,24 @@ export default function EventDetail() {
       }
     };
 
-    fetchEventAndReg();
+    fetchEvent();
     return () => { cancelled = true; };
-  }, [id, user, navigate]);
+  }, [id, navigate]);
+
+  // user 변경 시에만 개인화 데이터(등록 여부) fetch
+  useEffect(() => {
+    if (!id || !user) { setRegistration(null); return; }
+    let cancelled = false;
+
+    supabase.from('registrations').select('*').eq('event_id', id).eq('user_id', user.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (data) setRegistration(data);
+        if (error && error.code !== 'PGRST116') console.error("Error fetching registration:", error);
+      });
+
+    return () => { cancelled = true; };
+  }, [id, user?.id]);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

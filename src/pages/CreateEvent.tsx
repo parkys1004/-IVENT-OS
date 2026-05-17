@@ -167,7 +167,7 @@ export default function CreateEvent() {
         setTimeout(() => setAiStatus({ type: null, message: '' }), 4000);
       }
     } catch(err: any) {
-      setAiStatus({ type: 'error', message: `분석 실패: ${err.message}` });
+      setAiStatus({ type: 'error', message: err.message || 'AI 분석 중 오류가 발생했습니다.' });
       setTimeout(() => setAiStatus({ type: null, message: '' }), 5000);
     } finally {
       setAiLoading(false);

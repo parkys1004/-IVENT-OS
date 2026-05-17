@@ -284,18 +284,7 @@ export default function EditEvent() {
       }
     } catch(err: any) {
       console.error('AI Analysis failed:', err);
-      let errorMessage = 'AI 분석 중 오류가 발생했습니다. 😢';
-      const msg = err.message || '';
-      if (msg.includes('GEMINI_API_KEY') || msg.includes('KEY_MISSING')) {
-        errorMessage = 'API 키가 등록되어 있지 않거나 잘못되었습니다. ⚠️';
-      } else if (msg.includes('Quota') || msg.includes('limit')) {
-        errorMessage = 'API 호출 한도가 초과되었습니다. 잠시 후 시도해주세요. ⏳';
-      } else if (msg.includes('404') || msg.includes('not found')) {
-        errorMessage = 'AI 모델을 찾을 수 없습니다. (404) API 키의 권한이나 모델 지원 여부를 확인해주세요. 🔍';
-      } else {
-        errorMessage = `오류: ${msg.substring(0, 70) || '알 수 없는 오류'}`;
-      }
-      setAiStatus({ type: 'error', message: errorMessage });
+      setAiStatus({ type: 'error', message: err.message || 'AI 분석 중 오류가 발생했습니다.' });
       setTimeout(() => setAiStatus({ type: null, message: '' }), 6000);
     } finally {
       setAiLoading(false);

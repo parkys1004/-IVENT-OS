@@ -100,41 +100,43 @@ async function startServer() {
       }
       contents.push(prompt);
 
-      // 429 발생 시 최대 3회 지수 백오프 재시도
-      let lastError: any;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const result = await model.generateContent(contents);
-          let text = result.response.text();
-          text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
-          try {
-            const parsed = JSON.parse(text);
-            console.log(`[AI Analysis] Success (attempt ${attempt + 1}).`);
-            return res.json(parsed);
-          } catch {
-            console.error("[AI Analysis] JSON Parse Error:", text.substring(0, 500));
-            return res.status(500).json({ error: "AI 응답 데이터 형식이 올바르지 않습니다." });
-          }
-        } catch (err: any) {
-          lastError = err;
-          const is429 = err.status === 429 || err.message?.includes('429') || err.message?.toLowerCase().includes('too many');
-          if (is429 && attempt < 2) {
-            const delay = (attempt + 1) * 3000; // 3s, 6s
-            console.warn(`[AI Analysis] 429 Too Many Requests. Retrying in ${delay}ms... (attempt ${attempt + 1})`);
-            await new Promise(r => setTimeout(r, delay));
-            continue;
-          }
-          throw err;
-        }
+      const result = await model.generateContent(contents);
+      let text = result.response.text();
+      text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
+      try {
+        const parsed = JSON.parse(text);
+        console.log("[AI Analysis] Success.");
+        return res.json(parsed);
+      } catch {
+        console.error("[AI Analysis] JSON Parse Error:", text.substring(0, 500));
+        return res.status(500).json({ error: "AI 응답 데이터 형식이 올바르지 않습니다." });
       }
-      throw lastError;
     } catch (error: any) {
-      const is429 = error.status === 429 || error.message?.includes('429') || error.message?.toLowerCase().includes('too many');
-      console.error("[AI Analysis] Error:", error.message);
-      if (is429) {
-        return res.status(429).json({ error: "AI 요청이 너무 많습니다. 잠시 후 다시 시도해주세요." });
+      const rawMsg: string = error?.message || error?.toString() || '';
+      console.error("[AI Analysis] Error:", rawMsg.substring(0, 300));
+
+      // 429 / quota 초과 감지 (패키지 버전에 따라 status 위치가 다름)
+      const isQuota =
+        error?.status === 429 ||
+        error?.httpStatus === 429 ||
+        rawMsg.includes('[429') ||
+        rawMsg.includes('429 Too Many') ||
+        rawMsg.toLowerCase().includes('quota') ||
+        rawMsg.toLowerCase().includes('too many') ||
+        rawMsg.toLowerCase().includes('rate limit') ||
+        rawMsg.toLowerCase().includes('exceeded');
+
+      if (isQuota) {
+        // retryDelay 파싱 (예: "retryDelay":"26s")
+        const retryMatch = rawMsg.match(/"retryDelay":"(\d+)s"/);
+        const retrySec = retryMatch ? parseInt(retryMatch[1]) : 30;
+        return res.status(429).json({
+          error: `AI 사용 한도를 초과했습니다. ${retrySec}초 후 다시 시도해주세요.`,
+          retryAfter: retrySec
+        });
       }
-      res.status(500).json({ error: error.message || "서버 분석 오류 (AI 호출 실패)" });
+
+      res.status(500).json({ error: "AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." });
     }
   };
 

@@ -9,7 +9,6 @@ import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import clsx from 'clsx';
 import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { EventFormLayout } from '../components/events/EventFormLayout';
 
 export default function EditEvent() {
@@ -237,100 +236,25 @@ export default function EditEvent() {
 
       setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
       
-      let parsed;
-      const useProxy = !isPersonalKey;
+      const proxyResponse = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          mimeType,
+          ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {})
+        })
+      });
 
-      if (useProxy) {
-        // [보안적용] 서버 측 브릿지 호출
-        try {
-          const proxyResponse = await fetch('/api/ai/analyze', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({ imageBase64: base64Data, mimeType })
-          });
-          
-          if (proxyResponse.status === 405) {
-            throw new Error('서버에서 허용되지 않는 요청 방식입니다(405). URL이나 설정을 확인하세요.');
-          }
-
-          const contentType = proxyResponse.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            const text = await proxyResponse.text();
-            console.error('Server non-JSON Response during edit:', text.substring(0, 100));
-            throw new Error(`서버 응답 오류 (${proxyResponse.status}): JSON 형식이 아닙니다.`);
-          }
-
-          const data = await proxyResponse.json();
-          if (!proxyResponse.ok) throw new Error(data.error || `서버 오류 (${proxyResponse.status})`);
-          parsed = data;
-        } catch (fetchErr: any) {
-          throw new Error(fetchErr.message || '서버 연결 실패');
-        }
-      } else {
-        // 개인 키 사용자용 직접 호출
-        const genAI = new GoogleGenerativeAI(apiKey || '');
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-2.0-flash",
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: SchemaType.OBJECT,
-              properties: {
-                title: { type: SchemaType.STRING },
-                description: { type: SchemaType.STRING },
-                category: { type: SchemaType.STRING },
-                date: { type: SchemaType.STRING },
-                time: { type: SchemaType.STRING },
-                endDate: { type: SchemaType.STRING },
-                endTime: { type: SchemaType.STRING },
-                locationName: { type: SchemaType.STRING },
-                formattedAddress: { type: SchemaType.STRING },
-                city: { type: SchemaType.STRING },
-                country: { type: SchemaType.STRING },
-                maxAttendees: { type: SchemaType.INTEGER },
-                paymentLink: { type: SchemaType.STRING },
-                djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-                performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-                media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-                workshops: { 
-                  type: SchemaType.ARRAY, 
-                  items: { 
-                    type: SchemaType.OBJECT,
-                    properties: {
-                      teacher: { type: SchemaType.STRING },
-                      topic: { type: SchemaType.STRING },
-                      time: { type: SchemaType.STRING }
-                    }
-                  }
-                },
-                tickets: { 
-                  type: SchemaType.ARRAY, 
-                  items: { 
-                    type: SchemaType.OBJECT,
-                    properties: { name: { type: SchemaType.STRING }, price: { type: SchemaType.INTEGER } }
-                  }
-                }
-              },
-              required: ["title", "category", "date", "time", "locationName"]
-            }
-          }
-        }, { apiVersion: 'v1beta' });
-
-        const result = await model.generateContent([
-          { inlineData: { data: base64Data, mimeType } }, 
-          "Extract event info from this poster exactly as per schema. For dates use YYYY-MM-DD. For times use 24h format HH:mm. Also extract workshops (teacher, topic, time) if available."
-        ]);
-        
-        const response = await result.response;
-        if (response && response.text) {
-          let text = response.text();
-          text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
-          parsed = JSON.parse(text);
-        }
+      if (proxyResponse.status === 405) throw new Error('서버에서 허용되지 않는 요청 방식입니다(405).');
+      const contentType = proxyResponse.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const text = await proxyResponse.text();
+        throw new Error(`서버 응답 오류 (${proxyResponse.status}): ${text.substring(0, 100)}`);
       }
+      const data = await proxyResponse.json();
+      if (!proxyResponse.ok) throw new Error(data.error || `서버 오류 (${proxyResponse.status})`);
+      const parsed = data;
       
       if (parsed) {
         const validCategories = ['salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'];

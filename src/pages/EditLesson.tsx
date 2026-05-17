@@ -4,7 +4,6 @@ import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
 import { Calendar, FileText, MapPin, Upload, X, GraduationCap, PlusCircle, MinusCircle, CreditCard, Plus, ImageIcon as ImageIcon, Sparkles, Music } from 'lucide-react';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
@@ -180,65 +179,18 @@ export default function EditLesson() {
 
       setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
       
-      let parsed;
-      const useProxy = !isPersonalKey;
-
-      if (useProxy) {
-        const proxyResponse = await fetch('/api/ai/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64Data, mimeType })
-        });
-        const data = await proxyResponse.json();
-        if (!proxyResponse.ok) throw new Error(data.error || '분석 실패');
-        parsed = data;
-      } else {
-        const genAI = new GoogleGenerativeAI(apiKey || '');
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-2.0-flash",
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: SchemaType.OBJECT,
-              properties: {
-                title: { type: SchemaType.STRING },
-                description: { type: SchemaType.STRING },
-                category: { type: SchemaType.STRING },
-                level: { type: SchemaType.STRING },
-                date: { type: SchemaType.STRING },
-                time: { type: SchemaType.STRING },
-                endDate: { type: SchemaType.STRING },
-                endTime: { type: SchemaType.STRING },
-                locationName: { type: SchemaType.STRING },
-                formattedAddress: { type: SchemaType.STRING },
-                city: { type: SchemaType.STRING },
-                country: { type: SchemaType.STRING },
-                maxAttendees: { type: SchemaType.INTEGER },
-                tickets: { 
-                  type: SchemaType.ARRAY, 
-                  items: { 
-                    type: SchemaType.OBJECT,
-                    properties: { name: { type: SchemaType.STRING }, price: { type: SchemaType.INTEGER } }
-                  }
-                }
-              },
-              required: ["title", "date", "time", "locationName"]
-            }
-          }
-        }, { apiVersion: 'v1beta' });
-
-        const result = await model.generateContent([
-          { inlineData: { data: base64Data, mimeType } }, 
-          "Extract dance lesson info from this poster. Use YYYY-MM-DD for dates and 24h format HH:mm for times. Level should be beginner, intermediate, advanced, or all."
-        ]);
-        
-        const response = await result.response;
-        if (response && response.text) {
-          let text = response.text();
-          text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
-          parsed = JSON.parse(text);
-        }
-      }
+      const proxyResponse = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          mimeType,
+          ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {})
+        })
+      });
+      const data = await proxyResponse.json();
+      if (!proxyResponse.ok) throw new Error(data.error || '분석 실패');
+      const parsed = data;
       
       if (parsed) {
         const validCategories = ['lesson', 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki'];

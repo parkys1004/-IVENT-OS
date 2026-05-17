@@ -8,7 +8,6 @@ import {
   ImageIcon, Plus, MinusCircle, Music, CreditCard,
   PlusCircle, GraduationCap, ExternalLink, Stars, Users
 } from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { motion } from 'framer-motion';
@@ -134,26 +133,19 @@ export default function CreateEvent() {
         localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
       }
 
-      let parsed;
-      if (!isPersonalKey) {
-        const proxyResponse = await fetch('/api/ai/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64Data, mimeType, additionalText: aiText })
-        });
-        const data = await proxyResponse.json();
-        if (!proxyResponse.ok) throw new Error(data.error || '서버 응답 오류');
-        parsed = data;
-      } else {
-        const genAI = new GoogleGenerativeAI(apiKey || '');
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash", generationConfig: { responseMimeType: "application/json" } });
-        const contents: any[] = [];
-        if (base64Data) contents.push({ inlineData: { data: base64Data, mimeType } });
-        contents.push(`Analyze poster/text: "${aiText}". Extract event info. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. Date: YYYY-MM-DD. Time: HH:mm.`);
-        const result = await model.generateContent(contents);
-        const responseText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-        parsed = JSON.parse(responseText);
-      }
+      const proxyResponse = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          mimeType,
+          additionalText: aiText,
+          ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {})
+        })
+      });
+      const data = await proxyResponse.json();
+      if (!proxyResponse.ok) throw new Error(data.error || '서버 응답 오류');
+      const parsed = data;
       
       if (parsed) {
         setFormData(prev => ({

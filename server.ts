@@ -41,8 +41,8 @@ async function startServer() {
   const analyzeHandler = async (req: express.Request, res: express.Response) => {
     console.log(`[AI Analysis] Processing request for ${req.path}`);
     try {
-      const { imageBase64, mimeType, additionalText } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      const { imageBase64, mimeType, additionalText, personalApiKey } = req.body;
+      const apiKey = personalApiKey || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
       if (!apiKey) {
         console.error("[AI Analysis] GEMINI_API_KEY is missing in environment.");
@@ -100,28 +100,40 @@ async function startServer() {
       }
       contents.push(prompt);
 
-      const result = await model.generateContent(contents);
-
-      const response = await result.response;
-      let text = response.text();
-      text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
-      
-      try {
-        const parsed = JSON.parse(text);
-        console.log("[AI Analysis] Success.");
-        res.json(parsed);
-      } catch (parseError) {
-        console.error("[AI Analysis] JSON Parse Error:", text.substring(0, 500));
-        res.status(500).json({ error: "AI 응답 데이터 형식이 올바르지 않습니다." });
+      // 429 발생 시 최대 3회 지수 백오프 재시도
+      let lastError: any;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const result = await model.generateContent(contents);
+          let text = result.response.text();
+          text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
+          try {
+            const parsed = JSON.parse(text);
+            console.log(`[AI Analysis] Success (attempt ${attempt + 1}).`);
+            return res.json(parsed);
+          } catch {
+            console.error("[AI Analysis] JSON Parse Error:", text.substring(0, 500));
+            return res.status(500).json({ error: "AI 응답 데이터 형식이 올바르지 않습니다." });
+          }
+        } catch (err: any) {
+          lastError = err;
+          const is429 = err.status === 429 || err.message?.includes('429') || err.message?.toLowerCase().includes('too many');
+          if (is429 && attempt < 2) {
+            const delay = (attempt + 1) * 3000; // 3s, 6s
+            console.warn(`[AI Analysis] 429 Too Many Requests. Retrying in ${delay}ms... (attempt ${attempt + 1})`);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          throw err;
+        }
       }
+      throw lastError;
     } catch (error: any) {
-      console.error("[AI Analysis] Error Details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        status: error.status,
-        statusText: error.statusText
-      });
+      const is429 = error.status === 429 || error.message?.includes('429') || error.message?.toLowerCase().includes('too many');
+      console.error("[AI Analysis] Error:", error.message);
+      if (is429) {
+        return res.status(429).json({ error: "AI 요청이 너무 많습니다. 잠시 후 다시 시도해주세요." });
+      }
       res.status(500).json({ error: error.message || "서버 분석 오류 (AI 호출 실패)" });
     }
   };

@@ -73,9 +73,21 @@ async function startServer() {
               city: { type: SchemaType.STRING },
               country: { type: SchemaType.STRING },
               maxAttendees: { type: SchemaType.INTEGER },
+              level: { type: SchemaType.STRING },
               djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
               performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
               media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+              workshops: {
+                type: SchemaType.ARRAY,
+                items: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    teacher: { type: SchemaType.STRING },
+                    topic: { type: SchemaType.STRING },
+                    time: { type: SchemaType.STRING }
+                  }
+                }
+              },
               tickets: {
                 type: SchemaType.ARRAY,
                 items: {
@@ -92,7 +104,7 @@ async function startServer() {
         }
       }, { apiVersion: 'v1beta' });
 
-      const prompt = `Extract event information from the provided dance event poster/text. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. For dates use YYYY-MM-DD. For times use 24h format HH:mm.${additionalText ? `\n\nAdditional text info:\n${additionalText}` : ''}`;
+      const prompt = `Extract event information from the provided dance event poster/text. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. Level (for lessons) must be one of: beginner, intermediate, advanced, all. For dates use YYYY-MM-DD. For times use 24h format HH:mm. Extract workshops as array of {teacher, topic, time} objects if present.${additionalText ? `\n\nAdditional text info:\n${additionalText}` : ''}`;
 
       const contents: any[] = [];
       if (imageBase64) {

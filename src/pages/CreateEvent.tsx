@@ -158,13 +158,17 @@ export default function CreateEvent() {
            category: parsed.category || prev.category,
            date: parsed.date || prev.date,
            time: parsed.time || prev.time,
+           endDate: parsed.endDate || parsed.date || prev.endDate,
+           endTime: parsed.endTime || (parsed.time ? "23:59" : prev.endTime),
            locationName: parsed.locationName || prev.locationName,
            formattedAddress: parsed.formattedAddress || prev.formattedAddress,
+           city: parsed.city || prev.city,
+           country: parsed.country || prev.country,
            maxAttendees: parsed.maxAttendees || prev.maxAttendees,
-           djs: parsed.djs || prev.djs,
-           performances: parsed.performances || prev.performances,
-           tickets: parsed.tickets || prev.tickets,
-           workshops: parsed.workshops || prev.workshops
+           djs: parsed.djs && parsed.djs.length > 0 ? parsed.djs : prev.djs,
+           performances: parsed.performances && parsed.performances.length > 0 ? parsed.performances : prev.performances,
+           tickets: parsed.tickets && parsed.tickets.length > 0 ? parsed.tickets : prev.tickets,
+           workshops: parsed.workshops && parsed.workshops.length > 0 ? parsed.workshops : prev.workshops
         }));
         setAiStatus({ type: 'success', message: '마법처럼 폼이 채워졌습니다! 🎉' });
         setTimeout(() => setAiStatus({ type: null, message: '' }), 4000);

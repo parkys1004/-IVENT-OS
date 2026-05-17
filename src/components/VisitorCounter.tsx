@@ -25,7 +25,7 @@ export default function VisitorCounter() {
         // 2. Fetch current stats
         const { data, error } = await supabase
           .from('visitor_stats')
-          .select('*')
+          .select('id, total_visits, today_visits, last_reset_date')
           .eq('id', 'main')
           .maybeSingle();
 

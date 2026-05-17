@@ -89,9 +89,10 @@ export default function EditEvent() {
     const fetchEvent = async () => {
       if (!id) return;
       try {
+        const EDIT_EVENT_COLS = 'id, host_id, title, description, category, date, end_date, location_name, formatted_address, country, city, lat, lng, image_url, max_attendees, capacity, djs, performances, media, media_experts, workshops, payment_method, payment_link, youtube_url, tickets';
         let { data, error } = await supabase
           .from('parties')
-          .select('*')
+          .select(EDIT_EVENT_COLS)
           .eq('id', id)
           .maybeSingle();
 
@@ -100,28 +101,28 @@ export default function EditEvent() {
         } else {
           const { data: lessonData } = await supabase
             .from('lessons')
-            .select('*')
+            .select('id, host_id, title, description, category, date, end_date, class_time, location_name, formatted_address, country, city, lat, lng, image_url, max_attendees, payment_method, youtube_url, tickets, level')
             .eq('id', id)
             .maybeSingle();
           
           if (lessonData) {
             setSourceTable('lessons');
-            data = lessonData;
+            data = lessonData as any;
           }
         }
 
         if (error) throw error;
         if (data) {
           // Auth check: only host or admin can edit
-          if (data.host_id !== user?.id && profile?.role !== 'admin') {
+          if ((data as any).host_id !== user?.id && profile?.role !== 'admin') {
             alert('수정 권한이 없습니다.');
             navigate(`/event/${id}`);
             return;
           }
 
-          setEventData(data);
-          
-          const startDateObj = (data.date || data.start_date) ? new Date(data.date || data.start_date) : new Date();
+          setEventData(data as any);
+
+          const startDateObj = (data as any).date ? new Date((data as any).date) : new Date();
           const endDateObj = data.end_date ? new Date(data.end_date) : startDateObj;
 
           setFormData({

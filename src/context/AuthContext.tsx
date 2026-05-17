@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, display_name, photo_url, role, is_approved, created_at, points, followers_count, short_bio, description, specialties, career, portfolio_url, portfolio_images, studio_location, phone, gender, instagram_url, facebook_url, kakao_id, preferences')
         .eq('id', userId)
         .maybeSingle();
 
@@ -183,7 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (createError) {
           if (createError.code === '23505') {
-            const { data: reFetch } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+            const { data: reFetch } = await supabase.from('profiles').select('id, email, display_name, photo_url, role, is_approved, created_at, points, followers_count, short_bio, description, specialties, career, portfolio_url, portfolio_images, studio_location, phone, gender, instagram_url, facebook_url, kakao_id, preferences').eq('id', userId).maybeSingle();
             if (reFetch) {
               setProfile({ 
                 uid: reFetch.id, email: reFetch.email, displayName: reFetch.display_name,

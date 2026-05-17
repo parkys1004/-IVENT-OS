@@ -52,7 +52,7 @@ export default function EditLesson() {
         setLoading(true);
         const { data, error } = await supabase
           .from('lessons')
-          .select('*')
+          .select('id, host_id, title, description, category, date, end_date, class_time, location_name, formatted_address, country, city, lat, lng, image_url, max_attendees, payment_method, youtube_url, tickets, level')
           .eq('id', id)
           .maybeSingle();
 

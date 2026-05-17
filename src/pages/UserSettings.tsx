@@ -97,9 +97,10 @@ export default function UserSettings() {
     try {
       const { data, error } = await supabase
         .from('point_history')
-        .select('*')
+        .select('id, amount, reason, created_at')
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (error) throw error;
       setPointHistory(data || []);
     } catch (err) {
@@ -114,12 +115,12 @@ export default function UserSettings() {
     try {
       const { data: dbKeys } = await supabase
         .from('user_ai_configs')
-        .select('*')
+        .select('id, provider, api_key, model, status, created_at')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       const localKey = localStorage.getItem('user_gemini_api_key');
-      const finalConfigs = [...(dbKeys || [])];
+      const finalConfigs: any[] = [...(dbKeys || [])];
       if (localKey) {
         finalConfigs.unshift({
           id: 'local',

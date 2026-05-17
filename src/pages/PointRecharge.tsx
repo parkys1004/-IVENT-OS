@@ -100,9 +100,10 @@ export default function PointRecharge() {
         // Fetch history
         const { data: histData, error: histErr } = await supabase
           .from('point_history')
-          .select('*')
+          .select('id, amount, reason, created_at')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50);
 
         if (histErr) throw histErr;
         setHistory(histData || []);
@@ -153,14 +154,15 @@ export default function PointRecharge() {
 
       setRechargeSuccess(true);
       await refreshProfile();
-      
-      // Refresh history locally
-      const { data: newHist } = await supabase
-        .from('point_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      setHistory(newHist || []);
+
+      // 로컬 상태 업데이트 (재조회 없이)
+      const newEntry = {
+        id: Date.now().toString(),
+        amount: totalPointsToAdd,
+        reason: `포인트 충전 (${selectedPackage.name})`,
+        created_at: new Date().toISOString()
+      };
+      setHistory(prev => [newEntry, ...prev]);
 
     } catch (err) {
       console.error("Recharge failed:", err);

@@ -104,8 +104,9 @@ export default function CreateEvent() {
     
     try {
       let base64Data = '';
-      let mimeType = 'image/webp';
+      let mimeType = 'image/jpeg';
       if (mainPosterFile) {
+        mimeType = mainPosterFile.type || 'image/jpeg';
         const dataUrl = await compressImageToDataUrl(mainPosterFile);
         base64Data = dataUrl.split(',')[1];
       }

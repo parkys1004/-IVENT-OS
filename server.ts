@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
@@ -40,20 +41,20 @@ async function startServer() {
   const analyzeHandler = async (req: express.Request, res: express.Response) => {
     console.log(`[AI Analysis] Processing request for ${req.path}`);
     try {
-      const { imageBase64, mimeType } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
+      const { imageBase64, mimeType, additionalText } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
       if (!apiKey) {
         console.error("[AI Analysis] GEMINI_API_KEY is missing in environment.");
         return res.status(500).json({ error: "시스템 API 키가 서버 설정에 없습니다." });
       }
 
-      if (!imageBase64) {
-        return res.status(400).json({ error: "이미지 데이터가 누락되었습니다." });
+      if (!imageBase64 && !additionalText) {
+        return res.status(400).json({ error: "이미지 또는 텍스트 데이터가 필요합니다." });
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
+      const model = genAI.getGenerativeModel({
         model: "gemini-2.0-flash",
         generationConfig: {
           responseMimeType: "application/json",
@@ -75,9 +76,9 @@ async function startServer() {
               djs: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
               performances: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
               media: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-              tickets: { 
-                type: SchemaType.ARRAY, 
-                items: { 
+              tickets: {
+                type: SchemaType.ARRAY,
+                items: {
                   type: SchemaType.OBJECT,
                   properties: {
                     name: { type: SchemaType.STRING },
@@ -91,17 +92,15 @@ async function startServer() {
         }
       }, { apiVersion: 'v1beta' });
 
-      const prompt = "Extract event information from this dance poster. For dates use YYYY-MM-DD. For times use 24h format HH:mm.";
+      const prompt = `Extract event information from the provided dance event poster/text. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. For dates use YYYY-MM-DD. For times use 24h format HH:mm.${additionalText ? `\n\nAdditional text info:\n${additionalText}` : ''}`;
 
-      const result = await model.generateContent([
-        {
-          inlineData: {
-            data: imageBase64,
-            mimeType: mimeType || 'image/webp'
-          }
-        },
-        prompt
-      ]);
+      const contents: any[] = [];
+      if (imageBase64) {
+        contents.push({ inlineData: { data: imageBase64, mimeType: mimeType || 'image/jpeg' } });
+      }
+      contents.push(prompt);
+
+      const result = await model.generateContent(contents);
 
       const response = await result.response;
       let text = response.text();

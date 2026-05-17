@@ -100,7 +100,12 @@ async function startServer() {
       }
       contents.push(prompt);
 
-      const result = await model.generateContent(contents);
+      // 60초 타임아웃 — Gemini 이미지 분석은 느릴 수 있음
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 60000)
+      );
+
+      const result = await Promise.race([model.generateContent(contents), timeoutPromise]);
       let text = result.response.text();
       text = text.replace(/```json\n?/, "").replace(/```/, "").trim();
       try {
@@ -134,6 +139,10 @@ async function startServer() {
           error: `AI 사용 한도를 초과했습니다. ${retrySec}초 후 다시 시도해주세요.`,
           retryAfter: retrySec
         });
+      }
+
+      if (rawMsg === 'TIMEOUT') {
+        return res.status(504).json({ error: "AI 분석 시간이 초과되었습니다. 이미지 크기를 줄이거나 잠시 후 다시 시도해주세요." });
       }
 
       res.status(500).json({ error: "AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요." });

@@ -127,8 +127,11 @@ export default function CreateLesson() {
           ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {})
         })
       });
-      const data = await proxyResponse.json();
-      if (!proxyResponse.ok) throw new Error(data.error || '분석 실패');
+      const rawText = await proxyResponse.text();
+      let data: any = {};
+      try { if (rawText) data = JSON.parse(rawText); }
+      catch { throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.'); }
+      if (!proxyResponse.ok) throw new Error(data.error || `서버 오류 (${proxyResponse.status})`);
       const parsed = data;
       
       if (parsed) {

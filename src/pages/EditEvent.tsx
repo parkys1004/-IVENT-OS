@@ -247,12 +247,10 @@ export default function EditEvent() {
       });
 
       if (proxyResponse.status === 405) throw new Error('서버에서 허용되지 않는 요청 방식입니다(405).');
-      const contentType = proxyResponse.headers.get('content-type');
-      if (!contentType?.includes('application/json')) {
-        const text = await proxyResponse.text();
-        throw new Error(`서버 응답 오류 (${proxyResponse.status}): ${text.substring(0, 100)}`);
-      }
-      const data = await proxyResponse.json();
+      const rawText = await proxyResponse.text();
+      let data: any = {};
+      try { if (rawText) data = JSON.parse(rawText); }
+      catch { throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.'); }
       if (!proxyResponse.ok) throw new Error(data.error || `서버 오류 (${proxyResponse.status})`);
       const parsed = data;
       

@@ -210,7 +210,7 @@ export default function EventDetail() {
     if (!id || !user) { setRegistration(null); return; }
     let cancelled = false;
 
-    supabase.from('registrations').select('id, status, registered_at, ticket_type, ticket_name').eq('event_id', id).eq('user_id', user.id).maybeSingle()
+    supabase.from('registrations').select('id, status, registered_at').eq('event_id', id).eq('user_id', user.id).maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (data) setRegistration(data);

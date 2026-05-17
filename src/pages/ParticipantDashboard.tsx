@@ -474,7 +474,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         try {
           const { data: regsData, error: regsError } = await supabase
             .from('registrations')
-            .select('id, event_id, status, registered_at, ticket_type, ticket_name')
+            .select('id, event_id, status, registered_at')
             .eq('user_id', user.id)
             .order('registered_at', { ascending: false })
             .limit(50);

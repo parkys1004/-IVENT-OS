@@ -106,10 +106,12 @@ export default function EventDetail() {
     const fetchEvent = async () => {
       try {
         setLoading(true);
-        const EVENT_COLUMNS = 'id, title, description, date, end_date, category, location_name, location, formatted_address, address, lat, lng, city, country, status, price, max_attendees, host_id, image_url, is_banner, priority, likes_count, created_at, djs, performances, media, media_experts, tickets, payment_method, payment_link, workshops, level, youtube_url';
+        const PARTY_COLUMNS = 'id, title, description, date, end_date, category, location_name, formatted_address, lat, lng, city, country, status, price, max_attendees, host_id, image_url, is_banner, priority, likes_count, created_at, djs, performances, media, media_experts, tickets, payment_method, payment_link, workshops, youtube_url';
+        const LESSON_COLUMNS = 'id, title, description, date, end_date, category, location_name, formatted_address, lat, lng, city, country, status, price, max_attendees, host_id, image_url, is_banner, priority, likes_count, created_at, tickets, payment_method, youtube_url, level, class_time';
+
         let { data, error } = await supabase
           .from('parties')
-          .select(EVENT_COLUMNS)
+          .select(PARTY_COLUMNS)
           .eq('id', id)
           .maybeSingle();
 
@@ -117,10 +119,10 @@ export default function EventDetail() {
         if (!data) {
           const { data: lessonData, error: lessonError } = await supabase
             .from('lessons')
-            .select(EVENT_COLUMNS)
+            .select(LESSON_COLUMNS)
             .eq('id', id)
             .maybeSingle();
-          if (lessonData) { data = lessonData; isActuallyLesson = true; }
+          if (lessonData) { data = lessonData as any; isActuallyLesson = true; }
           else if (lessonError) console.error("Error fetching lesson:", lessonError);
         }
 
@@ -154,8 +156,8 @@ export default function EventDetail() {
           id: data.id, title: data.title, description: data.description,
           date: data.date || (data as any).start_date, endDate: data.end_date,
           category: data.category,
-          locationName: data.location_name || data.location || '정보 없음',
-          formattedAddress: data.formatted_address || data.address || data.location_name || '주소 정보가 없습니다.',
+          locationName: data.location_name || '정보 없음',
+          formattedAddress: data.formatted_address || data.location_name || '주소 정보가 없습니다.',
           geoPoint: (data.lat != null && data.lng != null)
             ? { lat: Number(data.lat), lng: Number(data.lng) } : null,
           city: data.city || '', country: data.country || '',
@@ -167,11 +169,11 @@ export default function EventDetail() {
           likesCount: data.likes_count, createdAt: data.created_at,
           maxAttendees: data.max_attendees || 50,
           currentAttendees: (regCountRes as any).count || 0,
-          djs: data.djs || [], performances: data.performances || [],
-          media: data.media || [], mediaExperts: data.media_experts || [],
-          tickets: data.tickets || [], paymentMethod: data.payment_method || '',
-          paymentLink: data.payment_link || '', workshops: data.workshops || [],
-          level: data.level || 'beginner', youtubeUrl: data.youtube_url || ''
+          djs: (data as any).djs || [], performances: (data as any).performances || [],
+          media: (data as any).media || [], mediaExperts: (data as any).media_experts || [],
+          tickets: (data as any).tickets || [], paymentMethod: (data as any).payment_method || '',
+          paymentLink: (data as any).payment_link || '', workshops: (data as any).workshops || [],
+          level: (data as any).level || 'beginner', youtubeUrl: (data as any).youtube_url || ''
         };
         setEvent(mappedEvent);
 

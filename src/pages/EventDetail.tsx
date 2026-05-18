@@ -1370,7 +1370,7 @@ export default function EventDetail() {
       </div>
 
       {/* Sticky RSVP Control for Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-40 lg:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+      <div className="fixed bottom-0 left-0 right-0 pt-5 px-5 pb-[max(1.25rem,calc(1.25rem+env(safe-area-inset-bottom)))] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-40 lg:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-3">
           <button 
             onClick={toggleLike}

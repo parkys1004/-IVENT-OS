@@ -39,6 +39,26 @@
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
   }
+
+  /* iOS Safari: 100vh는 URL 바를 포함해 레이아웃이 깨짐 → dvh 우선 사용 */
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .h-screen {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* iOS: 인풋 포커스 시 자동 확대 방지 (font-size < 16px) */
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+
+  /* 버튼/링크 탭 딜레이 제거 */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
 }
 
 @layer utilities {
@@ -54,5 +74,14 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area 유틸리티 — iOS 홈 인디케이터 영역 처리 */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }

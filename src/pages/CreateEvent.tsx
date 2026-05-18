@@ -646,7 +646,7 @@ export default function CreateEvent() {
         </div>
 
         {/* 하단 고정 푸터 */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 pb-safe">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
             <button
               type="button"

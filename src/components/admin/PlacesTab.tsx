@@ -3,9 +3,8 @@ import { supabase } from '../../supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Plus, Trash2, Search, CheckSquare, Square,
-  CheckCircle2, XCircle, MapPin, Clock, Building2,
-  ExternalLink, ChevronDown, ChevronUp, Filter,
-  AlertTriangle
+  CheckCircle2, XCircle, MapPin, Building2,
+  ExternalLink, AlertTriangle
 } from 'lucide-react';
 import PlaceSearch from '../PlaceSearch';
 import clsx from 'clsx';

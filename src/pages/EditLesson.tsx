@@ -3,50 +3,91 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { handleSupabaseError } from '../lib/supabaseError';
 import PlaceSearch from '../components/PlaceSearch';
-import { Calendar, FileText, MapPin, Upload, X, GraduationCap, PlusCircle, MinusCircle, CreditCard, Plus, ImageIcon as ImageIcon, Sparkles, Music } from 'lucide-react';
+import {
+  Calendar, MapPin, FileText, Sparkles, X,
+  ImageIcon, Plus, CreditCard, ExternalLink,
+  ChevronLeft, CheckCircle2, AlertCircle,
+  Loader2, GraduationCap, Upload,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
+import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
-import { motion, AnimatePresence } from 'motion/react';
+
+const LESSON_CATEGORIES = [
+  { value: 'lesson', label: '강습 (일반)' },
+  { value: 'salsa', label: '살사 강습' },
+  { value: 'bachata', label: '바차타 강습' },
+  { value: 'kizomba', label: '키좀바 강습' },
+  { value: 'salsa_bachata', label: '살사/바차타 강습' },
+  { value: 'sal_ba_ki', label: '살바키 강습' },
+];
+
+const LEVELS = [
+  { value: 'beginner', label: '초급 (입문)' },
+  { value: 'intermediate', label: '중급' },
+  { value: 'advanced', label: '고급' },
+  { value: 'all', label: '모든 레벨' },
+];
+
+const inputCls = 'w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all';
+const labelCls = 'block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5';
+const sectionCls = 'bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5';
+
+function SectionHeader({ num, icon, title }: { num: string; icon: React.ReactNode; title: string }) {
+  return (
+    <div className="flex items-center gap-3 pb-1">
+      <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-[11px] font-black text-indigo-600 dark:text-indigo-400 shrink-0">{num}</span>
+      <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+        {icon}
+        {title}
+      </div>
+    </div>
+  );
+}
 
 export default function EditLesson() {
   const { id } = useParams();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const aiPosterInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiStatus, setAiStatus] = useState<{ type: 'loading' | 'error' | 'success' | null, message: string }>({ type: null, message: '' });
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const aiFileInputRef = useRef<HTMLInputElement>(null);
-  
+  const [aiText, setAiText] = useState('');
+  const [aiPoster, setAiPoster] = useState<string | null>(null);
+  const [aiPosterFile, setAiPosterFile] = useState<File | null>(null);
+  const [aiStatus, setAiStatus] = useState<{ type: 'loading' | 'error' | 'success' | null; message: string }>({ type: null, message: '' });
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: 'lesson',
     date: '',
     time: '',
-    endDate: '', 
+    endDate: '',
     endTime: '',
     locationName: '',
     formattedAddress: '',
     country: '',
     city: '',
-    geoPoint: null as { lat: number, lng: number } | null,
+    geoPoint: null as { lat: number; lng: number } | null,
     imageUrl: '',
     maxAttendees: 20,
     paymentMethod: '',
+    paymentLink: '',
     youtubeUrl: '',
-    tickets: [{ name: '강습비', price: 0 }] as { name: string, price: number }[],
+    tickets: [{ name: '강습비', price: 0 }] as { name: string; price: number }[],
     level: 'beginner',
   });
 
-  const { isLoaded, loadError } = useGoogleMaps();
+  const { isLoaded } = useGoogleMaps();
 
   useEffect(() => {
     if (!id || !user) return;
-
     const fetchLesson = async () => {
       try {
         setLoading(true);
@@ -57,17 +98,9 @@ export default function EditLesson() {
           .maybeSingle();
 
         if (error) throw error;
-        if (!data) {
-          alert('강습 정보를 찾을 수 없습니다.');
-          navigate('/');
-          return;
-        }
-
-        // Auth check: only host or admin can edit
+        if (!data) { alert('강습 정보를 찾을 수 없습니다.'); navigate('/'); return; }
         if (data.host_id !== user.id && profile?.role !== 'admin') {
-          alert('수정 권한이 없습니다.');
-          navigate(`/event/${id}`);
-          return;
+          alert('수정 권한이 없습니다.'); navigate(`/event/${id}`); return;
         }
 
         const startDate = new Date(data.date);
@@ -89,8 +122,9 @@ export default function EditLesson() {
           imageUrl: data.image_url || '',
           maxAttendees: data.max_attendees || 20,
           paymentMethod: data.payment_method || '',
+          paymentLink: '',
           youtubeUrl: data.youtube_url || '',
-          tickets: data.tickets || [{ name: '강습비', price: 0 }],
+          tickets: data.tickets?.length > 0 ? data.tickets : [{ name: '강습비', price: 0 }],
           level: data.level || 'beginner',
         });
       } catch (err) {
@@ -100,624 +134,518 @@ export default function EditLesson() {
         setLoading(false);
       }
     };
-
     fetchLesson();
   }, [id, user, profile, navigate]);
 
   const handlePlaceSelect = (place: any) => {
     if (!place) return;
-    
-    let city = '';
-    let country = '';
-    
-    if (place.address_components) {
-      place.address_components.forEach((component: any) => {
-        if (component.types.includes('country')) country = component.short_name;
-        if (component.types.includes('locality')) city = component.long_name;
-        else if (component.types.includes('administrative_area_level_1') && !city) city = component.long_name;
-      });
-    }
-
+    let city = '', country = '';
+    place.address_components?.forEach((c: any) => {
+      if (c.types.includes('country')) country = c.short_name;
+      if (c.types.includes('locality')) city = c.long_name;
+      else if (c.types.includes('administrative_area_level_1') && !city) city = c.long_name;
+    });
     setFormData(prev => ({
       ...prev,
-      locationName: place.name || prev.locationName,
+      locationName: place.name || place.formatted_address || prev.locationName,
       formattedAddress: place.formatted_address || '',
-      country: country,
-      city: city,
+      country, city,
       geoPoint: place.geometry?.location ? {
         lat: typeof place.geometry.location.lat === 'function' ? place.geometry.location.lat() : place.geometry.location.lat,
-        lng: typeof place.geometry.location.lng === 'function' ? place.geometry.location.lng() : place.geometry.location.lng
-      } : prev.geoPoint
+        lng: typeof place.geometry.location.lng === 'function' ? place.geometry.location.lng() : place.geometry.location.lng,
+      } : prev.geoPoint,
     }));
   };
 
-  const handleAiAnalyze = async (file: File) => {
-    setAiLoading(true);
-    setAiStatus({ type: 'loading', message: '포스터를 분석하고 있어요... 🎨' });
-    try {
-      const mimeType = file.type || 'image/jpeg';
-      const dataUrl = await compressImageToDataUrl(file);
-      const base64Data = dataUrl.split(',')[1];
-
-      // 1. API Key check
-      let apiKey = localStorage.getItem('user_gemini_api_key');
-      let isPersonalKey = !!apiKey;
-      
-      if (!apiKey && user) {
-        const { data: aiConfig } = await supabase
-          .from('user_ai_configs')
-          .select('api_key')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        if (aiConfig?.api_key) {
-          apiKey = aiConfig.api_key;
-          isPersonalKey = true;
-        }
-      }
-
-      if (!isPersonalKey) {
-        const today = new Date().toISOString().split('T')[0];
-        const usageData = JSON.parse(localStorage.getItem('ai_usage_stats') || '{"date":"", "count":0}');
-        if (usageData.date !== today) {
-          usageData.date = today;
-          usageData.count = 0;
-        }
-
-        const FREE_LIMIT = 5;
-        if (usageData.count < FREE_LIMIT) {
-          usageData.count += 1;
-          localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
-          setAiStatus({ type: 'loading', message: `무료 체험 중 (${FREE_LIMIT - usageData.count + 1}회 남음) ✨` });
-        } else {
-          setAiStatus({ type: 'error', message: '일일 무료 분석 횟수 초과! 개인 API 키를 등록해주세요. 🔑' });
-          setTimeout(() => setAiStatus({ type: null, message: '' }), 6000);
-          setAiLoading(false);
-          return;
-        }
-      }
-
-      setAiStatus({ type: 'loading', message: 'AI가 정보를 추출하고 있습니다... ✨' });
-      
-      const proxyResponse = await fetch('/api/ai/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: base64Data,
-          mimeType,
-          ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {})
-        })
-      });
-      const rawText = await proxyResponse.text();
-      let data: any = {};
-      try { if (rawText) data = JSON.parse(rawText); }
-      catch { throw new Error('서버 응답을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.'); }
-      if (!proxyResponse.ok) throw new Error(data.error || `서버 오류 (${proxyResponse.status})`);
-      const parsed = data;
-      
-      if (parsed) {
-        const validCategories = ['lesson', 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki'];
-        const validLevels = ['beginner', 'intermediate', 'advanced', 'all'];
-
-        setFormData(prev => ({
-           ...prev,
-           title: parsed.title || prev.title,
-           description: parsed.description || prev.description,
-           category: validCategories.includes(parsed.category) ? parsed.category : 'lesson',
-           level: validLevels.includes(parsed.level) ? parsed.level : 'beginner',
-           date: parsed.date || prev.date,
-           time: parsed.time || prev.time,
-           endDate: parsed.endDate || parsed.date || prev.endDate,
-           endTime: parsed.endTime || (parsed.time ? "23:59" : prev.endTime),
-           locationName: parsed.locationName || prev.locationName,
-           formattedAddress: parsed.formattedAddress || prev.formattedAddress,
-           city: parsed.city || prev.city,
-           country: parsed.country || prev.country,
-           maxAttendees: parsed.maxAttendees || prev.maxAttendees,
-           tickets: parsed.tickets && parsed.tickets.length > 0 ? parsed.tickets : prev.tickets
-        }));
-        setAiStatus({ type: 'success', message: '분석 완료! 강습 정보가 채워졌습니다. 🎉' });
-        setTimeout(() => setAiStatus({ type: null, message: '' }), 3000);
-      }
-    } catch(err: any) {
-      console.error('AI Analysis failed:', err);
-      setAiStatus({ type: 'error', message: err.message || 'AI 분석 중 오류가 발생했습니다.' });
-      setTimeout(() => setAiStatus({ type: null, message: '' }), 6000);
-    } finally {
-      setAiLoading(false);
-      if (aiFileInputRef.current) aiFileInputRef.current.value = '';
+  const handleAiPosterSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAiPosterFile(file);
+      setAiPoster(await compressImageToDataUrl(file));
     }
   };
 
-  const handleAiInputClick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleAiAnalyze(file);
+  const handleAiAnalyze = async () => {
+    if (!aiPosterFile && !aiText.trim()) {
+      alert('포스터 이미지나 안내 텍스트를 먼저 입력해주세요.');
+      return;
+    }
+    setAiLoading(true);
+    setAiStatus({ type: 'loading', message: 'AI가 분석 중입니다...' });
+    try {
+      let base64Data = '', mimeType = 'image/jpeg';
+      if (aiPosterFile) {
+        mimeType = aiPosterFile.type || 'image/jpeg';
+        base64Data = (await compressImageToDataUrl(aiPosterFile)).split(',')[1];
+      }
+      let apiKey = localStorage.getItem('user_gemini_api_key');
+      let isPersonalKey = !!apiKey;
+      if (!apiKey && user) {
+        const { data: aiConfig } = await supabase.from('user_ai_configs').select('api_key').eq('user_id', user.id).maybeSingle();
+        if (aiConfig?.api_key) { apiKey = aiConfig.api_key; isPersonalKey = true; }
+      }
+      if (!isPersonalKey) {
+        const today = new Date().toISOString().split('T')[0];
+        const usageData = JSON.parse(localStorage.getItem('ai_usage_stats') || '{"date":"","count":0}');
+        if (usageData.date !== today) { usageData.date = today; usageData.count = 0; }
+        if (usageData.count >= 5) {
+          setAiStatus({ type: 'error', message: '일일 무료 한도 초과. 개인 API 키를 등록해주세요.' });
+          setAiLoading(false); return;
+        }
+        usageData.count += 1;
+        localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
+      }
+      const proxyResponse = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64Data, mimeType, additionalText: aiText, ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {}) }),
+      });
+      const rawText = await proxyResponse.text();
+      let parsed: any = {};
+      try { if (rawText) parsed = JSON.parse(rawText); } catch { throw new Error('서버 응답을 처리할 수 없습니다.'); }
+      if (!proxyResponse.ok) throw new Error(parsed.error || `서버 오류 (${proxyResponse.status})`);
+      if (parsed) {
+        const validCategories = ['lesson', 'salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki'];
+        const validLevels = ['beginner', 'intermediate', 'advanced', 'all'];
+        setFormData(prev => ({
+          ...prev,
+          title: parsed.title || prev.title,
+          description: parsed.description || prev.description,
+          category: validCategories.includes(parsed.category) ? parsed.category : prev.category,
+          level: validLevels.includes(parsed.level) ? parsed.level : prev.level,
+          date: parsed.date || prev.date,
+          time: parsed.time || prev.time,
+          endDate: parsed.endDate || parsed.date || prev.endDate,
+          endTime: parsed.endTime || (parsed.time ? '23:59' : prev.endTime),
+          locationName: parsed.locationName || prev.locationName,
+          formattedAddress: parsed.formattedAddress || prev.formattedAddress,
+          city: parsed.city || prev.city,
+          country: parsed.country || prev.country,
+          maxAttendees: parsed.maxAttendees || prev.maxAttendees,
+          tickets: parsed.tickets?.length > 0 ? parsed.tickets : prev.tickets,
+        }));
+        setAiStatus({ type: 'success', message: '폼이 자동으로 채워졌습니다!' });
+        setTimeout(() => setAiStatus({ type: null, message: '' }), 4000);
+      }
+    } catch (err: any) {
+      setAiStatus({ type: 'error', message: err.message || 'AI 분석 중 오류가 발생했습니다.' });
+      setTimeout(() => setAiStatus({ type: null, message: '' }), 5000);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      try {
-        setSaving(true);
-        const imageUrl = await uploadImageToStorage(file, 'events');
-        setFormData(prev => ({ ...prev, imageUrl }));
-      } catch (error) {
-        console.error("Image upload failed:", error);
-        alert("이미지 처리 중 오류가 발생했습니다.");
-      } finally {
-        setSaving(false);
-      }
+    if (!file) return;
+    try {
+      setSaving(true);
+      const imageUrl = await uploadImageToStorage(file, 'events');
+      setFormData(prev => ({ ...prev, imageUrl }));
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
     }
-  };
-
-  const addTicket = () => {
-    setFormData(prev => ({
-      ...prev,
-      tickets: [...prev.tickets, { name: '', price: 0 }]
-    }));
-  };
-
-  const removeTicket = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      tickets: prev.tickets.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateTicket = (index: number, field: 'name' | 'price', value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      tickets: prev.tickets.map((t, i) => i === index ? { ...t, [field]: value } : t)
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !id) return;
-    
     setSaving(true);
     try {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
       const fallbackEnd = new Date(startDateTime.getTime() + 4 * 60 * 60 * 1000);
-      const endDateTime = formData.endDate ? new Date(`${formData.endDate}T${formData.endTime || formData.time}`) : fallbackEnd;
+      const endDateTime = formData.endDate
+        ? new Date(`${formData.endDate}T${formData.endTime || formData.time}`)
+        : fallbackEnd;
 
-      const { error } = await supabase
-        .from('lessons')
-        .update({
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          date: startDateTime.toISOString(),
-          end_date: endDateTime.toISOString(),
-          class_time: formData.time,
-          location_name: formData.locationName,
-          formatted_address: formData.formattedAddress,
-          city: formData.city,
-          country: formData.country,
-          lat: formData.geoPoint?.lat,
-          lng: formData.geoPoint?.lng,
-          image_url: formData.imageUrl,
-          max_attendees: Number(formData.maxAttendees),
-          price: formData.tickets[0]?.price || 0,
-          level: formData.level,
-          tickets: formData.tickets,
-          payment_method: formData.paymentMethod,
-          youtube_url: formData.youtubeUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
+      const { error } = await supabase.from('lessons').update({
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        date: startDateTime.toISOString(),
+        end_date: endDateTime.toISOString(),
+        class_time: formData.time,
+        location_name: formData.locationName,
+        formatted_address: formData.formattedAddress,
+        city: formData.city,
+        country: formData.country,
+        lat: formData.geoPoint?.lat,
+        lng: formData.geoPoint?.lng,
+        image_url: formData.imageUrl,
+        max_attendees: Number(formData.maxAttendees),
+        price: formData.tickets[0]?.price || 0,
+        level: formData.level,
+        tickets: formData.tickets.filter(t => t.name.trim()),
+        payment_method: formData.paymentMethod,
+        youtube_url: formData.youtubeUrl,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id);
 
       if (error) throw error;
-
-      alert('강습 정보가 수정되었습니다.');
       navigate(`/event/${id}`);
-    } catch (error) {
-      handleSupabaseError(error, 'update', 'lessons', user.id);
+    } catch (err) {
+      handleSupabaseError(err, 'update', 'lessons', user.id);
       alert('수정 중 오류가 발생했습니다.');
     } finally {
       setSaving(false);
     }
   };
 
+  const handleChange = (e: any) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-4 pb-24 md:pb-12">
-      <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
-        <div className="px-8 py-10 md:py-14 bg-gradient-to-br from-teal-600 to-emerald-700 text-white relative overflow-hidden">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
-                <GraduationCap className="w-9 h-9 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none mb-2">강습 수정하기</h1>
-                <p className="text-teal-50/80 font-medium text-sm md:text-base">강습 정보를 최신 상태로 유지하세요.</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-               <button
-                  type="button"
-                  onClick={() => aiFileInputRef.current?.click()}
-                  disabled={aiLoading}
-                  className="group relative flex items-center gap-2.5 px-6 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-black rounded-2xl border border-white/20 transition-all disabled:opacity-50 overflow-hidden"
-                >
-                  {aiLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <Sparkles className="w-5 h-5 text-teal-200 group-hover:text-white transition-colors" />
-                  )}
-                  <div className="flex flex-col items-start leading-tight text-left">
-                    <span className="text-[13px]">AI 포스터 분석</span>
-                    <span className="text-[9px] text-teal-200 font-bold uppercase tracking-widest leading-none mt-0.5">Auto Fill</span>
-                  </div>
-                </button>
-                <input 
-                  type="file" 
-                  ref={aiFileInputRef} 
-                  onChange={handleAiInputClick} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
-            </div>
+    <div className="min-h-screen pb-32 sm:pb-16">
+      <input type="file" accept="image/*" className="hidden" ref={aiPosterInputRef} onChange={handleAiPosterSelect} />
+      <input type="file" accept="image/*" className="hidden" ref={imageInputRef} onChange={handleImageUpload} />
+
+      {/* 헤더 */}
+      <div className="sticky top-0 z-30 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+            뒤로가기
+          </button>
+          <span className="text-sm font-bold text-slate-900 dark:text-white">강습 수정하기</span>
+          <div className="w-16" />
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div className="max-w-5xl mx-auto px-4 pt-6 pb-4">
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              강습 <span className="text-indigo-600">수정하기</span>
+            </h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 font-medium">수정할 내용을 변경하고 업데이트를 완료하세요.</p>
           </div>
 
-          <AnimatePresence>
-            {aiStatus.type && (
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className={clsx(
-                  "absolute top-4 right-8 left-8 md:left-auto md:w-80 p-4 rounded-2xl border flex items-center gap-3 shadow-2xl backdrop-blur-2xl z-50",
-                  aiStatus.type === 'loading' ? "bg-amber-500/90 border-amber-400 text-white" :
-                  aiStatus.type === 'success' ? "bg-emerald-500/90 border-emerald-400 text-white" :
-                  "bg-rose-500/90 border-rose-400 text-white"
-                )}
-              >
-                {aiStatus.type === 'loading' ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : aiStatus.type === 'success' ? (
-                  <Sparkles className="w-5 h-5" />
-                ) : (
-                  <X className="w-5 h-5" />
-                )}
-                <span className="font-bold text-sm tracking-tight">{aiStatus.message}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
 
-          {/* Decorative circles */}
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-400/20 rounded-full blur-3xl" />
-        </div>
+            {/* ── 왼쪽 ── */}
+            <div className="space-y-5">
 
-        <form id="edit-lesson-form" onSubmit={handleSubmit} className="p-6 md:p-12 space-y-12 md:space-y-16">
-          {/* Basic Info */}
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-9 h-9 bg-teal-100 dark:bg-teal-500/20 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">기본 정보</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              <div className="md:col-span-2 space-y-2">
-                <label className="block text-[13px] font-bold text-slate-600 dark:text-slate-400 ml-1">강습 제목</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all font-semibold text-[15px]"
-                  placeholder="예: 초보자를 위한 살사 기초 클래스"
-                />
-              </div>
+              {/* AI 분석 카드 */}
+              <div className={sectionCls}>
+                <SectionHeader num="AI" icon={<Sparkles className="w-4 h-4 text-indigo-500" />} title="AI 자동 분석" />
 
-              <div className="space-y-2">
-                <label className="block text-[13px] font-bold text-slate-600 dark:text-slate-400 ml-1">카테고리</label>
-                <select
-                  value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all font-semibold text-[15px] appearance-none"
+                <div>
+                  <label className={labelCls}>포스터 이미지 (AI 분석용)</label>
+                  <button
+                    type="button"
+                    onClick={() => aiPosterInputRef.current?.click()}
+                    className={clsx(
+                      'w-full rounded-xl overflow-hidden border-2 border-dashed transition-all',
+                      aiPoster
+                        ? 'border-indigo-300 dark:border-indigo-700'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 bg-slate-50 dark:bg-slate-800/50'
+                    )}
+                  >
+                    {aiPoster ? (
+                      <div className="relative group">
+                        <img src={aiPoster} alt="poster" className="w-full aspect-[3/4] object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="text-white text-sm font-bold">이미지 변경</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-[3/4] flex flex-col items-center justify-center gap-3 text-slate-400 p-6">
+                        <ImageIcon className="w-10 h-10" />
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">포스터 업로드</p>
+                          <p className="text-xs text-slate-400 mt-0.5">클릭하여 이미지 선택</p>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                </div>
+
+                <div>
+                  <label className={labelCls}>공지 텍스트 (선택)</label>
+                  <textarea
+                    value={aiText}
+                    onChange={e => setAiText(e.target.value)}
+                    placeholder="공지글을 붙여넣으면 AI가 분석합니다."
+                    rows={4}
+                    className={clsx(inputCls, 'resize-none')}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAiAnalyze}
+                  disabled={aiLoading || (!aiPoster && !aiText.trim())}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 text-white font-bold text-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed"
                 >
-                  <option value="lesson">강습 (일반)</option>
-                  <option value="salsa">살사 강습</option>
-                  <option value="bachata">바차타 강습</option>
-                  <option value="kizomba">키좀바 강습</option>
-                  <option value="salsa_bachata">살사/바차타 강습</option>
-                  <option value="sal_ba_ki">살바키 강습</option>
-                </select>
+                  {aiLoading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> 분석 중...</>
+                    : <><Sparkles className="w-4 h-4" /> AI로 자동 채우기</>
+                  }
+                </button>
+
+                <AnimatePresence>
+                  {aiStatus.type && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className={clsx(
+                        'flex items-center gap-2 p-3 rounded-xl text-sm font-semibold',
+                        aiStatus.type === 'loading' && 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300',
+                        aiStatus.type === 'success' && 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300',
+                        aiStatus.type === 'error' && 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300',
+                      )}
+                    >
+                      {aiStatus.type === 'loading' && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+                      {aiStatus.type === 'success' && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                      {aiStatus.type === 'error' && <AlertCircle className="w-4 h-4 shrink-0" />}
+                      {aiStatus.message}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-[13px] font-bold text-slate-600 dark:text-slate-400 ml-1">강습 레벨</label>
-                <select
-                  value={formData.level}
-                  onChange={e => setFormData({ ...formData, level: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all font-semibold text-[15px] appearance-none"
+              {/* 대표 이미지 카드 */}
+              <div className={sectionCls}>
+                <SectionHeader num="📸" icon={<ImageIcon className="w-4 h-4 text-slate-500" />} title="대표 이미지" />
+
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className={clsx(
+                    'w-full rounded-xl overflow-hidden border-2 border-dashed transition-all',
+                    formData.imageUrl
+                      ? 'border-slate-200 dark:border-slate-700'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/50'
+                  )}
                 >
-                  <option value="beginner">초급 (입문)</option>
-                  <option value="intermediate">중급</option>
-                  <option value="advanced">고급</option>
-                  <option value="all">모든 레벨</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <label className="block text-[13px] font-bold text-slate-600 dark:text-slate-400 ml-1">강습 설명</label>
-                <textarea
-                  required
-                  rows={6}
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-teal-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition-all font-medium resize-none text-[15px] leading-relaxed"
-                  placeholder="강습 커리큘럼, 준비물 등을 상세히 적어주세요."
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-9 h-9 bg-amber-100 dark:bg-amber-500/20 rounded-xl flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">일정 정보</h2>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <div className="col-span-1 space-y-2">
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">시작 날짜</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.date}
-                  onChange={e => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-xl focus:border-amber-500 outline-none transition-all font-semibold text-[14px]"
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">시작 시간</label>
-                <input
-                  type="time"
-                  required
-                  value={formData.time}
-                  onChange={e => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-xl focus:border-amber-500 outline-none transition-all font-semibold text-[14px]"
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">종료 날짜</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.endDate}
-                  onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-xl focus:border-amber-500 outline-none transition-all font-semibold text-[14px]"
-                />
-              </div>
-              <div className="col-span-1 space-y-2">
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">종료 시간</label>
-                <input
-                  type="time"
-                  required
-                  value={formData.endTime}
-                  onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-xl focus:border-amber-500 outline-none transition-all font-semibold text-[14px]"
-                />
+                  {formData.imageUrl ? (
+                    <div className="relative group">
+                      <img src={formData.imageUrl} alt="cover" className="w-full aspect-[16/9] object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Upload className="w-5 h-5 text-white" />
+                        <span className="text-white text-sm font-bold">이미지 교체</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/9] flex flex-col items-center justify-center gap-3 text-slate-400 p-6">
+                      <Upload className="w-8 h-8" />
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">이미지 업로드</p>
+                        <p className="text-xs text-slate-400 mt-0.5">클릭하여 이미지 선택</p>
+                      </div>
+                    </div>
+                  )}
+                </button>
+                {saving && (
+                  <p className="text-xs text-indigo-600 font-semibold flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> 업로드 중...
+                  </p>
+                )}
               </div>
             </div>
-          </section>
 
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-9 h-9 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            {/* ── 오른쪽: 폼 섹션들 ── */}
+            <div className="space-y-5">
+
+              {/* 01 기본 정보 */}
+              <div className={sectionCls}>
+                <SectionHeader num="01" icon={<FileText className="w-4 h-4 text-slate-500" />} title="기본 정보" />
+
+                <div>
+                  <label className={labelCls}>강습명 <span className="text-rose-500">*</span></label>
+                  <input required name="title" value={formData.title} onChange={handleChange} placeholder="예: 초보자를 위한 살사 기초 클래스" className={inputCls} />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>카테고리</label>
+                    <select name="category" value={formData.category} onChange={handleChange} className={inputCls}>
+                      {LESSON_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>
+                      <GraduationCap className="w-3.5 h-3.5 inline mr-1 text-cyan-500" />
+                      강습 레벨
+                    </label>
+                    <select name="level" value={formData.level} onChange={handleChange} className={inputCls}>
+                      {LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>최대 수강 인원</label>
+                    <div className="flex items-center gap-3 pt-1">
+                      <input type="range" min="1" max="200" step="1" name="maxAttendees" value={formData.maxAttendees} onChange={handleChange} className="flex-1 accent-indigo-600" />
+                      <span className="text-sm font-bold text-indigo-600 w-14 text-right tabular-nums">{formData.maxAttendees}명</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>강습 설명 <span className="text-rose-500">*</span></label>
+                  <textarea required name="description" value={formData.description} onChange={handleChange} placeholder="강습 커리큘럼, 준비물, 환불 규정 등을 상세히 작성해주세요." rows={6} className={clsx(inputCls, 'resize-y')} />
+                </div>
               </div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">장소 정보</h2>
-            </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-[13px] font-bold text-slate-600 dark:text-slate-400 ml-1">장소 명칭 / 주소 검색</label>
+              {/* 02 날짜 & 시간 */}
+              <div className={sectionCls}>
+                <SectionHeader num="02" icon={<Calendar className="w-4 h-4 text-slate-500" />} title="날짜 및 시간" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>시작 날짜 <span className="text-rose-500">*</span></label>
+                    <input type="date" name="date" value={formData.date} onChange={handleChange} required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>시작 시간 <span className="text-rose-500">*</span></label>
+                    <input type="time" name="time" value={formData.time} onChange={handleChange} required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>종료 날짜 <span className="ml-1.5 text-xs font-medium text-slate-400">(선택)</span></label>
+                    <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>종료 시간 <span className="ml-1.5 text-xs font-medium text-slate-400">(선택)</span></label>
+                    <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className={inputCls} />
+                  </div>
+                </div>
+              </div>
+
+              {/* 03 장소 */}
+              <div className={sectionCls}>
+                <SectionHeader num="03" icon={<MapPin className="w-4 h-4 text-slate-500" />} title="장소" />
                 {isLoaded ? (
-                  <PlaceSearch 
+                  <PlaceSearch
                     onPlaceSelect={handlePlaceSelect}
-                    onInputChange={(val) => setFormData(prev => ({ ...prev, locationName: val }))}
-                    placeholder="주소를 검색하거나 직접 입력하세요"
+                    onInputChange={val => setFormData(prev => ({ ...prev, locationName: val }))}
+                    defaultValue={formData.locationName}
                     value={formData.locationName}
                   />
                 ) : (
-                  <input
-                    type="text"
-                    value={formData.locationName}
-                    onChange={e => setFormData({ ...formData, locationName : e.target.value })}
-                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-blue-500 outline-none transition-all font-semibold"
-                  />
+                  <div className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
                 )}
                 {formData.formattedAddress && (
-                  <div className="mt-3 flex items-start gap-2 text-[13px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                    <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                    <p>상세주소: {formData.formattedAddress}</p>
+                  <div className="flex items-start gap-2 px-3 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    {formData.formattedAddress}
                   </div>
                 )}
               </div>
-            </div>
-          </section>
 
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-9 h-9 bg-rose-100 dark:bg-rose-500/20 rounded-xl flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">참가비 및 결제</h2>
-            </div>
-
-            <div className="space-y-8">
-              <div className="space-y-5">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[14px] font-bold text-slate-700 dark:text-slate-300">강습비 종류</label>
-                  <button 
-                    type="button" 
-                    onClick={addTicket} 
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-black shadow-sm hover:bg-rose-100 transition-colors"
+              {/* 04 강습비 & 결제 */}
+              <div className={sectionCls}>
+                <div className="flex items-center justify-between">
+                  <SectionHeader num="04" icon={<CreditCard className="w-4 h-4 text-slate-500" />} title="강습비 및 결제" />
+                  <button
+                    type="button"
+                    onClick={() => setFormData(p => ({ ...p, tickets: [...p.tickets, { name: '', price: 0 }] }))}
+                    className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                   >
-                    <PlusCircle className="w-3.5 h-3.5" /> 추가
+                    <Plus className="w-3.5 h-3.5" /> 항목 추가
                   </button>
                 </div>
-                <div className="space-y-4">
-                  {formData.tickets.map((ticket, index) => (
-                    <div key={index} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-slate-50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                      <div className="flex-1 w-full space-y-1">
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider ml-1">명칭 (예: 기수전체)</label>
+
+                <div className="space-y-3">
+                  {formData.tickets.map((t, i) => (
+                    <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                      <input
+                        value={t.name}
+                        onChange={e => { const ts = [...formData.tickets]; ts[i] = { ...ts[i], name: e.target.value }; setFormData(p => ({ ...p, tickets: ts })); }}
+                        placeholder="강습비 명칭 (예: 기수전체)"
+                        className="flex-1 min-w-0 bg-transparent text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none"
+                      />
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-xs text-slate-400 font-medium">₩</span>
                         <input
-                          type="text"
-                          required
-                          value={ticket.name}
-                          onChange={e => updateTicket(index, 'name', e.target.value)}
-                          className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-rose-500 outline-none transition-all font-semibold"
+                          type="number"
+                          value={t.price}
+                          onChange={e => { const ts = [...formData.tickets]; ts[i] = { ...ts[i], price: Number(e.target.value) }; setFormData(p => ({ ...p, tickets: ts })); }}
+                          className="w-24 text-right text-sm font-bold text-slate-900 dark:text-white bg-transparent outline-none tabular-nums"
+                          placeholder="0"
                         />
                       </div>
-                      <div className="w-full sm:w-48 space-y-1">
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider ml-1">가격 (원)</label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            required
-                            value={ticket.price}
-                            onChange={e => updateTicket(index, 'price', parseInt(e.target.value) || 0)}
-                            className="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-rose-500 outline-none transition-all font-semibold"
-                          />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₩</span>
-                        </div>
-                      </div>
                       {formData.tickets.length > 1 && (
-                        <button type="button" onClick={() => removeTicket(index)} className="p-2.5 text-slate-300 hover:text-rose-500 transition-colors self-end sm:self-center">
-                          <MinusCircle className="w-6 h-6" />
+                        <button
+                          type="button"
+                          onClick={() => setFormData(p => ({ ...p, tickets: p.tickets.filter((_, idx) => idx !== i) }))}
+                          className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-colors shrink-0"
+                        >
+                          <X className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   ))}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="block text-[13px] font-bold text-slate-600 dark:text-slate-400 ml-1">수강 정원 (선택)</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      required
-                      value={formData.maxAttendees}
-                      onChange={e => setFormData({ ...formData, maxAttendees: parseInt(e.target.value) || 0 })}
-                      className="w-32 px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl focus:border-rose-500 outline-none transition-all font-black text-center"
-                    />
-                    <span className="text-slate-500 font-bold">명</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <label className={labelCls}>
+                      <ExternalLink className="w-3.5 h-3.5 inline mr-1 text-slate-400" />온라인 예매/신청 링크
+                    </label>
+                    <input type="url" name="paymentLink" value={formData.paymentLink} onChange={handleChange} placeholder="https://..." className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>유튜브 홍보 영상 URL</label>
+                    <input type="url" name="youtubeUrl" value={formData.youtubeUrl} onChange={handleChange} placeholder="https://www.youtube.com/watch?v=..." className={inputCls} />
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 ml-1 flex items-center">
-                  <Music className="w-4 h-4 mr-2 text-red-500"/> 유튜브 홍보 영상 (URL)
-                </label>
-                <input
-                  type="url"
-                  value={formData.youtubeUrl}
-                  onChange={e => setFormData({ ...formData, youtubeUrl: e.target.value })}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-5 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-red-500/10 outline-none transition-all font-bold text-red-600 dark:text-red-400 shadow-sm"
-                />
-              </div>
-
-              <div className="space-y-3 bg-slate-50 dark:bg-slate-800/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50">
-                <label className="block text-[13px] font-bold text-slate-700 dark:text-slate-300 ml-1">결제/입금 안내</label>
-                <textarea
-                  value={formData.paymentMethod}
-                  onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  rows={3}
-                  className="w-full px-5 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:border-rose-500 outline-none transition-all font-medium resize-none shadow-sm"
-                  placeholder="예: 우리은행 1002-1234-5678 홍길동 (입금 후 성함 문자로 전송)"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-8">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-9 h-9 bg-indigo-100 dark:bg-indigo-500/20 rounded-xl flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">강습 이미지</h2>
-            </div>
-            
-            <div onClick={() => fileInputRef.current?.click()} className={clsx("relative group cursor-pointer aspect-[16/9] md:aspect-[21/9] rounded-3xl border-3 border-dashed overflow-hidden transition-all duration-300", formData.imageUrl ? "border-teal-500" : "border-slate-200 dark:border-slate-800 hover:border-teal-400")}>
-              {formData.imageUrl ? (
-                <>
-                  <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white scale-95 group-hover:scale-100 duration-300">
-                    <Upload className="w-10 h-10 mb-2" />
-                    <p className="font-black text-xl">이미지 교체하기</p>
-                  </div>
-                </>
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 space-y-4">
-                  <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] flex items-center justify-center group-hover:bg-teal-50 group-hover:text-teal-600 group-hover:rotate-12 transition-all duration-500 shadow-sm"><Plus className="w-10 h-10" /></div>
-                  <div className="text-center">
-                    <p className="font-black text-slate-700 dark:text-slate-200 text-lg">대표 이미지를 추가해주세요</p>
-                    <p className="text-sm font-medium opacity-60">권장 비율: 16:9 / 800 x 450px</p>
-                  </div>
+                <div>
+                  <label className={labelCls}>결제/입금 안내</label>
+                  <textarea
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="예: 우리은행 1002-1234-5678 홍길동 (입금 후 성함 문자로 전송)"
+                    className={clsx(inputCls, 'resize-none')}
+                  />
                 </div>
-              )}
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+              </div>
             </div>
-          </section>
-
-          {/* Desktop Actions */}
-          <div className="hidden md:flex gap-6 pt-10 border-t border-slate-100 dark:border-slate-800">
-            <button type="button" onClick={() => navigate(-1)} className="px-10 py-5 flex-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black rounded-2xl hover:bg-slate-200 transition-colors">취소</button>
-            <button type="submit" disabled={saving} className="px-16 py-5 flex-[2] bg-teal-600 text-white font-black rounded-2xl shadow-xl shadow-teal-600/30 hover:bg-teal-700 hover:-translate-y-1 transition-all disabled:opacity-50 flex items-center justify-center gap-3">
-              {saving ? (
-                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>수정 완료하기</>
-              )}
-            </button>
           </div>
-        </form>
-      </div>
+        </div>
 
-      {/* Sticky Mobile Actions */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 z-50 flex gap-3">
-        <button type="button" onClick={() => navigate(-1)} className="w-16 h-16 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center shrink-0">
-          <X className="w-7 h-7" />
-        </button>
-        <button 
-          type="submit" 
-          form="edit-lesson-form"
-          disabled={saving}
-          onClick={() => {
-            const form = document.getElementById('edit-lesson-form') as HTMLFormElement;
-            if (form) form.requestSubmit();
-          }}
-          className="flex-1 bg-teal-600 text-white font-black rounded-2xl shadow-lg shadow-teal-600/30 flex items-center justify-center gap-3 disabled:opacity-50"
-        >
-          {saving ? (
-            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>수정 완료</>
-          )}
-        </button>
-      </div>
+        {/* 하단 고정 푸터 */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800">
+          <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center justify-center gap-2 px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all"
+              >
+                {saving
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
+                  : '수정 완료 →'
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

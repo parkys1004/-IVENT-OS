@@ -71,22 +71,35 @@ export default function Navbar() {
         const eventMap: Record<string, any> = {};
         [...(partiesRes.data || []), ...(lessonsRes.data || [])].forEach(e => { eventMap[e.id] = e; });
 
-        const notifs = data.map(r => ({
-          id: r.id,
-          type: 'registration',
-          message: eventMap[r.event_id] ? `${eventMap[r.event_id].title} 예매가 확정되었습니다` : '행사 예매가 확정되었습니다',
-          date: r.registered_at,
-          eventId: r.event_id,
-          read: false,
-        }));
+        // 사용자별 마지막 읽은 시점 가져오기
+        const lastReadAt = localStorage.getItem(`notif_last_read_${user.id}`);
+        const lastReadDate = lastReadAt ? new Date(lastReadAt) : null;
+
+        const notifs = data.map(r => {
+          const isRead = lastReadDate ? new Date(r.registered_at) <= lastReadDate : false;
+          return {
+            id: r.id,
+            type: 'registration',
+            message: eventMap[r.event_id] ? `${eventMap[r.event_id].title} 예매가 확정되었습니다` : '행사 예매가 확정되었습니다',
+            date: r.registered_at,
+            eventId: r.event_id,
+            read: isRead,
+          };
+        });
         setNotifications(notifs);
-        setUnreadCount(notifs.length);
+        setUnreadCount(notifs.filter(n => !n.read).length);
       }
     };
     fetchNotifs();
   }, [user]);
 
-  const markAllRead = () => setUnreadCount(0);
+  const markAllRead = () => {
+    if (user) {
+      localStorage.setItem(`notif_last_read_${user.id}`, new Date().toISOString());
+    }
+    setUnreadCount(0);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
 
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -353,10 +366,13 @@ export default function Navbar() {
                                   key={n.id}
                                   to={`/event/${n.eventId}`}
                                   onClick={() => setNotifOpen(false)}
-                                  className="flex items-start gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0"
+                                  className={`flex items-start gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0 ${n.read ? 'opacity-50' : ''}`}
                                 >
-                                  <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                                  <div className="relative w-9 h-9 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
                                     <Ticket className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                    {!n.read && (
+                                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-indigo-500 rounded-full" />
+                                    )}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-bold text-slate-800 dark:text-white line-clamp-2 leading-snug">{n.message}</p>

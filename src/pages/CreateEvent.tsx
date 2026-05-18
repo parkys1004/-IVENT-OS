@@ -11,6 +11,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getPersonalGeminiKey } from '../lib/gemini';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
@@ -125,12 +126,8 @@ export default function CreateEvent() {
         mimeType = mainPosterFile.type || 'image/jpeg';
         base64Data = (await compressImageToDataUrl(mainPosterFile)).split(',')[1];
       }
-      let apiKey = localStorage.getItem('user_gemini_api_key');
+      let apiKey = user ? await getPersonalGeminiKey(user.id) : null;
       let isPersonalKey = !!apiKey;
-      if (!apiKey && user) {
-        const { data: aiConfig } = await supabase.from('user_ai_configs').select('api_key').eq('user_id', user.id).maybeSingle();
-        if (aiConfig?.api_key) { apiKey = aiConfig.api_key; isPersonalKey = true; }
-      }
       if (!isPersonalKey) {
         const today = new Date().toISOString().split('T')[0];
         const usageData = JSON.parse(localStorage.getItem('ai_usage_stats') || '{"date":"","count":0}');

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { supabase } from '../supabase';
 
 // Vite 환경 변수에서 API 키를 가져와 기본 인스턴스를 생성합니다.
 const SYSTEM_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -40,6 +41,32 @@ export async function translateText(text: string, targetLanguage: string) {
     console.error('Translation error:', error);
     return text;
   }
+}
+
+/**
+ * 사용자 개인 Gemini API 키를 가져옵니다.
+ * 우선순위: localStorage → Vault RPC → user_ai_configs 테이블 fallback
+ * 키가 없으면 null 반환.
+ */
+export async function getPersonalGeminiKey(userId: string): Promise<string | null> {
+  const localKey = localStorage.getItem('user_gemini_api_key');
+  if (localKey) return localKey;
+
+  // Vault RPC로 복호화된 키 조회
+  const { data: rpcData } = await supabase.rpc('get_ai_configs');
+  if (rpcData && rpcData.length > 0) {
+    const googleConfig = rpcData.find((c: any) => c.provider === 'google');
+    if (googleConfig?.api_key) return googleConfig.api_key;
+  }
+
+  // fallback: 일반 테이블 직접 조회
+  const { data } = await supabase
+    .from('user_ai_configs')
+    .select('api_key')
+    .eq('user_id', userId)
+    .eq('provider', 'google')
+    .maybeSingle();
+  return data?.api_key || null;
 }
 
 export const languageNames: Record<string, string> = {

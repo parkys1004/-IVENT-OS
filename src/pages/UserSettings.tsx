@@ -113,12 +113,20 @@ export default function UserSettings() {
   const fetchAIConfigs = async () => {
     setLoading(true);
     try {
-      const { data: dbKeys } = await supabase
-        .from('user_ai_configs')
-        .select('id, provider, api_key, model, created_at')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-      
+      // Vault RPC로 복호화된 키 조회 시도, 실패 시 일반 테이블 fallback
+      let dbKeys: any[] | null = null;
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('get_ai_configs');
+      if (!rpcErr && rpcData) {
+        dbKeys = rpcData;
+      } else {
+        const { data: fallback } = await supabase
+          .from('user_ai_configs')
+          .select('id, provider, api_key, model, created_at')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false });
+        dbKeys = fallback;
+      }
+
       const localKey = localStorage.getItem('user_gemini_api_key');
       const finalConfigs: any[] = [...(dbKeys || [])];
       if (localKey) {
@@ -127,7 +135,6 @@ export default function UserSettings() {
           provider: 'google',
           api_key: localKey,
           model: 'gemini-2.0-flash',
-          status: 'active',
           is_local: true
         });
       }
@@ -175,15 +182,23 @@ export default function UserSettings() {
       if (aiProvider === 'google' && saveToLocal) {
         localStorage.setItem('user_gemini_api_key', aiApiKey);
       } else {
-        const { error } = await supabase
-          .from('user_ai_configs')
-          .upsert({
-            user_id: user?.id,
-            provider: aiProvider,
-            api_key: aiApiKey,
-            model: aiSelectedModel,
-          }, { onConflict: 'user_id,provider' });
-        if (error) throw error;
+        // Vault RPC로 암호화 저장 시도, 실패 시 일반 upsert fallback
+        const { error: rpcErr } = await supabase.rpc('upsert_ai_config', {
+          p_provider: aiProvider,
+          p_api_key: aiApiKey,
+          p_model: aiSelectedModel,
+        });
+        if (rpcErr) {
+          const { error } = await supabase
+            .from('user_ai_configs')
+            .upsert({
+              user_id: user?.id,
+              provider: aiProvider,
+              api_key: aiApiKey,
+              model: aiSelectedModel,
+            }, { onConflict: 'user_id,provider' });
+          if (error) throw error;
+        }
       }
       setAiApiKey('');
       fetchAIConfigs();

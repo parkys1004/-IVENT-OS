@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import cors from "cors";
+import helmet from "helmet";
 import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,14 +31,38 @@ async function startServer() {
     credentials: true
   }));
 
-  // 기본 보안 헤더
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
-  });
+  // 보안 헤더 (helmet)
+  // CSP는 Vite HMR / Google Maps / Gemini 등 외부 리소스 허용을 위해 개발 환경에서 비활성화
+  app.use(
+    helmet({
+      contentSecurityPolicy: process.env.NODE_ENV === 'production'
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",   // Vite 빌드 인라인 스크립트
+                "https://maps.googleapis.com",
+                "https://maps.gstatic.com",
+              ],
+              styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+              fontSrc: ["'self'", "https://fonts.gstatic.com"],
+              imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+              connectSrc: [
+                "'self'",
+                "https://*.supabase.co",
+                "https://generativelanguage.googleapis.com",
+                "https://maps.googleapis.com",
+              ],
+              frameSrc: ["'none'"],
+              objectSrc: ["'none'"],
+              upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+            },
+          }
+        : false,
+      crossOriginEmbedderPolicy: false, // Google Maps iFrame 허용
+    })
+  );
 
   // AI 엔드포인트 Rate Limiter (IP 기준, 분당 10회)
   const aiRateMap = new Map<string, { count: number; reset: number }>();

@@ -119,7 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           const storedRole = window.sessionStorage.getItem('intendedRole');
-          if (storedRole && storedRole !== data.role && data.role !== 'admin') {
+          const ALLOWED_SIGNUP_ROLES: UserRole[] = ['participant', 'host', 'dj', 'instructor', 'media'];
+          if (storedRole && ALLOWED_SIGNUP_ROLES.includes(storedRole as UserRole) && storedRole !== data.role && data.role !== 'admin') {
             const { error: updateError } = await supabase
               .from('profiles')
               .update({ role: storedRole, is_approved: true })

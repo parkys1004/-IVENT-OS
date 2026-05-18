@@ -195,9 +195,13 @@ export default function EditLesson() {
         usageData.count += 1;
         localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
       }
+      const { data: { session: aiSession } } = await supabase.auth.getSession();
       const proxyResponse = await fetch('/api/ai/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(aiSession?.access_token ? { 'Authorization': `Bearer ${aiSession.access_token}` } : {}),
+        },
         body: JSON.stringify({ imageBase64: base64Data, mimeType, additionalText: aiText, ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {}) }),
       });
       const rawText = await proxyResponse.text();

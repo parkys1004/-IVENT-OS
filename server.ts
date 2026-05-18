@@ -18,13 +18,43 @@ async function startServer() {
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
   const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
-  // CORS 설정 (Preflight 요청 포함)
+  // CORS — 프로덕션에서는 허용 도메인 명시, 개발 환경에서만 모두 허용
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? (process.env.VITE_SITE_URL ? [process.env.VITE_SITE_URL] : false)
+    : true;
+
   app.use(cors({
-    origin: true,
+    origin: allowedOrigins,
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Accept", "Authorization"],
     credentials: true
   }));
+
+  // 기본 보안 헤더
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
+
+  // AI 엔드포인트 Rate Limiter (IP 기준, 분당 10회)
+  const aiRateMap = new Map<string, { count: number; reset: number }>();
+  function aiRateLimit(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const entry = aiRateMap.get(ip);
+    if (!entry || now > entry.reset) {
+      aiRateMap.set(ip, { count: 1, reset: now + 60_000 });
+      return next();
+    }
+    if (entry.count >= 10) {
+      return res.status(429).json({ error: '요청이 너무 많습니다. 1분 후 다시 시도해주세요.' });
+    }
+    entry.count++;
+    next();
+  }
 
   // JSON Body size limit 
   app.use(express.json({ limit: "30mb" }));
@@ -41,6 +71,18 @@ async function startServer() {
   const analyzeHandler = async (req: express.Request, res: express.Response) => {
     console.log(`[AI Analysis] Processing request for ${req.path}`);
     try {
+      // 로그인 사용자만 허용
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        const { error: authErr } = await supabase.auth.getUser(token);
+        if (authErr) {
+          return res.status(401).json({ error: '유효하지 않은 인증입니다.' });
+        }
+      } else if (process.env.NODE_ENV === 'production') {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+      }
+
       const { imageBase64, mimeType, additionalText, personalApiKey } = req.body;
       const apiKey = personalApiKey || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
@@ -161,9 +203,9 @@ async function startServer() {
     }
   };
 
-  // AI 분석 API (경로 다양성 허용)
-  app.post("/api/ai/analyze", analyzeHandler);
-  app.post("/api/v1/analyze-poster", analyzeHandler);
+  // AI 분석 API (rate limiter + 인증)
+  app.post("/api/ai/analyze", aiRateLimit, analyzeHandler);
+  app.post("/api/v1/analyze-poster", aiRateLimit, analyzeHandler);
 
   app.get(["/api/ai/analyze", "/api/v1/analyze-poster"], (req, res) => {
     res.status(405).json({ error: "Method Not Allowed. Please use POST." });

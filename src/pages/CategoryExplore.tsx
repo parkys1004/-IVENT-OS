@@ -56,7 +56,6 @@ export default function CategoryExplore() {
         isLesson: false, // Assuming 'parties' for now, can be extended
         likesCount: e.likes_count || 0,
         createdAt: e.created_at,
-        metadata: e.metadata || {},
         maxAttendees: e.max_attendees || 0,
       }));
 

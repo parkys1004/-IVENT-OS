@@ -119,7 +119,7 @@ export default function VisitorCounter() {
   if (loading || !stats) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="hidden sm:block fixed bottom-4 right-4 z-40 animate-in fade-in slide-in-from-bottom-2 duration-700">
       <div className={clsx(
         "flex items-center gap-3 px-3 py-1.5 rounded-full",
         "bg-white/80 dark:bg-slate-900/80 backdrop-blur-md",

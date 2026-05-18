@@ -2,19 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  MessageSquare, 
-  Search, 
-  Plus, 
-  ChevronRight, 
-  User, 
-  Clock, 
-  MessageCircle, 
-  AlertCircle,
-  Hash,
+import {
+  MessageSquare,
+  Search,
+  Plus,
+  ChevronRight,
+  User,
+  MessageCircle,
   HelpCircle,
   FileText,
-  Filter,
   Star
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -58,7 +54,6 @@ export default function Community() {
   // New Post State
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
-  const [isPrivate, setIsPrivate] = useState(true); // Default to true for inquiries
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState('');
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
@@ -70,13 +65,17 @@ export default function Community() {
   }, [activeCategory]);
 
   const fetchPosts = async (targetPage: number, searchOverride?: string) => {
-    if (targetPage === 0) setLoading(true);
-    else setLoadingMore(true);
+    if (targetPage === 0) {
+      setLoading(true);
+      setPosts([]); // 탭 전환 시 이전 데이터 즉시 초기화
+    } else {
+      setLoadingMore(true);
+    }
 
     const currentSearch = searchOverride !== undefined ? searchOverride : searchQuery;
     const from = targetPage * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    
+
     try {
       if (activeCategory === 'review') {
         let query = supabase
@@ -136,7 +135,7 @@ export default function Community() {
       } else {
         let query = supabase
           .from('community_posts')
-          .select('id, title, content, category, author_id, created_at, is_private, author:profiles(display_name, photo_url)')
+          .select('id, title, content, category, author_id, created_at, author:profiles(display_name, photo_url)')
           .eq('category', activeCategory)
           .order('created_at', { ascending: false })
           .range(from, to);
@@ -175,7 +174,8 @@ export default function Community() {
             category: post.category as PostCategory,
             author_name: author?.display_name || '알 수 없는 사용자',
             author_photo: author?.photo_url || '',
-            comment_count: counts[post.id] || 0
+            comment_count: counts[post.id] || 0,
+            is_private: false, // DB 컬럼 미존재 — 기본값 false
           };
         });
 
@@ -215,7 +215,6 @@ export default function Community() {
         content: newContent,
         category: activeCategory,
         author_id: user.id,
-        is_private: activeCategory === 'inquiry' ? isPrivate : false
       });
 
       if (error) throw error;
@@ -367,22 +366,12 @@ export default function Community() {
                         {post.author_name} • {format(new Date(post.created_at), 'yy.MM.dd', { locale: ko })}
                       </span>
                     </div>
-                    <h3 className="text-base md:text-lg font-black text-slate-800 dark:text-white group-hover:text-indigo-600 transition-colors mb-1.5 md:mb-2 truncate flex items-center gap-1.5">
-                       {post.is_private && (post.author_id !== user?.id && profile?.role !== 'admin') ? (
-                         <>
-                           <Hash className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" />
-                           비밀글입니다.
-                         </>
-                       ) : (
-                         <>
-                           {post.is_private && <Hash className="w-3.5 h-3.5 md:w-4 md:h-4 text-indigo-600" />}
-                           {post.title}
-                         </>
-                       )}
-                     </h3>
-                     <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm line-clamp-2 leading-relaxed">
-                       {post.is_private && (post.author_id !== user?.id && profile?.role !== 'admin') ? '작성자와 관리자만 볼 수 있는 비밀글입니다.' : post.content}
-                     </p>
+                    <h3 className="flex items-center gap-1.5 text-base md:text-lg font-black text-slate-800 dark:text-white group-hover:text-indigo-600 transition-colors mb-1.5 md:mb-2">
+                      <span className="truncate min-w-0">{post.title}</span>
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm line-clamp-2 leading-relaxed">
+                      {post.content}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0 self-center">
                     {post.category !== 'review' && (
@@ -473,34 +462,11 @@ export default function Community() {
                 </div>
 
                 {activeCategory === 'inquiry' && (
-                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-3 md:p-4 rounded-xl md:rounded-2xl">
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <div className={clsx(
-                        "w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center transition-colors shadow-sm",
-                        isPrivate ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600"
-                      )}>
-                        {isPrivate ? <Hash className="w-4 h-4 md:w-5 md:h-5" /> : <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />}
-                      </div>
-                      <div>
-                        <p className="font-black text-slate-800 dark:text-white text-[13px] md:text-sm">비밀글 설정</p>
-                        <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                          {isPrivate ? 'ADMIN & AUTHOR ONLY' : 'PUBLIC VIEW'}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsPrivate(!isPrivate)}
-                      className={clsx(
-                        "w-12 h-7 md:w-14 md:h-8 rounded-full relative transition-colors duration-300 outline-none shadow-inner",
-                        isPrivate ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700"
-                      )}
-                    >
-                      <div className={clsx(
-                        "absolute top-1 w-5 h-5 md:w-6 md:h-6 bg-white rounded-full transition-all duration-300 shadow-sm",
-                        isPrivate ? "left-6 md:left-7" : "left-1"
-                      )} />
-                    </button>
+                  <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 p-3 md:p-4 rounded-xl md:rounded-2xl">
+                    <HelpCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <p className="text-xs md:text-sm text-amber-700 dark:text-amber-400 font-medium">
+                      문의 내용은 관리자가 확인 후 답변드립니다.
+                    </p>
                   </div>
                 )}
 

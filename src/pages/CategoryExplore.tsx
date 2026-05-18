@@ -13,7 +13,8 @@ import clsx from 'clsx';
 export default function CategoryExplore() {
   const { category } = useParams<{ category: string }>();
   const { t } = useLanguage();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const [followedArtistIds, setFollowedArtistIds] = useState<Set<string>>(new Set());
   const [events, setEvents] = useState<EventData[]>([]);
   const [professionals, setProfessionals] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,13 +88,13 @@ export default function CategoryExplore() {
               
               const { data, error } = await supabase
                 .from('profiles')
-                .select('id, email, display_name, photo_url, role, priority, short_bio, studio_location')
+                .select('id, email, display_name, photo_url, role, priority, short_bio, studio_location, followers_count, specialties, instagram_url, facebook_url, kakao_id, portfolio_url')
                 .in('role', roles)
                 .order('priority', { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-              
+
               if (error) throw error;
-              
+
               const usersData = (data || []).map(u => ({
                 uid: u.id,
                 email: u.email,
@@ -102,8 +103,25 @@ export default function CategoryExplore() {
                 role: u.role,
                 priority: u.priority,
                 shortBio: u.short_bio,
-                studioLocation: u.studio_location
+                studioLocation: u.studio_location,
+                followersCount: u.followers_count || 0,
+                specialties: u.specialties,
+                instagram_url: u.instagram_url,
+                facebook_url: u.facebook_url,
+                kakao_id: u.kakao_id,
+                portfolioUrl: u.portfolio_url
               })) as any;
+
+              // 팔로우 중인 전문가 ID 조회 (첫 페이지 로드 시에만)
+              if (page === 0 && user) {
+                const { data: followData } = await supabase
+                  .from('artist_follows')
+                  .select('artist_id')
+                  .eq('user_id', user.id);
+                if (followData) {
+                  setFollowedArtistIds(new Set(followData.map((f: any) => f.artist_id)));
+                }
+              }
               
               if (page === 0) {
                 setProfessionals(usersData);
@@ -436,7 +454,7 @@ export default function CategoryExplore() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.4, delay: idx * 0.05 }}
                 >
-                  <ProfessionalCard professional={pro} index={idx} />
+                  <ProfessionalCard professional={pro} index={idx} currentUserId={user?.id} initialFollowed={followedArtistIds.has(pro.uid)} />
                 </motion.div>
               ))
             ) : (

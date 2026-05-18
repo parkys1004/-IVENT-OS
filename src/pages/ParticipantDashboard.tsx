@@ -57,6 +57,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [showQR, setShowQR] = useState<string | null>(null);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [followedArtistIds, setFollowedArtistIds] = useState<Set<string>>(new Set());
   const [editingGoal, setEditingGoal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
   const [saveToast, setSaveToast] = useState('');
@@ -416,27 +417,40 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
         // 2. Fetch Professionals (필요한 컬럼 명시)
         const { data: proData, error: proError } = await supabase
           .from('profiles')
-          .select(`id, email, display_name, photo_url, role, created_at, points, followers_count, specialties, priority`)
+          .select(`id, email, display_name, photo_url, role, created_at, points, followers_count, specialties, priority, instagram_url, facebook_url, kakao_id, portfolio_url`)
           .in('role', ['instructor', 'dj', 'media'])
           .order('priority', { ascending: false })
           .limit(10);
 
         if (proError) throw proError;
-        const mappedPros = proData.map(p => {
-          return {
-            uid: p.id,
-            email: p.email,
-            displayName: p.display_name,
-            photoURL: p.photo_url,
-            role: p.role,
-            createdAt: p.created_at,
-            points: p.points,
-            followersCount: p.followers_count || 0,
-            specialties: p.specialties,
-            priority: p.priority
-          } as any;
-        });
+        const mappedPros = proData.map(p => ({
+          uid: p.id,
+          email: p.email,
+          displayName: p.display_name,
+          photoURL: p.photo_url,
+          role: p.role,
+          createdAt: p.created_at,
+          points: p.points,
+          followersCount: p.followers_count || 0,
+          specialties: p.specialties,
+          priority: p.priority,
+          instagram_url: p.instagram_url,
+          facebook_url: p.facebook_url,
+          kakao_id: p.kakao_id,
+          portfolioUrl: p.portfolio_url
+        } as any));
         setProfessionals(mappedPros);
+
+        // 2-1. 현재 사용자가 팔로우 중인 전문가 ID 목록 조회
+        if (user) {
+          const { data: followData } = await supabase
+            .from('artist_follows')
+            .select('artist_id')
+            .eq('user_id', user.id);
+          if (followData) {
+            setFollowedArtistIds(new Set(followData.map((f: any) => f.artist_id)));
+          }
+        }
 
         // 3. Fetch Banners
         const { data: bannerData, error: bannerError } = await supabase
@@ -943,7 +957,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {instructors.map((pro, idx) => (
-                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} />
+                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} currentUserId={user?.id} initialFollowed={followedArtistIds.has(pro.uid)} />
                   ))}
                 </div>
               </section>
@@ -965,7 +979,7 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   {djAndMedia.map((pro, idx) => (
-                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} />
+                    <ProfessionalCard key={pro.uid} professional={pro} index={idx} currentUserId={user?.id} initialFollowed={followedArtistIds.has(pro.uid)} />
                   ))}
                 </div>
               </section>

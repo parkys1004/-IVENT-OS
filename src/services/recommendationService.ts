@@ -68,28 +68,27 @@ export async function extractTagsFromInput(input: string): Promise<Recommendatio
  * Queries Supabase using the extracted tags to find relevant events.
  */
 export async function getRecommendations(tags: RecommendationTags) {
-  let query = supabase.from('parties').select('id, title, description, date, end_date, category, location_name, formatted_address, image_url, likes_count, created_at, max_attendees, metadata');
+  let query = supabase
+    .from('parties')
+    .select('id, title, description, date, end_date, category, location_name, formatted_address, image_url, likes_count, created_at, max_attendees');
 
-  // filter by genres (using or or array logic depending on schema)
   if (tags.genres && tags.genres.length > 0) {
     const genreFilters = tags.genres.map(g => `category.ilike.%${g}%`).join(',');
     query = query.or(genreFilters);
   }
 
-  // filter by region/address
   if (tags.region && tags.region.length > 0) {
     const regionFilters = tags.region.map(r => `formatted_address.ilike.%${r}%`).join(',');
     query = query.or(regionFilters);
   }
 
-  // filter by text content for types/roles if not explicitly in categories
   if (tags.types && tags.types.length > 0) {
-     const typeFilters = tags.types.map(t => `description.ilike.%${t}%`).join(',');
-     query = query.or(typeFilters);
+    const typeFilters = tags.types.map(t => `description.ilike.%${t}%`).join(',');
+    query = query.or(typeFilters);
   }
 
   const { data, error } = await query
-    .eq('is_approved', true)
+    .eq('status', 'published')           // is_approved 컬럼 없음 → status 사용
     .gt('date', new Date().toISOString())
     .order('date', { ascending: true })
     .limit(10);

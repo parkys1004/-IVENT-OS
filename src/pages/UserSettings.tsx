@@ -115,7 +115,7 @@ export default function UserSettings() {
     try {
       const { data: dbKeys } = await supabase
         .from('user_ai_configs')
-        .select('id, provider, api_key, model, status, created_at')
+        .select('id, provider, api_key, model, created_at')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
@@ -182,9 +182,7 @@ export default function UserSettings() {
             provider: aiProvider,
             api_key: aiApiKey,
             model: aiSelectedModel,
-            status: 'active',
-            updated_at: new Date().toISOString()
-          });
+          }, { onConflict: 'user_id,provider' });
         if (error) throw error;
       }
       setAiApiKey('');

@@ -53,7 +53,7 @@ export default function PlaceSearch() {
     async function fetchPlaces() {
       setLoading(true);
       try {
-        const { data } = await supabase.from('places').select('id, name, country, type, address, kakao_map_url, naver_map_url, google_map_url');
+        const { data } = await supabase.from('places').select('id, name, country, type, address, kakao_map_url, naver_map_url, google_map_url').eq('is_approved', true);
         let dbPlaces: Place[] = [];
         
         if (data) {

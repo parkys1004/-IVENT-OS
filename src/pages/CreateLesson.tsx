@@ -263,6 +263,25 @@ export default function CreateLesson() {
         .single();
 
       if (lessonError) throw lessonError;
+      // 강습 주소를 장소 관리 승인 대기 목록에 자동 접수
+      if (lessonData && formData.locationName && formData.formattedAddress) {
+        const { data: existing } = await supabase
+          .from('places')
+          .select('id')
+          .ilike('name', formData.locationName.trim())
+          .maybeSingle();
+        if (!existing) {
+          await supabase.from('places').insert({
+            name: formData.locationName,
+            address: formData.formattedAddress,
+            country: formData.country || '대한민국',
+            submitted_by: user.id,
+            source_type: 'lesson',
+            source_event_id: lessonData.id,
+            is_approved: false,
+          });
+        }
+      }
       if (lessonData) navigate(`/event/${lessonData.id}`);
     } catch (err) {
       handleSupabaseError(err, 'create', 'lessons', user?.id || '');

@@ -216,6 +216,25 @@ export default function CreateEvent() {
       if (newParty && images.length > 0) {
         await supabase.from('event_photos').insert(images.map(url => ({ event_id: newParty.id, image_url: url, user_id: user.id })));
       }
+      // 행사 주소를 장소 관리 승인 대기 목록에 자동 접수
+      if (newParty && formData.locationName && formData.formattedAddress) {
+        const { data: existing } = await supabase
+          .from('places')
+          .select('id')
+          .ilike('name', formData.locationName.trim())
+          .maybeSingle();
+        if (!existing) {
+          await supabase.from('places').insert({
+            name: formData.locationName,
+            address: formData.formattedAddress,
+            country: formData.country || '대한민국',
+            submitted_by: user.id,
+            source_type: 'party',
+            source_event_id: newParty.id,
+            is_approved: false,
+          });
+        }
+      }
       navigate('/');
     } catch (err) { handleSupabaseError(err, 'create', 'parties', user.id); } finally { setLoading(false); }
   };

@@ -29,6 +29,7 @@ export default function PlaceDetail() {
         .from('places')
         .select('*')
         .eq('id', id)
+        .eq('is_approved', true)
         .single();
       
       if (data) {

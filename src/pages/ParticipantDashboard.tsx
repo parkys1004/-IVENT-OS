@@ -57,6 +57,9 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [showQR, setShowQR] = useState<string | null>(null);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState('');
+  const [saveToast, setSaveToast] = useState('');
 
   const downloadQR = async (regId: string, eventTitle: string) => {
     try {
@@ -72,7 +75,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("QR Download failed:", error);
-      alert("QR 코드 다운로드에 실패했습니다.");
+      setSaveToast("QR 코드 다운로드에 실패했습니다.");
+      setTimeout(() => setSaveToast(''), 3000);
     }
   };
   
@@ -131,10 +135,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
     if (!error) {
       setMonthlyGoal(newGoal);
-      console.log("Goal updated successfully:", data);
+      setEditingGoal(false);
+      setSaveToast('목표가 저장되었습니다!');
+      setTimeout(() => setSaveToast(''), 2500);
     } else {
       console.error("Goal update error:", error);
-      alert(`목표 설정에 실패했습니다: ${error.message}`);
+      setSaveToast(`저장 실패: ${error.message}`);
+      setTimeout(() => setSaveToast(''), 3000);
     }
   };
 
@@ -278,11 +285,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       
       // 상태 최신화
       await refreshProfile();
-      alert('취향 설정이 성공적으로 저장되었습니다!');
+      setSaveToast('취향 설정이 저장되었습니다!');
+      setTimeout(() => setSaveToast(''), 2500);
     } catch (error: any) {
       console.error('Failed to save preferences:', error);
       const msg = error?.message || '알 수 없는 오류가 발생했습니다.';
-      alert(`설정 저장 중 문제가 발생했습니다: ${msg}\n\n(데이터베이스에 preferences 컬럼이 있는지 확인해주세요.)`);
+      setSaveToast(`저장 실패: ${msg}`);
+      setTimeout(() => setSaveToast(''), 3000);
     } finally {
       setIsSaving(false);
     }
@@ -304,10 +313,12 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
       if (error) throw error;
       await refreshProfile();
-      alert('프로필이 저장되었습니다.');
+      setSaveToast('프로필이 저장되었습니다.');
+      setTimeout(() => setSaveToast(''), 2500);
     } catch (error) {
       console.error(error);
-      alert('저장 중 오류가 발생했습니다.');
+      setSaveToast('저장 중 오류가 발생했습니다.');
+      setTimeout(() => setSaveToast(''), 3000);
     } finally {
       setIsSaving(false);
     }
@@ -1339,24 +1350,18 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-2">
           <Zap className="w-5 h-5 text-amber-500 fill-current" />
-          <h3 className="text-xl font-black text-slate-800 dark:text-white">사용 가능한 쿠폰</h3>
+          <h3 className="text-xl font-black text-slate-800 dark:text-white">포인트 활용 안내</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex items-center justify-between group hover:border-indigo-500 transition-colors">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-lg uppercase">Welcome</span>
-              <p className="text-lg font-black text-slate-800 dark:text-white">첫 예매 3,000원 할인권</p>
-              <p className="text-xs text-slate-500 font-bold">有効期限: 2026.05.31</p>
-            </div>
-            <button className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black shadow-lg">다운로드</button>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 space-y-3">
+            <span className="text-[10px] font-black bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-lg uppercase">포인트 사용</span>
+            <p className="text-base font-black text-slate-800 dark:text-white">강습 예매 시 포인트로 결제</p>
+            <p className="text-xs text-slate-500 font-bold">보유 포인트를 강습 예매에 사용하세요.</p>
           </div>
-          <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex items-center justify-between opacity-50 grayscale">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg uppercase">Expired</span>
-              <p className="text-lg font-black text-slate-800 dark:text-white">봄 맞이 이벤트 할인권</p>
-              <p className="text-xs text-slate-500 font-bold">有効期限: 2026.03.31</p>
-            </div>
-            <span className="text-xs font-black text-slate-400">만료됨</span>
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 space-y-3">
+            <span className="text-[10px] font-black bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-lg uppercase">포인트 적립</span>
+            <p className="text-base font-black text-slate-800 dark:text-white">커뮤니티 활동으로 포인트 적립</p>
+            <p className="text-xs text-slate-500 font-bold">댓글, 후기 작성 시 포인트가 쌓입니다.</p>
           </div>
         </div>
       </div>
@@ -1379,18 +1384,28 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
                 <p className="text-slate-400 text-[11px] font-black uppercase tracking-wider mb-1">Monthly Goal</p>
                 <h4 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
                   이번 달 활동 목표
-                   <button 
-                     onClick={() => {
-                       const val = window.prompt("이번 달 목표 횟수를 입력하세요", monthlyGoal.toString());
-                       if (val) {
-                         const num = parseInt(val);
-                         if (!isNaN(num)) updateGoal(num);
-                       }
-                     }}
-                     className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 font-bold text-xs rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-100 dark:border-indigo-800"
-                   >
-                     목표 수정
-                   </button>
+                  {!editingGoal ? (
+                    <button
+                      onClick={() => { setGoalInput(monthlyGoal.toString()); setEditingGoal(true); }}
+                      className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 font-bold text-xs rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-100 dark:border-indigo-800"
+                    >
+                      수정
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={goalInput}
+                        onChange={e => setGoalInput(e.target.value)}
+                        className="w-14 px-2 py-1 border border-indigo-300 dark:border-indigo-700 rounded-lg text-sm font-black text-center bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
+                        min={1} max={100}
+                        autoFocus
+                        onKeyDown={e => { if (e.key === 'Enter') { const n = parseInt(goalInput); if (!isNaN(n) && n > 0) updateGoal(n); } if (e.key === 'Escape') setEditingGoal(false); }}
+                      />
+                      <button onClick={() => { const n = parseInt(goalInput); if (!isNaN(n) && n > 0) updateGoal(n); }} className="px-2 py-1 bg-indigo-600 text-white rounded-lg text-xs font-black">확인</button>
+                      <button onClick={() => setEditingGoal(false)} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs font-black">취소</button>
+                    </span>
+                  )}
                 </h4>
               </div>
               <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -1460,8 +1475,8 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
               </div>
 
               <div className="flex gap-2">
-                 <button onClick={() => alert("Level. Pro: 2026-03-01 달성 (조건: 1000점 달성)")} className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase hover:bg-white/20 transition-all active:scale-95">Level. Pro</button>
-                 <button onClick={() => alert("Bachata Master: 2026-04-15 달성 (조건: 바차타 행사 5회 참여)")} className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase hover:bg-white/20 transition-all active:scale-95">Bachata Master</button>
+                 <span title="1,000점 달성 시 획득" className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase cursor-default select-none opacity-80">Level. Pro</span>
+                 <span title="바차타 행사 5회 참여 시 획득" className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black border border-white/10 uppercase cursor-default select-none opacity-80">Bachata Master</span>
               </div>
             </div>
           </motion.div>
@@ -1689,6 +1704,20 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
 
   return (
     <div className="flex-1 flex overflow-hidden glass-panel h-full w-full min-h-0 transition-colors">
+      {/* Toast 알림 */}
+      <AnimatePresence>
+        {saveToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-2xl text-sm font-black flex items-center gap-2"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+            {saveToast}
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* LNB (Left Navigation Bar) */}
       <div className="w-64 bg-white/20 dark:bg-slate-900/20 border-r border-slate-200/30 dark:border-slate-800/20 backdrop-blur-3xl h-full flex flex-col shadow-sm z-10 shrink-0 hidden lg:flex">

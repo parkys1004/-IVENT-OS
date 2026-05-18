@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import { spendPoints, DEFAULT_POINT_POLICIES } from '../lib/points';
 import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 
 const LESSON_CATEGORIES = [

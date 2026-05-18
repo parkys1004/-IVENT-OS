@@ -60,6 +60,8 @@ export default function Community() {
   const [newContent, setNewContent] = useState('');
   const [isPrivate, setIsPrivate] = useState(true); // Default to true for inquiries
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState('');
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
   useEffect(() => {
     setPage(0);
@@ -199,7 +201,7 @@ export default function Community() {
     if (!user) return navigate('/login');
 
     if (activeCategory === 'review') {
-      alert('행사 리뷰는 각 행사 상세 페이지에서 작성하실 수 있습니다.');
+      showToast('행사 리뷰는 각 행사 상세 페이지에서 작성하실 수 있습니다.');
       setIsWriteModalOpen(false);
       return;
     }
@@ -221,15 +223,15 @@ export default function Community() {
       // Award points for post
       await awardPoints(user.id, 100, '커뮤니티 게시글 작성 보너스', { category: activeCategory });
 
-      alert('성공적으로 등록되었습니다!');
+      showToast('게시글이 성공적으로 등록되었습니다!');
       setNewTitle('');
       setNewContent('');
-      setSearchQuery(''); 
+      setSearchQuery('');
       setIsWriteModalOpen(false);
       setPage(0);
       fetchPosts(0, '');
     } catch (error: any) {
-      alert(`오류: ${error.message}`);
+      showToast(`오류: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -237,6 +239,18 @@ export default function Community() {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-2xl text-sm font-black"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header Section */}
       <div className="mb-6 md:mb-10 text-center relative pt-8 md:pt-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>

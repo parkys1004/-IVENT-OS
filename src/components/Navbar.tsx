@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LogIn, 
-  LogOut, 
-  Plus, 
-  Sun, 
-  Moon, 
-  Wind, 
-  Settings, 
-  UserCircle, 
-  Briefcase, 
-  Eye, 
-  LayoutDashboard, 
+import {
+  LogIn,
+  LogOut,
+  Plus,
+  Sun,
+  Moon,
+  Wind,
+  Settings,
+  Eye,
+  LayoutDashboard,
   Languages,
   Music,
   GraduationCap,
@@ -21,12 +19,15 @@ import {
   X,
   User,
   MapPin,
-  ExternalLink,
   MessageSquare,
   ChevronDown,
   Coins,
-  Bot
+  Bell,
+  CalendarDays,
+  CheckCheck,
+  Ticket
 } from 'lucide-react';
+import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage, Language } from '../context/LanguageContext';
@@ -47,6 +48,45 @@ export default function Navbar() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchNotifs = async () => {
+      const { data } = await supabase
+        .from('registrations')
+        .select('id, status, registered_at, event_id')
+        .eq('user_id', user.id)
+        .order('registered_at', { ascending: false })
+        .limit(5);
+
+      if (data) {
+        const eventIds = data.map(r => r.event_id);
+        const [partiesRes, lessonsRes] = await Promise.all([
+          supabase.from('parties').select('id, title, date').in('id', eventIds),
+          supabase.from('lessons').select('id, title, date').in('id', eventIds),
+        ]);
+        const eventMap: Record<string, any> = {};
+        [...(partiesRes.data || []), ...(lessonsRes.data || [])].forEach(e => { eventMap[e.id] = e; });
+
+        const notifs = data.map(r => ({
+          id: r.id,
+          type: 'registration',
+          message: eventMap[r.event_id] ? `${eventMap[r.event_id].title} 예매가 확정되었습니다` : '행사 예매가 확정되었습니다',
+          date: r.registered_at,
+          eventId: r.event_id,
+          read: false,
+        }));
+        setNotifications(notifs);
+        setUnreadCount(notifs.length);
+      }
+    };
+    fetchNotifs();
+  }, [user]);
+
+  const markAllRead = () => setUnreadCount(0);
 
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -265,6 +305,85 @@ export default function Navbar() {
               >
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
+
+              {user && (
+                /* 알림 벨 */
+                <div className="relative" data-dropdown>
+                  <button
+                    onClick={() => { setNotifOpen(!notifOpen); if (!notifOpen) markAllRead(); }}
+                    className="relative p-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm"
+                    title="알림"
+                  >
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-sm">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <AnimatePresence>
+                    {notifOpen && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-40 overflow-hidden"
+                        >
+                          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <p className="font-black text-slate-800 dark:text-white text-sm flex items-center gap-2">
+                              <Bell className="w-4 h-4 text-indigo-500" /> 알림
+                            </p>
+                            <button onClick={markAllRead} className="text-[10px] font-black text-slate-400 hover:text-indigo-500 flex items-center gap-1 transition-colors">
+                              <CheckCheck className="w-3 h-3" /> 모두 읽음
+                            </button>
+                          </div>
+                          {notifications.length === 0 ? (
+                            <div className="py-10 text-center">
+                              <Bell className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-2" />
+                              <p className="text-sm font-bold text-slate-400">새 알림이 없습니다</p>
+                            </div>
+                          ) : (
+                            <div className="max-h-72 overflow-y-auto">
+                              {notifications.map(n => (
+                                <Link
+                                  key={n.id}
+                                  to={`/event/${n.eventId}`}
+                                  onClick={() => setNotifOpen(false)}
+                                  className="flex items-start gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0"
+                                >
+                                  <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                                    <Ticket className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-slate-800 dark:text-white line-clamp-2 leading-snug">{n.message}</p>
+                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5 flex items-center gap-1">
+                                      <CalendarDays className="w-3 h-3" />
+                                      {n.date ? new Date(n.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : ''}
+                                    </p>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                          <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800">
+                            <Link
+                              to="/dashboard"
+                              onClick={() => setNotifOpen(false)}
+                              className="block text-center text-xs font-black text-indigo-600 dark:text-indigo-400 hover:underline"
+                            >
+                              전체 예매 내역 보기
+                            </Link>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
               {user ? (
                 <>

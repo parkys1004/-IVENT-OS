@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft, Share2, MapPin, Users, Calendar,
   GraduationCap, Trophy, Instagram, Globe,

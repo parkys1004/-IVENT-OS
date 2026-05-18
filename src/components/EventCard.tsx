@@ -1,10 +1,11 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'motion/react';
-import { MapPin, Clock, Users, Heart, CalendarDays } from 'lucide-react';
+import { MapPin, Clock, Users, Heart, CalendarDays, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import clsx from 'clsx';
+import { supabase } from '../supabase';
 
 import TypeBadge from './TypeBadge';
 
@@ -33,16 +34,36 @@ export interface EventData {
 }
 
 export default function EventCard({ event, featured = false, index }: { event: EventData, featured?: boolean, index: number, key?: string | number }) {
+  const navigate = useNavigate();
   const isFull = event.currentAttendees >= event.maxAttendees;
-  const fillPercentage = event.maxAttendees > 0 
-    ? Math.min(Math.round((event.currentAttendees / event.maxAttendees) * 100), 100) 
+  const fillPercentage = event.maxAttendees > 0
+    ? Math.min(Math.round((event.currentAttendees / event.maxAttendees) * 100), 100)
     : 0;
-  
+  const [bookmarked, setBookmarked] = useState(false);
+
   const dateObj = event.date ? new Date(event.date) : new Date();
-  const coverImage = event.imageUrls && event.imageUrls.length > 0 && event.coverImageIndex !== undefined 
-                       ? event.imageUrls[event.coverImageIndex] 
+  const coverImage = event.imageUrls && event.imageUrls.length > 0 && event.coverImageIndex !== undefined
+                       ? event.imageUrls[event.coverImageIndex]
                        : (event.imageUrl || null);
-  
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate('/login'); return; }
+      if (bookmarked) {
+        await supabase.from('event_bookmarks').delete().eq('user_id', user.id).eq('event_id', event.id);
+        setBookmarked(false);
+      } else {
+        await supabase.from('event_bookmarks').upsert({ user_id: user.id, event_id: event.id });
+        setBookmarked(true);
+      }
+    } catch (err) {
+      console.error('Bookmark error:', err);
+    }
+  };
+
   if (featured) {
     return (
       <motion.div
@@ -51,23 +72,21 @@ export default function EventCard({ event, featured = false, index }: { event: E
         transition={{ delay: index * 0.1, duration: 0.4 }}
         className="h-full"
       >
-        <Link 
-          to={`/event/${event.id}`}
-          className="group/eventcard relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] p-6 sm:p-8 lg:p-12 overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-slate-200 dark:bg-slate-800"
+        <div className="group/eventcard relative flex flex-col justify-end h-[300px] lg:h-[400px] xl:h-[460px] w-full rounded-[24px] overflow-hidden text-white shadow-sm hover:shadow-md transition-all duration-300 bg-slate-200 dark:bg-slate-800 cursor-pointer"
+          onClick={() => navigate(`/event/${event.id}`)}
         >
           {coverImage && (
             <div className="absolute inset-0">
               <img src={coverImage} alt={event.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover/eventcard:scale-105" referrerPolicy="no-referrer" />
-              {/* Bottom gradient for better text readability */}
-              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
             </div>
           )}
-          
-          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-red-500 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-[13px] font-black shadow-[0_4px_12px_rgba(239,68,68,0.3)] z-10 transition-transform active:scale-95">
-            {isFull ? "모집 마감" : `마감 임박: 잔여 ${event.maxAttendees - event.currentAttendees}석`}
+
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-red-500 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-[13px] font-black shadow-[0_4px_12px_rgba(239,68,68,0.3)] z-10">
+            {isFull ? "모집 마감" : `잔여 ${event.maxAttendees - event.currentAttendees}석`}
           </div>
-          
-          <div className="relative z-10 w-full lg:max-w-[80%]">
+
+          <div className="relative z-10 w-full lg:max-w-[80%] p-6 sm:p-8 lg:p-12">
             <span className="inline-block px-3 py-1 sm:px-4 sm:py-1.5 rounded-lg text-[11px] sm:text-[13px] font-black bg-black/40 backdrop-blur-md shadow-sm text-white mb-3 sm:mb-4 tracking-wider uppercase border border-white/20">
               {event.category}
             </span>
@@ -76,15 +95,35 @@ export default function EventCard({ event, featured = false, index }: { event: E
               <span className="truncate">{event.title}</span>
             </h3>
             <p className="opacity-90 text-[14px] sm:text-[16px] lg:text-[18px] truncate mb-6 sm:mb-8 flex items-center gap-2 drop-shadow-lg font-medium">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-orange-400"/> <span className="truncate font-bold">{format(dateObj, 'yyyy.MM.dd a h:mm', { locale: ko })}</span> <span className="opacity-30">|</span> <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"/> <span className="truncate">{event.locationName}</span>
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-orange-400"/>
+              <span className="truncate font-bold">{format(dateObj, 'yyyy.MM.dd a h:mm', { locale: ko })}</span>
+              <span className="opacity-30">|</span>
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"/>
+              <span className="truncate">{event.locationName}</span>
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <div className="h-12 sm:h-14 flex items-center justify-center px-6 bg-white text-indigo-600 hover:bg-slate-50 font-black text-[15px] sm:text-[16px] rounded-xl shadow-lg transition-all hover:translate-y-[-2px] active:scale-95 cursor-pointer text-center">참여 신청하기</div>
-              <div className="h-12 sm:h-14 flex items-center justify-center px-6 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-black text-[15px] sm:text-[16px] rounded-xl transition-all border border-white/20 active:scale-95 cursor-pointer text-center">관심 등록</div>
+
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4" onClick={e => e.stopPropagation()}>
+              <Link
+                to={`/event/${event.id}`}
+                className="h-12 sm:h-14 flex items-center justify-center px-6 bg-white text-indigo-600 hover:bg-slate-50 font-black text-[15px] sm:text-[16px] rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-95"
+              >
+                참여 신청하기
+              </Link>
+              <button
+                onClick={handleBookmark}
+                className={clsx(
+                  "h-12 sm:h-14 flex items-center justify-center gap-2 px-6 backdrop-blur-md font-black text-[15px] sm:text-[16px] rounded-xl transition-all border active:scale-95",
+                  bookmarked
+                    ? "bg-amber-400/30 border-amber-400/50 text-amber-300"
+                    : "bg-white/20 hover:bg-white/30 text-white border-white/20"
+                )}
+              >
+                {bookmarked ? <BookmarkCheck className="w-5 h-5" /> : <BookmarkPlus className="w-5 h-5" />}
+                {bookmarked ? '저장됨' : '관심 등록'}
+              </button>
             </div>
           </div>
-        </Link>
+        </div>
       </motion.div>
     );
   }

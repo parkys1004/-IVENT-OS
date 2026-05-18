@@ -13,7 +13,7 @@ import {
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
 

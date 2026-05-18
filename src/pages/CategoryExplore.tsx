@@ -381,9 +381,9 @@ export default function CategoryExplore() {
               }
             }}
             className={clsx(
-              "p-3 rounded-[16px] transition-all flex items-center gap-2 font-black text-xs uppercase tracking-widest",
-              aiSearchMode 
-                ? "bg-rose-50 text-rose-600 dark:bg-rose-950/20" 
+              "p-3 rounded-[16px] transition-all flex items-center gap-2 font-black text-xs uppercase tracking-widest whitespace-nowrap",
+              aiSearchMode
+                ? "bg-rose-50 text-rose-600 dark:bg-rose-950/20"
                 : "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/20 hover:scale-105"
             )}
           >

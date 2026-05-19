@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { supabase } from '../supabase';
 
 // Vite 환경 변수에서 API 키를 가져와 기본 인스턴스를 생성합니다.
@@ -109,72 +110,69 @@ export async function analyzeEventPoster(params: {
     throw new Error('이미지 또는 텍스트 데이터가 필요합니다.');
   }
 
-  const ai = new GoogleGenerativeAI(key);
-  const model = ai.getGenerativeModel(
-    {
-      model: 'gemini-2.0-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            title:            { type: SchemaType.STRING },
-            description:      { type: SchemaType.STRING },
-            category:         { type: SchemaType.STRING },
-            date:             { type: SchemaType.STRING },
-            time:             { type: SchemaType.STRING },
-            endDate:          { type: SchemaType.STRING },
-            endTime:          { type: SchemaType.STRING },
-            locationName:     { type: SchemaType.STRING },
-            formattedAddress: { type: SchemaType.STRING },
-            city:             { type: SchemaType.STRING },
-            country:          { type: SchemaType.STRING },
-            maxAttendees:     { type: SchemaType.INTEGER },
-            level:            { type: SchemaType.STRING },
-            djs:              { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-            performances:     { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-            media:            { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-            workshops: {
-              type: SchemaType.ARRAY,
-              items: {
-                type: SchemaType.OBJECT,
-                properties: {
-                  teacher: { type: SchemaType.STRING },
-                  topic:   { type: SchemaType.STRING },
-                  time:    { type: SchemaType.STRING },
-                },
-              },
-            },
-            tickets: {
-              type: SchemaType.ARRAY,
-              items: {
-                type: SchemaType.OBJECT,
-                properties: {
-                  name:  { type: SchemaType.STRING },
-                  price: { type: SchemaType.INTEGER },
-                },
-              },
-            },
-          },
-          required: ['title', 'category', 'date', 'time', 'locationName'],
-        },
-      },
-    },
-    { apiVersion: 'v1beta' }
-  );
+  const ai = new GoogleGenAI({ apiKey: key });
 
   const prompt = `Extract event information from the provided dance event poster/text. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. Level (for lessons) must be one of: beginner, intermediate, advanced, all. For dates use YYYY-MM-DD. For times use 24h format HH:mm. Extract workshops as array of {teacher, topic, time} objects if present.${additionalText ? `\n\nAdditional text info:\n${additionalText}` : ''}`;
 
-  const contents: unknown[] = [];
-  if (imageBase64) {
-    contents.push({ inlineData: { data: imageBase64, mimeType: mimeType || 'image/jpeg' } });
-  }
-  contents.push(prompt);
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await model.generateContent(contents as any);
-  let text = result.response.text();
-  text = text.replace(/```json\n?/, '').replace(/```/, '').trim();
+  const parts: any[] = [];
+  if (imageBase64) {
+    parts.push({ inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } });
+  }
+  parts.push({ text: prompt });
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: [{ role: 'user', parts }],
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title:            { type: Type.STRING },
+          description:      { type: Type.STRING },
+          category:         { type: Type.STRING },
+          date:             { type: Type.STRING },
+          time:             { type: Type.STRING },
+          endDate:          { type: Type.STRING },
+          endTime:          { type: Type.STRING },
+          locationName:     { type: Type.STRING },
+          formattedAddress: { type: Type.STRING },
+          city:             { type: Type.STRING },
+          country:          { type: Type.STRING },
+          maxAttendees:     { type: Type.INTEGER },
+          level:            { type: Type.STRING },
+          djs:              { type: Type.ARRAY, items: { type: Type.STRING } },
+          performances:     { type: Type.ARRAY, items: { type: Type.STRING } },
+          media:            { type: Type.ARRAY, items: { type: Type.STRING } },
+          workshops: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                teacher: { type: Type.STRING },
+                topic:   { type: Type.STRING },
+                time:    { type: Type.STRING },
+              },
+            },
+          },
+          tickets: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name:  { type: Type.STRING },
+                price: { type: Type.INTEGER },
+              },
+            },
+          },
+        },
+        required: ['title', 'category', 'date', 'time', 'locationName'],
+      },
+    },
+  });
+
+  let text = (response.text ?? '').replace(/```json\n?/, '').replace(/```/, '').trim();
   return JSON.parse(text) as AnalyzeResult;
 }
 

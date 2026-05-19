@@ -157,6 +157,7 @@ export default function CreateEvent() {
           maxAttendees: data.maxAttendees || prev.maxAttendees,
           djs: data.djs?.length > 0 ? data.djs : prev.djs,
           performances: data.performances?.length > 0 ? data.performances : prev.performances,
+          media: data.media?.length > 0 ? data.media : prev.media,
           tickets: data.tickets?.length > 0 ? data.tickets : prev.tickets,
           workshops: data.workshops?.length > 0 ? data.workshops : prev.workshops,
         }));
@@ -198,7 +199,7 @@ export default function CreateEvent() {
         city: formData.city, country: formData.country, lat: formData.geoPoint?.lat, lng: formData.geoPoint?.lng,
         image_url: finalImg, host_id: user.id, status: 'pending', max_attendees: Number(formData.maxAttendees),
         price: formData.tickets[0]?.price || 0, djs: formData.djs, performances: formData.performances,
-        workshops: formData.workshops, tickets: formData.tickets, payment_method: formData.paymentMethod,
+        media: formData.media, workshops: formData.workshops, tickets: formData.tickets, payment_method: formData.paymentMethod,
         payment_link: formData.paymentLink, youtube_url: formData.youtubeUrl,
       }).select().single();
       if (error) throw error;
@@ -624,6 +625,24 @@ export default function CreateEvent() {
                         </div>
                       ))}
                       {formData.performances.length === 0 && <p className="text-xs text-slate-400 py-1">없음</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Camera className="w-4 h-4 text-violet-500" /> 미디어팀
+                      </label>
+                      <button type="button" onClick={() => setFormData(p => ({ ...p, media: [...p.media, ''] }))} className="text-xs font-bold text-violet-600 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"><Plus className="w-3 h-3" /> 추가</button>
+                    </div>
+                    <div className="space-y-2">
+                      {formData.media.map((m, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input value={m} onChange={e => { const arr = [...formData.media]; arr[i] = e.target.value; setFormData(p => ({ ...p, media: arr })); }} placeholder="미디어팀/사진작가 이름" className={clsx(inputCls, 'text-sm')} />
+                          <button type="button" onClick={() => setFormData(p => ({ ...p, media: p.media.filter((_, idx) => idx !== i) }))} className="text-slate-300 hover:text-rose-500 shrink-0 transition-colors"><X className="w-4 h-4" /></button>
+                        </div>
+                      ))}
+                      {formData.media.length === 0 && <p className="text-xs text-slate-400 py-1">없음</p>}
                     </div>
                   </div>
                 </div>

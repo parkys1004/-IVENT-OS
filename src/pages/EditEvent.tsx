@@ -119,28 +119,31 @@ export default function EditEvent() {
     const fetchEvent = async () => {
       if (!id || authLoading) return;
       try {
-        const EDIT_EVENT_COLS = 'id, host_id, title, description, category, date, end_date, location_name, formatted_address, country, city, lat, lng, image_url, max_attendees, capacity, djs, performances, media, media_experts, workshops, payment_method, payment_link, youtube_url, tickets';
-        let { data, error } = await supabase
+        let data: any = null;
+
+        const { data: partyData, error: partyError } = await supabase
           .from('parties')
-          .select(EDIT_EVENT_COLS)
+          .select('*')
           .eq('id', id)
           .maybeSingle();
 
-        if (data) {
+        if (partyData) {
           setSourceTable('parties');
-        } else {
-          const { data: lessonData } = await supabase
+          data = partyData;
+        } else if (!partyError) {
+          const { data: lessonData, error: lessonError } = await supabase
             .from('lessons')
-            .select('id, host_id, title, description, category, date, end_date, class_time, location_name, formatted_address, country, city, lat, lng, image_url, max_attendees, payment_method, youtube_url, tickets, level')
+            .select('*')
             .eq('id', id)
             .maybeSingle();
+          if (lessonError) throw lessonError;
           if (lessonData) {
             setSourceTable('lessons');
-            data = lessonData as any;
+            data = lessonData;
           }
+        } else {
+          throw partyError;
         }
-
-        if (error) throw error;
         if (data) {
           if ((data as any).host_id !== user?.id && profile?.role !== 'admin') {
             alert('수정 권한이 없습니다.');

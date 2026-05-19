@@ -192,12 +192,17 @@ export default function CreateEvent() {
       if (mainPosterFile) finalImg = await uploadImageToStorage(mainPosterFile, 'events');
       const startDate = new Date(`${formData.date}T${formData.time}`);
       const endDate = new Date(`${formData.endDate || formData.date}T${formData.endTime || '23:59'}`);
+
+      const { data: configData } = await supabase.from('settings').select('value').eq('key', 'app_config').maybeSingle();
+      const approvalMode = (configData?.value as any)?.approvalMode || 'manual';
+      const initialStatus = approvalMode === 'auto' ? 'published' : 'pending';
+
       const { data: newParty, error } = await supabase.from('parties').insert({
         title: formData.title, description: formData.description, category: formData.category,
         date: startDate.toISOString(), end_date: endDate.toISOString(),
         location_name: formData.locationName, formatted_address: formData.formattedAddress,
         city: formData.city, country: formData.country, lat: formData.geoPoint?.lat, lng: formData.geoPoint?.lng,
-        image_url: finalImg, host_id: user.id, status: 'pending', max_attendees: Number(formData.maxAttendees),
+        image_url: finalImg, host_id: user.id, status: initialStatus, max_attendees: Number(formData.maxAttendees),
         price: formData.tickets[0]?.price || 0, djs: formData.djs, performances: formData.performances,
         media: formData.media, workshops: formData.workshops, tickets: formData.tickets, payment_method: formData.paymentMethod,
         payment_link: formData.paymentLink, youtube_url: formData.youtubeUrl,

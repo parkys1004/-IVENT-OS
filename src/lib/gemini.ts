@@ -31,7 +31,7 @@ export async function translateText(text: string, targetLanguage: string) {
   if (!ai) return text; 
   
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" }, { apiVersion: 'v1beta' });
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1beta' });
     const result = await model.generateContent(
       `Translate the following text to ${targetLanguage}. Maintain the original tone and format. Only return the translated text. Original text: ${text}`
     );
@@ -168,7 +168,7 @@ export async function analyzeEventPoster(params: {
   };
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${encodeURIComponent(key)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
   );
 

@@ -4,47 +4,45 @@ import path from 'path';
 import {defineConfig, loadEnv} from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     base: '/',
-    plugins: [
-      react(), 
-      tailwindcss(),
-      VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-        manifest: {
-          name: 'Dancehive',
-          short_name: 'Dancehive',
-          description: '커뮤니티와 댄스를 위한 지능형 이벤트 플랫폼',
-          theme_color: '#4f46e5',
-          background_color: '#ffffff',
-          display: 'standalone',
-          icons: [
-            {
-              src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            },
-            {
-              src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
-            }
-          ]
-        },
-        workbox: {
-          maximumFileSizeToCacheInBytes: 4000000
-        }
-      })
-    ],
+    plugins: [react(), tailwindcss(), VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      manifest: {
+        name: 'Dancehive',
+        short_name: 'Dancehive',
+        description: '커뮤니티와 댄스를 위한 지능형 이벤트 플랫폼',
+        theme_color: '#4f46e5',
+        background_color: '#ffffff',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: 'https://raw.githubusercontent.com/parkys1004/img/main/dancehive/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 4000000
+      }
+    }), cloudflare()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),

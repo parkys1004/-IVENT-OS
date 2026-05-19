@@ -171,7 +171,7 @@ export default function PlaceSearch() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Search & Filtering Bar - Multi-level Sticky for Mobile */}
-        <div className="sticky top-4 z-40 mb-12 sm:mb-16">
+        <div className="sticky top-16 z-10 mb-12 sm:mb-16">
           <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-slate-200/50 dark:border-white/5 shadow-2xl p-3 sm:p-4 transition-all duration-300">
             <div className="flex flex-col gap-4">
               {/* Search input with icons */}

@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GoogleGenAI, Type } from "@google/genai";
 import { supabase } from '../supabase';
 
 // Vite 환경 변수에서 API 키를 가져와 기본 인스턴스를 생성합니다.
@@ -110,59 +109,55 @@ export async function analyzeEventPoster(params: {
     throw new Error('이미지 또는 텍스트 데이터가 필요합니다.');
   }
 
-  const ai = new GoogleGenAI({ apiKey: key });
-
   const prompt = `Extract event information from the provided dance event poster/text. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. Level (for lessons) must be one of: beginner, intermediate, advanced, all. For dates use YYYY-MM-DD. For times use 24h format HH:mm. Extract workshops as array of {teacher, topic, time} objects if present.${additionalText ? `\n\nAdditional text info:\n${additionalText}` : ''}`;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parts: any[] = [];
+  const parts: unknown[] = [];
   if (imageBase64) {
-    parts.push({ inlineData: { mimeType: mimeType || 'image/jpeg', data: imageBase64 } });
+    parts.push({ inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } });
   }
   parts.push({ text: prompt });
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
-    contents: [{ role: 'user', parts }],
-    config: {
+  const body = {
+    contents: [{ parts }],
+    generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: {
-        type: Type.OBJECT,
+        type: 'OBJECT',
         properties: {
-          title:            { type: Type.STRING },
-          description:      { type: Type.STRING },
-          category:         { type: Type.STRING },
-          date:             { type: Type.STRING },
-          time:             { type: Type.STRING },
-          endDate:          { type: Type.STRING },
-          endTime:          { type: Type.STRING },
-          locationName:     { type: Type.STRING },
-          formattedAddress: { type: Type.STRING },
-          city:             { type: Type.STRING },
-          country:          { type: Type.STRING },
-          maxAttendees:     { type: Type.INTEGER },
-          level:            { type: Type.STRING },
-          djs:              { type: Type.ARRAY, items: { type: Type.STRING } },
-          performances:     { type: Type.ARRAY, items: { type: Type.STRING } },
-          media:            { type: Type.ARRAY, items: { type: Type.STRING } },
+          title:            { type: 'STRING' },
+          description:      { type: 'STRING' },
+          category:         { type: 'STRING' },
+          date:             { type: 'STRING' },
+          time:             { type: 'STRING' },
+          endDate:          { type: 'STRING' },
+          endTime:          { type: 'STRING' },
+          locationName:     { type: 'STRING' },
+          formattedAddress: { type: 'STRING' },
+          city:             { type: 'STRING' },
+          country:          { type: 'STRING' },
+          maxAttendees:     { type: 'INTEGER' },
+          level:            { type: 'STRING' },
+          djs:              { type: 'ARRAY', items: { type: 'STRING' } },
+          performances:     { type: 'ARRAY', items: { type: 'STRING' } },
+          media:            { type: 'ARRAY', items: { type: 'STRING' } },
           workshops: {
-            type: Type.ARRAY,
+            type: 'ARRAY',
             items: {
-              type: Type.OBJECT,
+              type: 'OBJECT',
               properties: {
-                teacher: { type: Type.STRING },
-                topic:   { type: Type.STRING },
-                time:    { type: Type.STRING },
+                teacher: { type: 'STRING' },
+                topic:   { type: 'STRING' },
+                time:    { type: 'STRING' },
               },
             },
           },
           tickets: {
-            type: Type.ARRAY,
+            type: 'ARRAY',
             items: {
-              type: Type.OBJECT,
+              type: 'OBJECT',
               properties: {
-                name:  { type: Type.STRING },
-                price: { type: Type.INTEGER },
+                name:  { type: 'STRING' },
+                price: { type: 'INTEGER' },
               },
             },
           },
@@ -170,9 +165,25 @@ export async function analyzeEventPoster(params: {
         required: ['title', 'category', 'date', 'time', 'locationName'],
       },
     },
-  });
+  };
 
-  let text = (response.text ?? '').replace(/```json\n?/, '').replace(/```/, '').trim();
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({})) as { error?: { message?: string; status?: string } };
+    const msg = errJson?.error?.message || `Gemini API 오류 (${res.status})`;
+    if (res.status === 400) throw new Error(`API 키가 유효하지 않습니다. Gemini API 키를 확인해주세요. (${msg})`);
+    if (res.status === 403) throw new Error(`API 키 권한이 없습니다. Google AI Studio에서 키를 재발급받으세요.`);
+    if (res.status === 429) throw new Error(`AI 사용 한도를 초과했습니다. 잠시 후 다시 시도해주세요.`);
+    throw new Error(`AI 분석 실패: ${msg}`);
+  }
+
+  const json = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+  let text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  text = text.replace(/```json\n?/, '').replace(/```/, '').trim();
   return JSON.parse(text) as AnalyzeResult;
 }
 

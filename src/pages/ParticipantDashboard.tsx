@@ -100,6 +100,10 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [recordForm, setRecordForm] = useState<{ rating: number; memo: string }>({ rating: 5, memo: '' });
   const [savingRecord, setSavingRecord] = useState(false);
 
+  const [myPosts, setMyPosts] = useState<any[]>([]);
+  const [commentedPosts, setCommentedPosts] = useState<any[]>([]);
+  const [loadingCommunity, setLoadingCommunity] = useState(false);
+
   const fetchGoalMetrics = async () => {
     if (!user) return;
     const now = new Date();
@@ -422,6 +426,56 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       }
     };
     fetchRecords();
+  }, [user, activeMenu]);
+
+  useEffect(() => {
+    if (!user || activeMenu !== 'community') return;
+    const fetchCommunity = async () => {
+      setLoadingCommunity(true);
+      try {
+        const POST_COLS = 'id, title, content, category, created_at, author_id';
+
+        // 내가 쓴 글
+        const { data: postsData } = await supabase
+          .from('community_posts')
+          .select(POST_COLS)
+          .eq('author_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        setMyPosts(postsData || []);
+
+        // 내가 댓글 단 글: community_comments → 고유 post_id → posts
+        const { data: commentsData } = await supabase
+          .from('community_comments')
+          .select('post_id, created_at')
+          .eq('author_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (commentsData && commentsData.length > 0) {
+          // 중복 제거: 가장 최근 댓글 기준 post_id 유니크
+          const seen = new Set<string>();
+          const uniquePostIds: string[] = [];
+          commentsData.forEach(c => {
+            if (!seen.has(c.post_id)) { seen.add(c.post_id); uniquePostIds.push(c.post_id); }
+          });
+
+          const { data: commentedPostsData } = await supabase
+            .from('community_posts')
+            .select(POST_COLS)
+            .in('id', uniquePostIds);
+
+          // 댓글 순서대로 정렬
+          const postMap: Record<string, any> = {};
+          commentedPostsData?.forEach(p => { postMap[p.id] = p; });
+          setCommentedPosts(uniquePostIds.map(id => postMap[id]).filter(Boolean));
+        } else {
+          setCommentedPosts([]);
+        }
+      } finally {
+        setLoadingCommunity(false);
+      }
+    };
+    fetchCommunity();
   }, [user, activeMenu]);
 
   const handleRecordSave = async (eventId: string) => {
@@ -1448,27 +1502,82 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     </div>
   );
 
-  const renderCommunityContent = () => (
-    <div className="space-y-6 flex flex-col h-full pb-20">
-      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          내가 쓴 글
-        </button>
-        <button onClick={() => setActiveTab('comments')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'comments' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          댓글 단 글
-        </button>
-        <button onClick={() => setActiveTab('messages')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'messages' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          쪽지함
-        </button>
+  const renderCommunityContent = () => {
+    const catColor: Record<string, string> = {
+      '자유': 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+      '살사': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+      '바차타': 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+      '키좀바': 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+      '질문': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+      '공지': 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    };
+
+    const PostList = ({ posts, emptyLabel }: { posts: any[]; emptyLabel: string }) => (
+      posts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-center py-16">
+          <MessageSquare className="w-12 h-12 mb-4 text-slate-200 dark:text-slate-700" />
+          <p className="font-black text-slate-400">{emptyLabel}</p>
+          <Link to="/community" className="mt-4 px-5 py-2.5 bg-indigo-600 text-white font-black text-sm rounded-2xl hover:bg-indigo-700 transition-colors">커뮤니티 바로가기</Link>
+        </div>
+      ) : (
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {posts.map(post => (
+            <Link
+              key={post.id}
+              to={`/community/${post.id}`}
+              className="flex items-start gap-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl px-3 transition-colors group"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  {post.category && (
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 ${catColor[post.category] || catColor['자유']}`}>{post.category}</span>
+                  )}
+                  <p className="text-sm font-black text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{post.title}</p>
+                </div>
+                <p className="text-xs text-slate-400 font-bold line-clamp-1">{post.content}</p>
+                <p className="text-[10px] text-slate-400 mt-1">{format(new Date(post.created_at), 'yyyy.MM.dd HH:mm')}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-1 group-hover:text-indigo-400 transition-colors" />
+            </Link>
+          ))}
+        </div>
+      )
+    );
+
+    return (
+      <div className="space-y-0 flex flex-col h-full pb-20">
+        <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800 shrink-0 mb-4">
+          <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 text-sm font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            내가 쓴 글 {myPosts.length > 0 && <span className="text-[10px] font-black opacity-60 ml-1">{myPosts.length}</span>}
+          </button>
+          <button onClick={() => setActiveTab('comments')} className={clsx("px-4 py-3 text-sm font-bold transition-colors", activeTab === 'comments' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            댓글 단 글 {commentedPosts.length > 0 && <span className="text-[10px] font-black opacity-60 ml-1">{commentedPosts.length}</span>}
+          </button>
+          <button onClick={() => setActiveTab('messages')} className={clsx("px-4 py-3 text-sm font-bold transition-colors", activeTab === 'messages' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            쪽지함
+          </button>
+        </div>
+
+        {loadingCommunity ? (
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />)}
+          </div>
+        ) : activeTab === 'all' ? (
+          <PostList posts={myPosts} emptyLabel="아직 작성한 글이 없습니다." />
+        ) : activeTab === 'comments' ? (
+          <PostList posts={commentedPosts} emptyLabel="댓글을 단 글이 없습니다." />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center py-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl">
+            <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mb-4">
+              <MessageSquare className="w-7 h-7 text-indigo-400" />
+            </div>
+            <h3 className="text-base font-black text-slate-800 dark:text-white mb-1">쪽지 기능 준비 중</h3>
+            <p className="text-sm font-bold text-slate-400">다른 댄서에게 쪽지를 보낼 수 있는<br/>기능이 곧 추가됩니다.</p>
+          </div>
+        )}
       </div>
-      <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
-         <MessageSquare className="w-12 h-12 mb-4 text-slate-300" />
-         <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">활동 내역이 없습니다</h3>
-         <p className="font-bold text-slate-500 mb-6">커뮤니티에서 다른 댄서들과 소통을 시작해보세요!</p>
-         <button className="px-6 py-3 bg-slate-900 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg">커뮤니티 바로가기</button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderSettingsContent = () => (
     <div className="space-y-6 flex flex-col h-full pb-20">

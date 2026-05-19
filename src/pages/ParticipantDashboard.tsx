@@ -532,40 +532,34 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
             date: l.date || (l as any).start_date // Graceful fallback
           });
 
-          const mappedRegs = regsData.map((r: any) => {
-            const eventInfo = partiesMap[r.event_id] || lessonsMap[r.event_id];
-            
-            if (!eventInfo) {
+          const orphanIds: string[] = [];
+          const mappedRegs = regsData
+            .map((r: any) => {
+              const eventInfo = partiesMap[r.event_id] || lessonsMap[r.event_id];
+              if (!eventInfo) {
+                orphanIds.push(r.id);
+                return null;
+              }
               return {
                 id: r.id,
                 status: r.status,
                 registeredAt: r.registered_at,
                 event: {
-                  id: 'unknown',
-                  title: '알 수 없는 행사 또는 강습',
-                  category: 'unknown',
-                  imageUrl: '',
-                  date: r.registered_at,
-                  locationName: '정보 없음'
+                  id: eventInfo.id,
+                  title: eventInfo.title,
+                  category: eventInfo.category,
+                  imageUrl: eventInfo.image_url,
+                  date: eventInfo.date,
+                  locationName: eventInfo.location_name,
+                  isLesson: eventInfo.isLesson
                 } as unknown as EventData
               };
-            }
+            })
+            .filter(Boolean) as any[];
 
-            return {
-              id: r.id,
-              status: r.status,
-              registeredAt: r.registered_at,
-              event: {
-                id: eventInfo.id,
-                title: eventInfo.title,
-                category: eventInfo.category,
-                imageUrl: eventInfo.image_url,
-                date: eventInfo.date,
-                locationName: eventInfo.location_name,
-                isLesson: eventInfo.isLesson
-              } as unknown as EventData
-            };
-          });
+          if (orphanIds.length > 0) {
+            await supabase.from('registrations').delete().in('id', orphanIds);
+          }
 
           setRegistrations(mappedRegs);
         } catch (error) {

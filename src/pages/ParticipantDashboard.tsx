@@ -92,6 +92,14 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     loadingStats: boolean;
   }>({ categoryBreakdown: {}, monthlyTrend: [], loadingStats: false });
 
+  const [danceRecords, setDanceRecords] = useState<any[]>([]);
+  const [userReviews, setUserReviews] = useState<Record<string, any>>({});
+  const [userEventPhotos, setUserEventPhotos] = useState<Record<string, string[]>>({});
+  const [loadingRecords, setLoadingRecords] = useState(false);
+  const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
+  const [recordForm, setRecordForm] = useState<{ rating: number; memo: string }>({ rating: 5, memo: '' });
+  const [savingRecord, setSavingRecord] = useState(false);
+
   const fetchGoalMetrics = async () => {
     if (!user) return;
     const now = new Date();
@@ -273,6 +281,105 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     };
     fetchStats();
   }, [user, activeMenu]);
+
+  useEffect(() => {
+    if (!user || activeMenu !== 'records') return;
+    const fetchRecords = async () => {
+      setLoadingRecords(true);
+      try {
+        const now = new Date().toISOString();
+        const { data: regsData } = await supabase
+          .from('registrations')
+          .select('id, event_id, registered_at')
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed')
+          .order('registered_at', { ascending: false });
+
+        if (!regsData || regsData.length === 0) {
+          setDanceRecords([]);
+          return;
+        }
+
+        const eventIds = regsData.map(r => r.event_id);
+        const COLS = 'id, title, category, date, image_url, location_name';
+        const [partiesRes, lessonsRes] = await Promise.all([
+          supabase.from('parties').select(COLS).in('id', eventIds).lt('date', now),
+          supabase.from('lessons').select(COLS).in('id', eventIds).lt('date', now),
+        ]);
+
+        const eventMap: Record<string, any> = {};
+        partiesRes.data?.forEach(p => { eventMap[p.id] = { ...p, isLesson: false }; });
+        lessonsRes.data?.forEach(l => { eventMap[l.id] = { ...l, isLesson: true }; });
+
+        const pastRecords = regsData
+          .map(r => ({ reg: r, event: eventMap[r.event_id] }))
+          .filter(x => x.event)
+          .sort((a, b) => new Date(b.event.date).getTime() - new Date(a.event.date).getTime());
+
+        setDanceRecords(pastRecords);
+
+        if (pastRecords.length > 0) {
+          const pastEventIds = pastRecords.map(x => x.event.id);
+          const [reviewsRes, photosRes] = await Promise.all([
+            supabase
+              .from('event_reviews')
+              .select('id, event_id, rating, content, created_at')
+              .eq('author_id', user.id)
+              .in('event_id', pastEventIds),
+            supabase
+              .from('event_photos')
+              .select('event_id, image_url')
+              .eq('user_id', user.id)
+              .in('event_id', pastEventIds)
+              .order('created_at', { ascending: false }),
+          ]);
+
+          const reviewsMap: Record<string, any> = {};
+          reviewsRes.data?.forEach(r => { reviewsMap[r.event_id] = r; });
+          setUserReviews(reviewsMap);
+
+          const photosMap: Record<string, string[]> = {};
+          photosRes.data?.forEach(p => {
+            if (!photosMap[p.event_id]) photosMap[p.event_id] = [];
+            photosMap[p.event_id].push(p.image_url);
+          });
+          setUserEventPhotos(photosMap);
+        }
+      } finally {
+        setLoadingRecords(false);
+      }
+    };
+    fetchRecords();
+  }, [user, activeMenu]);
+
+  const handleRecordSave = async (eventId: string) => {
+    if (!user || !recordForm.memo.trim()) return;
+    setSavingRecord(true);
+    try {
+      const existing = userReviews[eventId];
+      if (existing) {
+        const { error } = await supabase
+          .from('event_reviews')
+          .update({ rating: recordForm.rating, content: recordForm.memo })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('event_reviews')
+          .insert({ event_id: eventId, author_id: user.id, rating: recordForm.rating, content: recordForm.memo });
+        if (error) throw error;
+      }
+      setUserReviews(prev => ({
+        ...prev,
+        [eventId]: { ...(prev[eventId] || {}), event_id: eventId, rating: recordForm.rating, content: recordForm.memo },
+      }));
+      setExpandedRecordId(null);
+    } catch (e: any) {
+      alert(`저장 실패: ${e.message}`);
+    } finally {
+      setSavingRecord(false);
+    }
+  };
 
   const [isSaving, setIsSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -1487,21 +1594,150 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     );
   };
 
-  const renderRecordsContent = () => (
-    <div className="space-y-6 flex flex-col h-full items-center justify-center text-center p-10">
-      <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-3xl flex items-center justify-center mb-6">
-        <Archive className="w-10 h-10" />
+  const renderRecordsContent = () => {
+    const catStyle: Record<string, string> = {
+      '살사': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+      '바차타': 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+      '키좀바': 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    };
+
+    return (
+      <div className="space-y-5 pb-20">
+        <p className="text-sm text-slate-400 font-bold">다녀온 행사와 강습에 소감을 남겨보세요.</p>
+
+        {loadingRecords ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 bg-slate-100 dark:bg-slate-800 rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        ) : danceRecords.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center p-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm">
+            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-2xl flex items-center justify-center mb-4">
+              <Archive className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2">아직 방문한 행사가 없습니다</h3>
+            <p className="text-sm font-bold text-slate-400">행사에 참여하고 소감을 남겨보세요!</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {danceRecords.map(({ reg, event }) => {
+              const review = userReviews[event.id];
+              const myPhotos = userEventPhotos[event.id] || [];
+              const isExpanded = expandedRecordId === event.id;
+
+              return (
+                <div key={reg.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+                  {/* 기본 정보 행 */}
+                  <div className="flex gap-4 p-5">
+                    {event.image_url ? (
+                      <img src={event.image_url} alt={event.title} className="w-16 h-16 rounded-2xl object-cover shrink-0" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center">
+                        <Music className="w-6 h-6 text-slate-300" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${catStyle[event.category] || 'bg-slate-100 text-slate-500'}`}>{event.category}</span>
+                            <span className="text-[10px] text-slate-400 font-bold">{event.isLesson ? '강습' : '파티'}</span>
+                          </div>
+                          <p className="font-black text-slate-800 dark:text-white truncate">{event.title}</p>
+                          <p className="text-xs text-slate-400 font-bold mt-0.5">
+                            {format(new Date(event.date), 'yyyy년 M월 d일 (eee)', { locale: ko })}
+                          </p>
+                        </div>
+                        {review && !isExpanded && (
+                          <div className="flex shrink-0 mt-1">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? 'text-amber-400 fill-current' : 'text-slate-200 dark:text-slate-700'}`} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {review && !isExpanded && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-2">{review.content}</p>
+                      )}
+
+                      <div className="mt-3">
+                        <button
+                          onClick={() => {
+                            if (isExpanded) {
+                              setExpandedRecordId(null);
+                            } else {
+                              setExpandedRecordId(event.id);
+                              setRecordForm({ rating: review?.rating ?? 5, memo: review?.content ?? '' });
+                            }
+                          }}
+                          className="text-xs font-black px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors"
+                        >
+                          {isExpanded ? '닫기' : review ? '수정하기' : '기록 남기기'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 내가 올린 사진 갤러리 */}
+                  {myPhotos.length > 0 && (
+                    <div className="px-5 pb-4">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-wide mb-2">내가 올린 사진 ({myPhotos.length})</p>
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                        {myPhotos.map((url, idx) => (
+                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                            <img
+                              src={url}
+                              alt={`사진 ${idx + 1}`}
+                              className="w-20 h-20 rounded-2xl object-cover hover:opacity-90 transition-opacity"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 기록 작성 / 수정 폼 */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 dark:border-slate-800 p-5 space-y-4">
+                      <div>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-wide mb-2">만족도</p>
+                        <div className="flex gap-1">
+                          {[1,2,3,4,5].map(s => (
+                            <button key={s} onClick={() => setRecordForm(prev => ({ ...prev, rating: s }))}>
+                              <Star className={`w-7 h-7 transition-colors ${s <= recordForm.rating ? 'text-amber-400 fill-current' : 'text-slate-200 dark:text-slate-700 hover:text-amber-300'}`} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-wide mb-2">소감 메모</p>
+                        <textarea
+                          value={recordForm.memo}
+                          onChange={e => setRecordForm(prev => ({ ...prev, memo: e.target.value }))}
+                          placeholder="이 행사에 대한 소감을 자유롭게 남겨보세요..."
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          rows={3}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleRecordSave(event.id)}
+                        disabled={savingRecord || !recordForm.memo.trim()}
+                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white font-black rounded-2xl transition-colors text-sm"
+                      >
+                        {savingRecord ? '저장 중...' : '기록 저장'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-      <h2 className="text-2xl font-black text-slate-800 dark:text-white">내 댄스 기록</h2>
-      <p className="text-slate-500 max-w-sm font-bold">
-        다녀온 파티의 소중한 추억을 사진과 메모로 남겨보세요.<br/>
-        나만의 댄스 아카이브가 곧 찾아옵니다!
-      </p>
-      <div className="mt-8 px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-full text-xs font-bold uppercase tracking-widest">
-        Coming Soon
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderRewardsContent = () => (
     <div className="space-y-8 flex flex-col h-full pb-20 overflow-y-auto no-scrollbar">

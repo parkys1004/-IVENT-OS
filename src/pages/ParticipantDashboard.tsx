@@ -511,7 +511,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [profileForm, setProfileForm] = useState({
     displayName: '',
     phone: '',
-    photoURL: ''
+    photoURL: '',
+    region: '',
+    genres: [] as string[],
+    instagramUrl: '',
+    facebookUrl: '',
+    kakaoId: '',
+    youtubeUrl: '',
   });
   const [preferenceForm, setPreferenceForm] = useState<UserProfile['preferences']>({
     genres: [],
@@ -539,7 +545,13 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       setProfileForm({
         displayName: profile.displayName || '',
         phone: (profile as any).phone || '',
-        photoURL: profile.photoURL || ''
+        photoURL: profile.photoURL || '',
+        region: (profile as any).preferences?.mainRegion || '',
+        genres: profile.preferences?.genres || [],
+        instagramUrl: (profile as any).instagram_url || '',
+        facebookUrl: (profile as any).facebook_url || '',
+        kakaoId: (profile as any).kakao_id || '',
+        youtubeUrl: (profile as any).preferences?.youtubeUrl || '',
       });
       setPreferenceForm(profile.preferences || {
         genres: [],
@@ -603,12 +615,22 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     if (!user) return;
     setIsSaving(true);
     try {
+      const currentPrefs = profile?.preferences || {};
       const { error } = await supabase
         .from('profiles')
         .update({
           display_name: profileForm.displayName,
           phone: profileForm.phone,
-          photo_url: profileForm.photoURL
+          photo_url: profileForm.photoURL,
+          instagram_url: profileForm.instagramUrl || null,
+          facebook_url: profileForm.facebookUrl || null,
+          kakao_id: profileForm.kakaoId || null,
+          preferences: {
+            ...currentPrefs,
+            genres: profileForm.genres,
+            mainRegion: profileForm.region || null,
+            youtubeUrl: profileForm.youtubeUrl || null,
+          },
         })
         .eq('id', user.id);
 
@@ -1579,80 +1601,151 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     );
   };
 
-  const renderSettingsContent = () => (
-    <div className="space-y-6 flex flex-col h-full pb-20">
-      <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          개인정보
-        </button>
-        <button onClick={() => setActiveTab('notifications')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'notifications' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
-          알림 설정
-        </button>
-      </div>
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 flex-1">
-          <div className="max-w-xl">
-             <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-6">사용자 프로필 설정</h3>
-             
-             <form onSubmit={handleProfileSubmit} className="space-y-4">
-               <div className="flex flex-col items-center gap-4 mb-8">
-                 <div className="relative group/avatar cursor-pointer" onClick={() => profilePictureInputRef.current?.click()}>
-                   <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl group-hover/avatar:opacity-80 transition-opacity">
-                     {profileForm.photoURL ? (
-                       <img src={profileForm.photoURL} alt="Profile" className="w-full h-full object-cover" />
-                     ) : (
-                       <User className="w-12 h-12 text-slate-300" />
-                     )}
-                   </div>
-                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                      <Camera className="w-8 h-8 text-white drop-shadow-md" />
-                   </div>
-                   <div className="absolute -bottom-1 -right-1 bg-slate-800 text-white p-2 rounded-full shadow-lg border-2 border-white">
-                     <Plus className="w-4 h-4" />
-                   </div>
-                 </div>
-                 <input 
-                   type="file" 
-                   ref={profilePictureInputRef} 
-                   onChange={handleProfilePictureChange} 
-                   accept="image/*" 
-                   className="hidden" 
-                 />
-                 <p className="text-[11px] font-bold text-slate-400">클릭하여 프로필 사진 변경</p>
-               </div>
+  const renderSettingsContent = () => {
+    const DANCE_GENRES = ['살사', '바차타', '키좀바', '라인댄스', '온1', '온2', '쿠반', '센슈얼'];
+    const ACTIVITY_REGIONS = ['서울', '강남', '홍대', '부산', '포항', '대구', '대전', '광주', '경기', '인천', '제주'];
 
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">닉네임</label>
-                 <input 
-                   type="text" 
-                   className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" 
-                   value={profileForm.displayName} 
-                   onChange={(e) => setProfileForm(prev => ({ ...prev, displayName: e.target.value }))}
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">연락처</label>
-                 <input 
-                    type="text" 
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-4 py-3" 
-                    placeholder="예: 010-0000-0000" 
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                 />
-                 <p className="text-xs text-slate-500 mt-1">예매 정보 안내 시 사용될 기본 연락처입니다.</p>
-               </div>
-               
-               <button 
-                 type="submit"
-                 disabled={isSaving}
-                 className="mt-8 px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-black w-full sm:w-auto disabled:opacity-50"
-               >
-                 {isSaving ? '저장 중...' : '변경사항 저장하기'}
-               </button>
-             </form>
+    const toggleGenre = (genre: string) => {
+      setProfileForm(prev => ({
+        ...prev,
+        genres: prev.genres.includes(genre)
+          ? prev.genres.filter(g => g !== genre)
+          : [...prev.genres, genre],
+      }));
+    };
+
+    const inputCls = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all";
+    const labelCls = "block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5";
+    const sectionTitleCls = "flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-4 pt-6 border-t border-slate-100 dark:border-slate-800";
+
+    return (
+      <div className="space-y-6 flex flex-col h-full pb-20">
+        <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <button onClick={() => setActiveTab('all')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'all' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            개인정보 및 SNS 설정
+          </button>
+          <button onClick={() => setActiveTab('notifications')} className={clsx("px-4 py-3 font-bold transition-colors", activeTab === 'notifications' ? "text-slate-800 dark:text-white border-b-2 border-slate-800 dark:border-white" : "text-slate-400 hover:text-slate-600")}>
+            알림 설정
+          </button>
+        </div>
+
+        <form onSubmit={handleProfileSubmit} className="space-y-0 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-8">
+          <div className="max-w-xl space-y-5">
+
+            {/* 프로필 사진 */}
+            <div className="flex flex-col items-center gap-3 pb-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="relative group/avatar cursor-pointer" onClick={() => profilePictureInputRef.current?.click()}>
+                <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-slate-700 shadow-lg group-hover/avatar:opacity-80 transition-opacity">
+                  {profileForm.photoURL
+                    ? <img src={profileForm.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                    : <User className="w-10 h-10 text-slate-300" />}
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-slate-800 text-white p-1.5 rounded-full shadow-md border-2 border-white">
+                  <Camera className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <input type="file" ref={profilePictureInputRef} onChange={handleProfilePictureChange} accept="image/*" className="hidden" />
+              <p className="text-[11px] font-bold text-slate-400">클릭하여 프로필 사진 변경</p>
+            </div>
+
+            {/* 기본 정보 */}
+            <div>
+              <label className={labelCls}>닉네임</label>
+              <input type="text" className={inputCls} value={profileForm.displayName}
+                onChange={e => setProfileForm(prev => ({ ...prev, displayName: e.target.value }))} />
+            </div>
+            <div>
+              <label className={labelCls}>연락처</label>
+              <input type="text" className={inputCls} placeholder="010-0000-0000" value={profileForm.phone}
+                onChange={e => setProfileForm(prev => ({ ...prev, phone: e.target.value }))} />
+              <p className="text-xs text-slate-400 mt-1">예매 정보 안내 시 사용될 기본 연락처입니다.</p>
+            </div>
+
+            {/* 댄스 정보 */}
+            <div className={sectionTitleCls}>
+              <Music className="w-3.5 h-3.5 text-indigo-500" /> 댄스 정보
+            </div>
+            <div>
+              <label className={labelCls}>주로 활동하는 지역</label>
+              <div className="flex flex-wrap gap-2">
+                {ACTIVITY_REGIONS.map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setProfileForm(prev => ({ ...prev, region: prev.region === r ? '' : r }))}
+                    className={clsx(
+                      "px-4 py-2 rounded-xl text-xs font-black transition-all border-2",
+                      profileForm.region === r
+                        ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-500/20"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
+                    )}
+                  >{r}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>선호하는 댄스 장르 <span className="text-[10px] font-bold text-slate-400 ml-1">(중복 선택 가능)</span></label>
+              <div className="flex flex-wrap gap-2">
+                {DANCE_GENRES.map(g => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => toggleGenre(g)}
+                    className={clsx(
+                      "px-4 py-2 rounded-xl text-xs font-black transition-all border-2",
+                      profileForm.genres.includes(g)
+                        ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
+                    )}
+                  >{g}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* SNS 연동 */}
+            <div className={sectionTitleCls}>
+              <TrendingUp className="w-3.5 h-3.5 text-pink-500" /> SNS 연동
+            </div>
+            <div>
+              <label className={labelCls}>인스타그램</label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-400 font-bold shrink-0">instagram.com/</span>
+                <input type="text" className={inputCls} placeholder="아이디 입력"
+                  value={profileForm.instagramUrl}
+                  onChange={e => setProfileForm(prev => ({ ...prev, instagramUrl: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>페이스북</label>
+              <input type="text" className={inputCls} placeholder="페이스북 프로필 URL"
+                value={profileForm.facebookUrl}
+                onChange={e => setProfileForm(prev => ({ ...prev, facebookUrl: e.target.value }))} />
+            </div>
+            <div>
+              <label className={labelCls}>카카오 ID</label>
+              <input type="text" className={inputCls} placeholder="오픈채팅 또는 카카오 ID"
+                value={profileForm.kakaoId}
+                onChange={e => setProfileForm(prev => ({ ...prev, kakaoId: e.target.value }))} />
+            </div>
+            <div>
+              <label className={labelCls}>유튜브 채널</label>
+              <input type="text" className={inputCls} placeholder="https://youtube.com/@채널명"
+                value={profileForm.youtubeUrl}
+                onChange={e => setProfileForm(prev => ({ ...prev, youtubeUrl: e.target.value }))} />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="mt-4 w-full py-3.5 bg-slate-900 dark:bg-indigo-600 text-white font-black rounded-2xl hover:bg-black dark:hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            >
+              {isSaving ? '저장 중...' : '변경사항 저장하기'}
+            </button>
           </div>
+        </form>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderRecommendationSettingsContent = () => {
     const GENRES = ['살사', '바차타', '키좀바', '라인댄스', '온1', '온2', '쿠반', '센슈얼'];

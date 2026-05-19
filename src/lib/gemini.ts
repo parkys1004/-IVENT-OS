@@ -162,7 +162,11 @@ Return ONLY the JSON object.`;
     const msg = errJson?.error?.message || `Gemini API 오류 (${res.status})`;
     if (res.status === 400) throw new Error(`API 키가 유효하지 않습니다. Gemini API 키를 확인해주세요. (${msg})`);
     if (res.status === 403) throw new Error(`API 키 권한이 없습니다. Google AI Studio에서 키를 재발급받으세요.`);
-    if (res.status === 429) throw new Error(`AI 사용 한도를 초과했습니다. 잠시 후 다시 시도해주세요.`);
+    if (res.status === 429) {
+      const retryMatch = JSON.stringify(errJson).match(/"retryDelay":"(\d+)s"/);
+      const retrySec = retryMatch ? retryMatch[1] : '60';
+      throw new Error(`AI 사용 한도를 초과했습니다. ${retrySec}초 후 다시 시도해주세요.`);
+    }
     throw new Error(`AI 분석 실패: ${msg}`);
   }
 

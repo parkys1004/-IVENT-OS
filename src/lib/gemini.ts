@@ -26,19 +26,24 @@ function getAI() {
 
 export async function translateText(text: string, targetLanguage: string) {
   if (!text) return '';
-  
-  const ai = getAI();
-  if (!ai) return text; 
-  
+
+  const userKey = localStorage.getItem('user_gemini_api_key');
+  const key = userKey || SYSTEM_API_KEY;
+  if (!key || key === 'undefined') return text;
+
   try {
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1beta' });
-    const result = await model.generateContent(
-      `Translate the following text to ${targetLanguage}. Maintain the original tone and format. Only return the translated text. Original text: ${text}`
+    const body = {
+      contents: [{ parts: [{ text: `Translate the following text to ${targetLanguage}. Maintain the original tone and format. Only return the translated text. Original text: ${text}` }] }],
+      generationConfig: { temperature: 0.1 },
+    };
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
     );
-    const response = await result.response;
-    return response.text() || text;
-  } catch (error) {
-    console.error('Translation error:', error);
+    if (!res.ok) return text;
+    const json = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    return json.candidates?.[0]?.content?.parts?.[0]?.text || text;
+  } catch {
     return text;
   }
 }
@@ -147,9 +152,8 @@ Return ONLY the JSON object.`;
     generationConfig: { temperature: 0.1 },
   };
 
-  // v1 엔드포인트 사용 (v1beta보다 호환성 높음)
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
   );
 

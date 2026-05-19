@@ -1,15 +1,26 @@
 import { supabase } from '../supabase';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
-function getGeminiModel() {
+function getGeminiKey(): string {
   const userKey = localStorage.getItem('user_gemini_api_key');
   const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const apiKey = userKey || envKey || '';
-  
-  if (!apiKey) return null;
-  
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }, { apiVersion: 'v1beta' });
+  return userKey || envKey || '';
+}
+
+async function callGemini(prompt: string): Promise<string> {
+  const key = getGeminiKey();
+  if (!key) throw new Error('Gemini API 키가 없습니다.');
+
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.1 },
+  };
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  if (!res.ok) throw new Error(`Gemini API 오류 (${res.status})`);
+  const json = await res.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+  return json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
 export interface RecommendationTags {
@@ -49,13 +60,7 @@ export async function extractTagsFromInput(input: string): Promise<Recommendatio
   `;
 
   try {
-    const model = getGeminiModel();
-    if (!model) throw new Error('Gemini model not initialized - missing API key');
-    
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    // Clean JSON from potential markdown blocks
+    const text = await callGemini(prompt);
     const jsonStr = text.replace(/```json|```/g, '').trim();
     return JSON.parse(jsonStr);
   } catch (error) {

@@ -49,7 +49,7 @@ function SectionHeader({ num, icon, title }: { num: string; icon: React.ReactNod
 
 export default function EditEvent() {
   const { id } = useParams();
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const multiFileInputRef = useRef<HTMLInputElement>(null);
   const aiPosterInputRef = useRef<HTMLInputElement>(null);
@@ -117,7 +117,7 @@ export default function EditEvent() {
 
   useEffect(() => {
     const fetchEvent = async () => {
-      if (!id) return;
+      if (!id || authLoading) return;
       try {
         const EDIT_EVENT_COLS = 'id, host_id, title, description, category, date, end_date, location_name, formatted_address, country, city, lat, lng, image_url, max_attendees, capacity, djs, performances, media, media_experts, workshops, payment_method, payment_link, youtube_url, tickets';
         let { data, error } = await supabase
@@ -201,7 +201,7 @@ export default function EditEvent() {
       }
     };
     fetchEvent();
-  }, [id, navigate]);
+  }, [id, navigate, user, profile, authLoading]);
 
   const handleAiPosterSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

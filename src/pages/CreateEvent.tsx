@@ -80,7 +80,7 @@ export default function CreateEvent() {
     tickets: [{ name: '입장권', price: 0 }] as { name: string; price: number }[],
   });
 
-  const { isLoaded } = useGoogleMaps();
+  const { isLoaded, loadError } = useGoogleMaps();
   const [mainPoster, setMainPoster] = useState<string | null>(null);
   const [mainPosterFile, setMainPosterFile] = useState<File | null>(null);
   const [images, setImages] = useState<string[]>([]);
@@ -470,12 +470,32 @@ export default function CreateEvent() {
               {/* 03 장소 */}
               <div className={sectionCls}>
                 <SectionHeader num="03" icon={<MapPin className="w-4 h-4 text-slate-500" />} title="장소" />
-                {isLoaded ? (
+                {isLoaded && !loadError ? (
                   <PlaceSearch
                     onPlaceSelect={handlePlaceSelect}
                     defaultValue={formData.locationName}
                     onInputChange={v => setFormData(p => ({ ...p, locationName: v }))}
                   />
+                ) : loadError ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      name="locationName"
+                      value={formData.locationName}
+                      onChange={handleChange}
+                      placeholder="장소 명칭 또는 주소를 직접 입력해주세요"
+                      className={inputCls}
+                    />
+                    <input
+                      type="text"
+                      name="formattedAddress"
+                      value={formData.formattedAddress}
+                      onChange={handleChange}
+                      placeholder="상세 주소 (선택)"
+                      className={inputCls}
+                    />
+                    <p className="text-xs text-rose-500 font-medium">Google Maps 로드 오류 — 장소를 직접 입력해주세요.</p>
+                  </div>
                 ) : (
                   <div className="h-12 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
                 )}

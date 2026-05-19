@@ -106,28 +106,25 @@ export default function EventDetail() {
     const fetchEvent = async () => {
       try {
         setLoading(true);
-        const PARTY_COLUMNS = 'id, title, description, date, end_date, category, location_name, formatted_address, lat, lng, city, country, status, price, max_attendees, host_id, image_url, is_banner, priority, likes_count, created_at, djs, performances, media, media_experts, tickets, payment_method, payment_link, workshops, youtube_url';
-        const LESSON_COLUMNS = 'id, title, description, date, end_date, category, location_name, formatted_address, lat, lng, city, country, status, price, max_attendees, host_id, image_url, is_banner, priority, likes_count, created_at, tickets, payment_method, youtube_url, level, class_time';
-
         let { data, error } = await supabase
           .from('parties')
-          .select(PARTY_COLUMNS)
+          .select('*')
           .eq('id', id)
           .maybeSingle();
 
         let isActuallyLesson = false;
-        if (!data) {
+        if (!data && !error) {
           const { data: lessonData, error: lessonError } = await supabase
             .from('lessons')
-            .select(LESSON_COLUMNS)
+            .select('*')
             .eq('id', id)
             .maybeSingle();
           if (lessonData) { data = lessonData as any; isActuallyLesson = true; }
-          else if (lessonError) console.error("Error fetching lesson:", lessonError);
+          else if (lessonError) error = lessonError;
         }
 
         if (error) {
-          console.error("Error fetching party:", error);
+          console.error("Error fetching event:", error);
           if (!cancelled) { handleSupabaseError(error, OperationType.GET, 'parties'); navigate('/'); }
           return;
         }

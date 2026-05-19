@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { supabase } from '../supabase';
 
 // Vite 환경 변수에서 API 키를 가져와 기본 인스턴스를 생성합니다.
@@ -67,6 +67,115 @@ export async function getPersonalGeminiKey(userId: string): Promise<string | nul
     .eq('provider', 'google')
     .maybeSingle();
   return data?.api_key || null;
+}
+
+export interface AnalyzeResult {
+  title?: string;
+  description?: string;
+  category?: string;
+  date?: string;
+  time?: string;
+  endDate?: string;
+  endTime?: string;
+  locationName?: string;
+  formattedAddress?: string;
+  city?: string;
+  country?: string;
+  maxAttendees?: number;
+  level?: string;
+  djs?: string[];
+  performances?: string[];
+  media?: string[];
+  workshops?: { teacher: string; topic: string; time: string }[];
+  tickets?: { name: string; price: number }[];
+  paymentLink?: string;
+}
+
+export async function analyzeEventPoster(params: {
+  imageBase64?: string;
+  mimeType?: string;
+  additionalText?: string;
+  apiKey?: string | null;
+}): Promise<AnalyzeResult> {
+  const { imageBase64, mimeType, additionalText, apiKey: overrideKey } = params;
+
+  const userKey = localStorage.getItem('user_gemini_api_key');
+  const key = overrideKey || userKey || SYSTEM_API_KEY;
+
+  if (!key || key === 'undefined') {
+    throw new Error('API 키가 없습니다. 개인 Gemini API 키를 등록하거나 시스템 키를 확인해주세요.');
+  }
+  if (!imageBase64 && !additionalText) {
+    throw new Error('이미지 또는 텍스트 데이터가 필요합니다.');
+  }
+
+  const ai = new GoogleGenerativeAI(key);
+  const model = ai.getGenerativeModel(
+    {
+      model: 'gemini-2.0-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            title:            { type: SchemaType.STRING },
+            description:      { type: SchemaType.STRING },
+            category:         { type: SchemaType.STRING },
+            date:             { type: SchemaType.STRING },
+            time:             { type: SchemaType.STRING },
+            endDate:          { type: SchemaType.STRING },
+            endTime:          { type: SchemaType.STRING },
+            locationName:     { type: SchemaType.STRING },
+            formattedAddress: { type: SchemaType.STRING },
+            city:             { type: SchemaType.STRING },
+            country:          { type: SchemaType.STRING },
+            maxAttendees:     { type: SchemaType.INTEGER },
+            level:            { type: SchemaType.STRING },
+            djs:              { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+            performances:     { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+            media:            { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+            workshops: {
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  teacher: { type: SchemaType.STRING },
+                  topic:   { type: SchemaType.STRING },
+                  time:    { type: SchemaType.STRING },
+                },
+              },
+            },
+            tickets: {
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  name:  { type: SchemaType.STRING },
+                  price: { type: SchemaType.INTEGER },
+                },
+              },
+            },
+          },
+          required: ['title', 'category', 'date', 'time', 'locationName'],
+        },
+      },
+    },
+    { apiVersion: 'v1beta' }
+  );
+
+  const prompt = `Extract event information from the provided dance event poster/text. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. Level (for lessons) must be one of: beginner, intermediate, advanced, all. For dates use YYYY-MM-DD. For times use 24h format HH:mm. Extract workshops as array of {teacher, topic, time} objects if present.${additionalText ? `\n\nAdditional text info:\n${additionalText}` : ''}`;
+
+  const contents: unknown[] = [];
+  if (imageBase64) {
+    contents.push({ inlineData: { data: imageBase64, mimeType: mimeType || 'image/jpeg' } });
+  }
+  contents.push(prompt);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await model.generateContent(contents as any);
+  let text = result.response.text();
+  text = text.replace(/```json\n?/, '').replace(/```/, '').trim();
+  return JSON.parse(text) as AnalyzeResult;
 }
 
 export const languageNames: Record<string, string> = {

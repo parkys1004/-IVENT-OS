@@ -13,7 +13,7 @@ import {
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
-import { getPersonalGeminiKey } from '../lib/gemini';
+import { getPersonalGeminiKey, analyzeEventPoster } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
 import { uploadImageToStorage, compressImageToDataUrl } from '../lib/storage';
@@ -237,19 +237,7 @@ export default function EditEvent() {
         usageData.count += 1;
         localStorage.setItem('ai_usage_stats', JSON.stringify(usageData));
       }
-      const { data: { session: aiSession } } = await supabase.auth.getSession();
-      const proxyResponse = await fetch('/api/ai/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(aiSession?.access_token ? { 'Authorization': `Bearer ${aiSession.access_token}` } : {}),
-        },
-        body: JSON.stringify({ imageBase64: base64Data, mimeType, additionalText: aiText, ...(isPersonalKey && apiKey ? { personalApiKey: apiKey } : {}) }),
-      });
-      const rawText = await proxyResponse.text();
-      let parsed: any = {};
-      try { if (rawText) parsed = JSON.parse(rawText); } catch { throw new Error('서버 응답을 처리할 수 없습니다.'); }
-      if (!proxyResponse.ok) throw new Error(parsed.error || `서버 오류 (${proxyResponse.status})`);
+      const parsed = await analyzeEventPoster({ imageBase64: base64Data, mimeType, additionalText: aiText, apiKey });
       if (parsed) {
         const validCategories = ['salsa', 'bachata', 'kizomba', 'salsa_bachata', 'sal_ba_ki', 'party', 'lesson', 'festival', 'workshop', 'concert'];
         setFormData(prev => ({

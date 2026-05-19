@@ -127,29 +127,29 @@ export default function MyPage() {
         const lessonsMap: Record<string, any> = {};
         lessonsRes.data?.forEach(l => lessonsMap[l.id] = { ...l, isLesson: true });
 
-        const mappedRegs = regsData.map((reg: any) => {
-          const eventInfo = partiesMap[reg.event_id] || lessonsMap[reg.event_id];
-          if (!eventInfo) {
+        const orphanIds: string[] = [];
+        const mappedRegs = regsData
+          .map((reg: any) => {
+            const eventInfo = partiesMap[reg.event_id] || lessonsMap[reg.event_id];
+            if (!eventInfo) {
+              orphanIds.push(reg.id);
+              return null;
+            }
             return {
               id: reg.id,
               eventId: reg.event_id,
               status: reg.status,
               registeredAt: reg.registered_at,
-              eventTitle: '알 수 없는 행사',
-              eventDate: null,
-              isLesson: false,
+              eventTitle: eventInfo.title,
+              eventDate: eventInfo.date || (eventInfo as any).start_date,
+              isLesson: eventInfo.isLesson,
             };
-          }
-          return {
-            id: reg.id,
-            eventId: reg.event_id,
-            status: reg.status,
-            registeredAt: reg.registered_at,
-            eventTitle: eventInfo.title,
-            eventDate: eventInfo.date || (eventInfo as any).start_date,
-            isLesson: eventInfo.isLesson,
-          };
-        });
+          })
+          .filter(Boolean);
+
+        if (orphanIds.length > 0) {
+          await supabase.from('registrations').delete().in('id', orphanIds);
+        }
         setRegistrations(mappedRegs);
       } catch (error) {
         console.error("Error fetching registrations:", error);

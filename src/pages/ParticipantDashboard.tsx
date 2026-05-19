@@ -86,6 +86,11 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [rankPercentile, setRankPercentile] = useState(0);
   const [monthlyGoal, setMonthlyGoal] = useState(10);
   const [currentMonthVisits, setCurrentMonthVisits] = useState(0);
+  const [statsData, setStatsData] = useState<{
+    categoryBreakdown: Record<string, number>;
+    monthlyTrend: { month: string; count: number }[];
+    loadingStats: boolean;
+  }>({ categoryBreakdown: {}, monthlyTrend: [], loadingStats: false });
 
   const fetchGoalMetrics = async () => {
     if (!user) return;
@@ -207,6 +212,68 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       fetchFavorites();
     }
   }, [user, activeMenu]);
+
+  useEffect(() => {
+    if (!user || activeMenu !== 'tickets') return;
+    const fetchStats = async () => {
+      setStatsData(prev => ({ ...prev, loadingStats: true }));
+      try {
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const { data: regsData } = await supabase
+          .from('registrations')
+          .select('event_id, registered_at')
+          .eq('user_id', user.id)
+          .gte('registered_at', sixMonthsAgo.toISOString())
+          .order('registered_at', { ascending: true });
+
+        if (!regsData || regsData.length === 0) {
+          const emptyTrend = Array.from({ length: 6 }, (_, i) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - (5 - i));
+            return { month: format(d, 'M월'), count: 0 };
+          });
+          setStatsData({ categoryBreakdown: {}, monthlyTrend: emptyTrend, loadingStats: false });
+          return;
+        }
+
+        const eventIds = regsData.map(r => r.event_id);
+        const [partiesRes, lessonsRes] = await Promise.all([
+          supabase.from('parties').select('id, category').in('id', eventIds),
+          supabase.from('lessons').select('id, category').in('id', eventIds),
+        ]);
+
+        const categoryMap: Record<string, string> = {};
+        partiesRes.data?.forEach(p => { categoryMap[p.id] = p.category; });
+        lessonsRes.data?.forEach(l => { categoryMap[l.id] = l.category; });
+
+        const breakdown: Record<string, number> = {};
+        regsData.forEach(r => {
+          const cat = categoryMap[r.event_id] || '기타';
+          breakdown[cat] = (breakdown[cat] || 0) + 1;
+        });
+
+        const monthMap: Record<string, number> = {};
+        regsData.forEach(r => {
+          const key = format(new Date(r.registered_at), 'yyyy-MM');
+          monthMap[key] = (monthMap[key] || 0) + 1;
+        });
+
+        const trend = Array.from({ length: 6 }, (_, i) => {
+          const d = new Date();
+          d.setMonth(d.getMonth() - (5 - i));
+          return { month: format(d, 'M월'), count: monthMap[format(d, 'yyyy-MM')] || 0 };
+        });
+
+        setStatsData({ categoryBreakdown: breakdown, monthlyTrend: trend, loadingStats: false });
+      } catch {
+        setStatsData(prev => ({ ...prev, loadingStats: false }));
+      }
+    };
+    fetchStats();
+  }, [user, activeMenu]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [profileForm, setProfileForm] = useState({
     displayName: '',
@@ -985,38 +1052,141 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     </div>
   );
 
-  const renderTicketsContent = () => (
-    <div className="space-y-8 flex flex-col h-full overflow-y-auto no-scrollbar pb-20 px-2">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm">
-           <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center">
-                 <Flame className="w-5 h-5" />
+  const renderTicketsContent = () => {
+    const catColors: Record<string, string> = {
+      '살사': 'bg-indigo-500', '바차타': 'bg-rose-500', '키좀바': 'bg-amber-500', '기타': 'bg-slate-400',
+    };
+    const catTextColors: Record<string, string> = {
+      '살사': 'text-indigo-600 dark:text-indigo-400', '바차타': 'text-rose-600 dark:text-rose-400',
+      '키좀바': 'text-amber-600 dark:text-amber-400', '기타': 'text-slate-500',
+    };
+    const categoryEntries = Object.entries(statsData.categoryBreakdown).sort((a, b) => b[1] - a[1]);
+    const totalCatCount = categoryEntries.reduce((s, [, v]) => s + v, 0);
+    const maxTrendCount = Math.max(...statsData.monthlyTrend.map(t => t.count), 1);
+
+    return (
+      <div className="space-y-6 pb-20 px-2">
+        {/* 요약 통계 4칸 */}
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center">
+              <Flame className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 dark:text-white">활동 통계 요약</h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: '총 예매', value: registrations.length, unit: '건' },
+              { label: '이번 달 참여', value: currentMonthVisits, unit: '회' },
+              { label: '찜한 행사', value: bookmarks.length, unit: '개' },
+              { label: '팔로잉', value: follows.length, unit: '명' },
+            ].map(({ label, value, unit }) => (
+              <div key={label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{label}</p>
+                <p className="text-2xl font-black text-slate-800 dark:text-white">{value}<span className="text-sm ml-0.5">{unit}</span></p>
               </div>
-              <h3 className="text-xl font-black text-slate-800 dark:text-white">활동 통계 요약</h3>
-           </div>
-           <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl">
-                 <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Total Bookings</p>
-                 <p className="text-2xl font-black text-slate-800 dark:text-white">{registrations.length}건</p>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl">
-                 <p className="text-slate-400 text-[10px] font-black uppercase mb-1">Total Visits</p>
-                 <p className="text-2xl font-black text-slate-800 dark:text-white">{currentMonthVisits}회</p>
-              </div>
-           </div>
+            ))}
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm flex flex-col items-center justify-center text-center">
-           <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
-              <BarChart3 className="w-8 h-8" />
-           </div>
-           <p className="text-slate-500 font-bold mb-4">상세 통계 분석 리포트가<br />정기적으로 생성됩니다.</p>
-           <button className="px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-full text-[11px] font-black uppercase">준비 중</button>
+        {/* 상세 분석 리포트 */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-800 dark:text-white">상세 통계 분석 리포트</h3>
+                <p className="text-[11px] text-slate-400 font-bold">{format(new Date(), 'yyyy년 M월 d일', { locale: ko })} 기준</p>
+              </div>
+            </div>
+          </div>
+
+          {statsData.loadingStats ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-8 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* 댄스 스타일 분포 */}
+              <div>
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">댄스 스타일 분포</h4>
+                {categoryEntries.length === 0 ? (
+                  <p className="text-slate-400 font-bold text-sm">아직 참여한 행사가 없습니다.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {categoryEntries.map(([cat, count]) => {
+                      const pct = totalCatCount > 0 ? Math.round((count / totalCatCount) * 100) : 0;
+                      return (
+                        <div key={cat}>
+                          <div className="flex justify-between mb-1.5">
+                            <span className={`text-sm font-black ${catTextColors[cat] || 'text-slate-600'}`}>{cat}</span>
+                            <span className="text-sm font-bold text-slate-400">{count}건 · {pct}%</span>
+                          </div>
+                          <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <motion.div
+                              className={`h-full rounded-full ${catColors[cat] || 'bg-slate-500'}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.8, ease: 'easeOut' }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 월별 참여 추이 */}
+              <div>
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">월별 참여 추이 (최근 6개월)</h4>
+                {statsData.monthlyTrend.every(t => t.count === 0) ? (
+                  <p className="text-slate-400 font-bold text-sm">최근 6개월간 참여 기록이 없습니다.</p>
+                ) : (
+                  <div className="flex items-end gap-2" style={{ height: '120px' }}>
+                    {statsData.monthlyTrend.map((item, i) => {
+                      const barPct = (item.count / maxTrendCount) * 100;
+                      const isLast = i === statsData.monthlyTrend.length - 1;
+                      return (
+                        <div key={item.month} className="flex-1 flex flex-col items-center gap-1">
+                          <span className="text-[10px] font-bold text-slate-500">{item.count > 0 ? item.count : ''}</span>
+                          <div className="w-full flex items-end rounded-t-lg overflow-hidden" style={{ height: '80px' }}>
+                            <motion.div
+                              className={`w-full rounded-t-lg ${isLast ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}
+                              initial={{ height: 0 }}
+                              animate={{ height: `${Math.max(barPct, item.count > 0 ? 10 : 0)}%` }}
+                              transition={{ duration: 0.6, delay: i * 0.08, ease: 'easeOut' }}
+                            />
+                          </div>
+                          <span className={`text-[10px] font-black ${isLast ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>{item.month}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 포인트 & 랭킹 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">보유 포인트</p>
+                  <p className="text-xl font-black text-slate-800 dark:text-white">{points.toLocaleString()}<span className="text-sm ml-0.5">P</span></p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">활동 랭킹</p>
+                  <p className="text-xl font-black text-slate-800 dark:text-white">{rankPercentile > 0 ? `상위 ${rankPercentile}%` : '-'}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderFavoritesContent = () => (
     <div className="space-y-6 flex flex-col h-full pb-20">

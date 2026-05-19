@@ -85,14 +85,17 @@ export default function PlaceSearch() {
           });
         }
 
-        const mergedPlaces = [...KOREA_PLACES];
-        dbPlaces.forEach(dbPlace => {
-          if (!mergedPlaces.find(p => p.name === dbPlace.name)) {
-            mergedPlaces.push(dbPlace);
-          }
+        // DB 데이터가 있으면 DB 우선, 없으면 하드코딩 목록 폴백
+        const rawPlaces = dbPlaces.length > 0 ? dbPlaces : KOREA_PLACES;
+        // 이름 기준 중복 제거
+        const seen = new Set<string>();
+        const mergedPlaces = rawPlaces.filter(p => {
+          const key = p.name.trim().toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
 
-        // Use only Korea places if we want to force domestic-only as requested
         const domesticPlaces = mergedPlaces.filter(p => p.country === '대한민국');
         setPlaces(domesticPlaces);
         

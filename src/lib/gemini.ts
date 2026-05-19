@@ -109,7 +109,32 @@ export async function analyzeEventPoster(params: {
     throw new Error('이미지 또는 텍스트 데이터가 필요합니다.');
   }
 
-  const prompt = `Extract event information from the provided dance event poster/text. Category must be one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert. Level (for lessons) must be one of: beginner, intermediate, advanced, all. For dates use YYYY-MM-DD. For times use 24h format HH:mm. Extract workshops as array of {teacher, topic, time} objects if present.${additionalText ? `\n\nAdditional text info:\n${additionalText}` : ''}`;
+  const prompt = `You are an event data extractor. Analyze the provided dance event poster or text and return ONLY a valid JSON object with no markdown, no code blocks, no extra text.
+
+JSON structure (omit fields you cannot find, use null for unknown values):
+{
+  "title": "event name",
+  "description": "full description",
+  "category": "one of: salsa, bachata, kizomba, salsa_bachata, sal_ba_ki, party, lesson, festival, workshop, concert",
+  "date": "YYYY-MM-DD",
+  "time": "HH:mm (24h)",
+  "endDate": "YYYY-MM-DD or null",
+  "endTime": "HH:mm or null",
+  "locationName": "venue name",
+  "formattedAddress": "full address or null",
+  "city": "city name",
+  "country": "country name",
+  "maxAttendees": 0,
+  "level": "one of: beginner, intermediate, advanced, all — only for lessons",
+  "djs": ["DJ name"],
+  "performances": ["performer name"],
+  "media": ["media expert name"],
+  "workshops": [{"teacher": "name", "topic": "topic", "time": "HH:mm"}],
+  "tickets": [{"name": "ticket type", "price": 0}]
+}
+${additionalText ? `\nAdditional text:\n${additionalText}` : ''}
+
+Return ONLY the JSON object.`;
 
   const parts: unknown[] = [];
   if (imageBase64) {
@@ -119,56 +144,12 @@ export async function analyzeEventPoster(params: {
 
   const body = {
     contents: [{ parts }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'OBJECT',
-        properties: {
-          title:            { type: 'STRING' },
-          description:      { type: 'STRING' },
-          category:         { type: 'STRING' },
-          date:             { type: 'STRING' },
-          time:             { type: 'STRING' },
-          endDate:          { type: 'STRING' },
-          endTime:          { type: 'STRING' },
-          locationName:     { type: 'STRING' },
-          formattedAddress: { type: 'STRING' },
-          city:             { type: 'STRING' },
-          country:          { type: 'STRING' },
-          maxAttendees:     { type: 'INTEGER' },
-          level:            { type: 'STRING' },
-          djs:              { type: 'ARRAY', items: { type: 'STRING' } },
-          performances:     { type: 'ARRAY', items: { type: 'STRING' } },
-          media:            { type: 'ARRAY', items: { type: 'STRING' } },
-          workshops: {
-            type: 'ARRAY',
-            items: {
-              type: 'OBJECT',
-              properties: {
-                teacher: { type: 'STRING' },
-                topic:   { type: 'STRING' },
-                time:    { type: 'STRING' },
-              },
-            },
-          },
-          tickets: {
-            type: 'ARRAY',
-            items: {
-              type: 'OBJECT',
-              properties: {
-                name:  { type: 'STRING' },
-                price: { type: 'INTEGER' },
-              },
-            },
-          },
-        },
-        required: ['title', 'category', 'date', 'time', 'locationName'],
-      },
-    },
+    generationConfig: { temperature: 0.1 },
   };
 
+  // v1 엔드포인트 사용 (v1beta보다 호환성 높음)
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
   );
 

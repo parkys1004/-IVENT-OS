@@ -802,9 +802,15 @@ export default function EventDetail() {
                   title={event.locationName}
                 />
               </div>
-            ) : (
+            ) : !isLoaded ? (
               <div className="h-[400px] bg-slate-50 dark:bg-slate-800/50 animate-pulse flex items-center justify-center text-slate-400">
                 지도를 불러오는 중...
+              </div>
+            ) : (
+              <div className="h-[400px] bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400">
+                <MapPin className="w-8 h-8" />
+                <p className="text-sm font-medium">GPS 좌표 정보가 없습니다.</p>
+                <p className="text-xs">행사 수정에서 장소를 검색창으로 다시 선택하면 지도가 표시됩니다.</p>
               </div>
             )}
           </div>

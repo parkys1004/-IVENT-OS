@@ -198,27 +198,99 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
   const [loadingFavorites, setLoadingFavorites] = useState(false);
 
   useEffect(() => {
-    if (user && activeMenu === 'favorites') {
-      const fetchFavorites = async () => {
-        setLoadingFavorites(true);
-        // Fetch Bookmarks
-        const { data: bData } = await supabase
+    if (!user || activeMenu !== 'favorites') return;
+    const fetchFavorites = async () => {
+      setLoadingFavorites(true);
+      try {
+        const EVENT_COLS = 'id, title, category, date, end_date, image_url, location_name, formatted_address, city, country, lat, lng, status, max_attendees, likes_count';
+
+        // 북마크: event_id 목록 먼저 가져온 후 parties/lessons 병렬 조회
+        const { data: bmData } = await supabase
           .from('event_bookmarks')
-          .select('*, parties(*), lessons(*)')
-          .eq('user_id', user.id);
-        
-        // Fetch Follows
+          .select('id, event_id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        let mappedBookmarks: any[] = [];
+        if (bmData && bmData.length > 0) {
+          const eventIds = bmData.map(b => b.event_id);
+          const [partiesRes, lessonsRes, regCountsRes] = await Promise.all([
+            supabase.from('parties').select(EVENT_COLS).in('id', eventIds),
+            supabase.from('lessons').select(EVENT_COLS).in('id', eventIds),
+            supabase.from('registrations').select('event_id', { count: 'exact', head: false }).in('event_id', eventIds).eq('status', 'confirmed'),
+          ]);
+
+          const regCountMap: Record<string, number> = {};
+          regCountsRes.data?.forEach((r: any) => {
+            regCountMap[r.event_id] = (regCountMap[r.event_id] || 0) + 1;
+          });
+
+          const eventMap: Record<string, any> = {};
+          const mapEvent = (e: any, isLesson: boolean): EventData => ({
+            id: e.id, title: e.title, category: e.category,
+            date: e.date, endDate: e.end_date,
+            locationName: e.location_name || '정보 없음',
+            formattedAddress: e.formatted_address || '',
+            city: e.city || '', country: e.country || '',
+            imageUrl: e.image_url,
+            status: e.status || 'published',
+            maxAttendees: e.max_attendees || 50,
+            currentAttendees: regCountMap[e.id] || 0,
+            likesCount: e.likes_count || 0,
+            isLesson,
+          });
+          partiesRes.data?.forEach(p => { eventMap[p.id] = mapEvent(p, false); });
+          lessonsRes.data?.forEach(l => { eventMap[l.id] = mapEvent(l, true); });
+
+          mappedBookmarks = bmData
+            .map(b => ({ bookmarkId: b.id, event: eventMap[b.event_id] }))
+            .filter(b => b.event);
+        }
+        setBookmarks(mappedBookmarks);
+
+        // 팔로잉: artist_follows → profiles 조회 후 UserProfile 매핑
         const { data: fData } = await supabase
           .from('artist_follows')
-          .select('*, profiles(*)')
-          .eq('user_id', user.id);
+          .select('id, artist_id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
-        setBookmarks(bData || []);
-        setFollows(fData || []);
+        let mappedFollows: any[] = [];
+        if (fData && fData.length > 0) {
+          const artistIds = fData.map(f => f.artist_id);
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, display_name, photo_url, role, is_approved, created_at, points, followers_count, short_bio, specialties, instagram_url, facebook_url, kakao_id, portfolio_url')
+            .in('id', artistIds);
+
+          const profileMap: Record<string, any> = {};
+          profilesData?.forEach(p => { profileMap[p.id] = p; });
+
+          mappedFollows = fData
+            .map(f => {
+              const p = profileMap[f.artist_id];
+              if (!p) return null;
+              return {
+                followId: f.id,
+                profile: {
+                  uid: p.id, email: '', displayName: p.display_name,
+                  photoURL: p.photo_url, role: p.role, isApproved: p.is_approved,
+                  createdAt: p.created_at, points: p.points,
+                  followersCount: p.followers_count, shortBio: p.short_bio,
+                  specialties: p.specialties, instagram_url: p.instagram_url,
+                  facebook_url: p.facebook_url, kakao_id: p.kakao_id,
+                  portfolioUrl: p.portfolio_url,
+                } as UserProfile,
+              };
+            })
+            .filter(Boolean);
+        }
+        setFollows(mappedFollows);
+      } finally {
         setLoadingFavorites(false);
-      };
-      fetchFavorites();
-    }
+      }
+    };
+    fetchFavorites();
   }, [user, activeMenu]);
 
   useEffect(() => {
@@ -1295,6 +1367,17 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
     );
   };
 
+  const handleUnbookmark = async (bookmarkId: string) => {
+    await supabase.from('event_bookmarks').delete().eq('id', bookmarkId);
+    setBookmarks(prev => prev.filter((b: any) => b.bookmarkId !== bookmarkId));
+  };
+
+  const handleUnfollow = async (followId: string, artistId: string) => {
+    await supabase.from('artist_follows').delete().eq('id', followId);
+    setFollows(prev => prev.filter((f: any) => f.followId !== followId));
+    setFollowedArtistIds(prev => { const s = new Set(prev); s.delete(artistId); return s; });
+  };
+
   const renderFavoritesContent = () => (
     <div className="space-y-6 flex flex-col h-full pb-20">
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -1307,38 +1390,58 @@ export default function ParticipantDashboard({ forceMarketplace = false }: { for
       </div>
 
       {loadingFavorites ? (
-        <div className="flex-1 flex items-center justify-center">로딩 중...</div>
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-48 bg-slate-100 dark:bg-slate-800 rounded-3xl animate-pulse" />)}
+        </div>
       ) : activeTab === 'all' ? (
         bookmarks.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
-             <Heart className="w-12 h-12 mb-4 text-slate-300" />
-             <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">찜한 행사가 없습니다</h3>
-             <p className="font-bold text-slate-500 mb-6">마음에 드는 행사를 찜해두고 빠르게 확인해보세요.</p>
-             <button onClick={() => handleMenuClick('find')} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg shadow-indigo-200">행사 둘러보기</button>
+            <Heart className="w-12 h-12 mb-4 text-slate-300" />
+            <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">찜한 행사가 없습니다</h3>
+            <p className="font-bold text-slate-500 mb-6">마음에 드는 행사를 찜해두고 빠르게 확인해보세요.</p>
+            <button onClick={() => handleMenuClick('find')} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg shadow-indigo-200">행사 둘러보기</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {bookmarks.map((b) => {
-                const event = (b.parties || b.lessons);
-                if (!event) return null;
-                return <EventCard key={b.id} event={event as EventData} index={0} />;
-             })}
+            {bookmarks.map((b: any) => (
+              <div key={b.bookmarkId} className="relative group">
+                <EventCard event={b.event} index={0} />
+                <button
+                  onClick={() => handleUnbookmark(b.bookmarkId)}
+                  className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-rose-500 rounded-xl text-[11px] font-black border border-rose-100 dark:border-rose-900/40 hover:bg-rose-50 dark:hover:bg-rose-900/30"
+                >
+                  찜 해제
+                </button>
+              </div>
+            ))}
           </div>
         )
       ) : (
         follows.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 mx-auto w-full rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col p-12 text-center text-slate-500 items-center justify-center">
-             <Users className="w-12 h-12 mb-4 text-slate-300" />
-             <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">팔로우 중인 아티스트가 없습니다</h3>
-             <p className="font-bold text-slate-500 mb-6">좋아하는 DJ나 강사를 팔로우하고 소식을 받아보세요.</p>
-             <button onClick={() => handleMenuClick('find')} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg shadow-indigo-200">아티스트 찾기</button>
+            <Users className="w-12 h-12 mb-4 text-slate-300" />
+            <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">팔로우 중인 아티스트가 없습니다</h3>
+            <p className="font-bold text-slate-500 mb-6">좋아하는 DJ나 강사를 팔로우하고 소식을 받아보세요.</p>
+            <button onClick={() => handleMenuClick('find')} className="px-6 py-3 bg-indigo-600 text-white font-black rounded-2xl hover:bg-black transition-colors shadow-lg shadow-indigo-200">아티스트 찾기</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {follows.map((f) => {
-                if (!f.profiles) return null;
-                return <ProfessionalCard key={f.id} professional={f.profiles} index={0} />;
-             })}
+            {follows.map((f: any) => (
+              <div key={f.followId} className="relative group">
+                <ProfessionalCard
+                  professional={f.profile}
+                  index={0}
+                  currentUserId={user?.id}
+                  initialFollowed={true}
+                />
+                <button
+                  onClick={() => handleUnfollow(f.followId, f.profile.uid)}
+                  className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-slate-500 rounded-xl text-[11px] font-black border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/30 dark:hover:text-rose-400"
+                >
+                  언팔로우
+                </button>
+              </div>
+            ))}
           </div>
         )
       )}
